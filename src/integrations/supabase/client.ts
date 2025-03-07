@@ -43,10 +43,6 @@ const supabaseOptions = {
     // Configuración optimizada para realtime
     timeout: 30000,
     heartbeatIntervalMs: 15000
-  },
-  db: {
-    // Aumentar timeout para operaciones de base de datos
-    schema: 'public'
   }
 };
 
