@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthProvider';
@@ -53,7 +54,7 @@ const RegisterForm = () => {
         <CardContent>
           <Alert>
             <AlertDescription>
-              {t('auth.verificationSent', { email: userData.email })}
+              {`${t('auth.verificationSent')} ${userData.email}`}
             </AlertDescription>
           </Alert>
           <div className="mt-6 text-center">
