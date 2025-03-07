@@ -238,7 +238,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // Función comentada para uso futuro
   const loginWithSocialMedia = async (provider: string) => {
+    /* 
     setIsLoading(true);
     try {
       if (provider === 'google') {
@@ -330,6 +332,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } finally {
       setIsLoading(false);
     }
+    */
+    
+    // Versión simplificada para mantener la interfaz funcionando
+    console.log(`Inicio de sesión con ${provider} está desactivado temporalmente`);
   };
 
   const logout = () => {

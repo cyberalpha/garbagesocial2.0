@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Mail, Lock, User, LogIn, Facebook, Instagram } from 'lucide-react';
-import GoogleSignInButton from './GoogleSignInButton';
+// import GoogleSignInButton from './GoogleSignInButton';
 
 const RegisterForm = () => {
   const [name, setName] = useState('');
@@ -23,9 +23,10 @@ const RegisterForm = () => {
     await register(name, email, password);
   };
 
-  const handleSocialLogin = (provider: string) => {
-    loginWithSocialMedia(provider);
-  };
+  // Función comentada para uso futuro
+  // const handleSocialLogin = (provider: string) => {
+  //   loginWithSocialMedia(provider);
+  // };
 
   return (
     <Card className="w-full max-w-md mx-auto">
@@ -113,6 +114,7 @@ const RegisterForm = () => {
               {isLoading ? t('general.loading') : t('auth.register')}
             </Button>
             
+            {/* Sección de redes sociales comentada para uso futuro
             <div className="relative my-4">
               <Separator />
               <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-2 text-xs text-gray-400">
@@ -158,6 +160,7 @@ const RegisterForm = () => {
                 TikTok
               </Button>
             </div>
+            */}
           </CardContent>
           <CardFooter className="flex flex-col space-y-2">
             <div className="text-sm text-center">
