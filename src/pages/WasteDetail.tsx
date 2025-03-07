@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
@@ -63,7 +62,7 @@ const WasteDetail = () => {
     // Simulating API call
     setTimeout(() => {
       try {
-        const updatedWaste = commitToCollect(waste.id);
+        const updatedWaste = commitToCollect(waste.id, "current-user-id");
         setWaste(updatedWaste);
         
         // Get recycler data
@@ -90,7 +89,6 @@ const WasteDetail = () => {
     }, 1000);
   };
   
-  // Función para traducir el tipo de residuo
   const getWasteTypeText = (type: string) => {
     switch(type) {
       case 'organic': return 'Orgánico';
@@ -104,7 +102,6 @@ const WasteDetail = () => {
     }
   };
   
-  // Determina el color según el tipo de residuo
   const getWasteTypeColor = (type: string) => {
     switch(type) {
       case 'organic': return 'bg-waste-organic';
@@ -118,7 +115,6 @@ const WasteDetail = () => {
     }
   };
   
-  // Traduce el estado
   const getStatusText = (status: WasteStatus) => {
     switch(status) {
       case 'pending': return 'Pendiente';
@@ -129,7 +125,6 @@ const WasteDetail = () => {
     }
   };
   
-  // Color del estado
   const getStatusColor = (status: WasteStatus) => {
     switch(status) {
       case 'pending': return 'bg-yellow-500';
@@ -140,7 +135,6 @@ const WasteDetail = () => {
     }
   };
   
-  // Formato de fecha
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat('es-ES', {
       day: '2-digit',
@@ -188,7 +182,6 @@ const WasteDetail = () => {
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          {/* Detalles del residuo */}
           <Card>
             <CardHeader className="pb-2">
               <div className="flex justify-between items-start">
@@ -297,7 +290,6 @@ const WasteDetail = () => {
             </CardFooter>
           </Card>
           
-          {/* Mapa */}
           <Card>
             <CardHeader>
               <CardTitle>Ubicación</CardTitle>
@@ -314,7 +306,6 @@ const WasteDetail = () => {
         </div>
         
         <div className="space-y-6">
-          {/* Detalles del publicador */}
           <Card>
             <CardHeader>
               <CardTitle>Publicador</CardTitle>
@@ -352,7 +343,6 @@ const WasteDetail = () => {
             </CardContent>
           </Card>
           
-          {/* Detalles del reciclador si existe */}
           {recycler && (
             <Card>
               <CardHeader>
@@ -392,7 +382,6 @@ const WasteDetail = () => {
             </Card>
           )}
           
-          {/* Acciones */}
           <Tabs defaultValue="actions">
             <TabsList className="w-full grid grid-cols-2">
               <TabsTrigger value="actions">Acciones</TabsTrigger>
