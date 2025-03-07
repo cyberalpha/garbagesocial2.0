@@ -74,7 +74,7 @@ const Footer = () => {
                 </a>
               </li>
               <li>
-                <a href="#" className="text-gray-600 hover:text-primary transition-colors">
+                <a href="https://blog.garbagesocial.com" className="text-gray-600 hover:text-primary transition-colors">
                   Blog
                 </a>
               </li>
