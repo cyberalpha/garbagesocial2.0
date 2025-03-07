@@ -1,35 +1,42 @@
+
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthProvider';
 import { useLanguage } from './LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { Mail, Lock, User, LogIn, Facebook, Instagram, Loader2 } from 'lucide-react';
-// import GoogleSignInButton from './GoogleSignInButton';
+import { Checkbox } from '@/components/ui/checkbox';
+import { User, Mail, Lock, LogIn, Building, User as UserIcon } from 'lucide-react';
+import { User as UserType } from '@/types';
 
 const RegisterForm = () => {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [userData, setUserData] = useState<Partial<UserType>>({
+    name: '',
+    email: '',
+    role: 'publisher',
+    isOrganization: false
+  });
   const [password, setPassword] = useState('');
-  const [resending, setResending] = useState(false);
-  const { register, isLoading, pendingVerification, resendVerificationEmail, loginWithSocialMedia } = useAuth();
+  const { register, isLoading } = useAuth();
   const { t } = useLanguage();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await register(name, email, password);
+    const user = await register(userData);
+    if (user) {
+      navigate('/');
+    }
   };
 
-  const handleResendVerification = async () => {
-    setResending(true);
-    try {
-      await resendVerificationEmail(email);
-    } finally {
-      setResending(false);
-    }
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type, checked } = e.target;
+    setUserData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
   };
 
   return (
@@ -40,104 +47,126 @@ const RegisterForm = () => {
           {t('auth.registerExplanation')}
         </CardDescription>
       </CardHeader>
-      {pendingVerification ? (
+      <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
-          <div className="bg-amber-50 border border-amber-200 rounded-md p-4 text-amber-800">
-            <h3 className="font-semibold mb-2">{t('auth.verificationPending')}</h3>
-            <p className="text-sm mb-3">
-              {t('auth.verificationSent')} <strong>{email}</strong>
-            </p>
-            <Button 
-              variant="outline" 
-              className="w-full" 
-              onClick={handleResendVerification}
-              disabled={resending}
-            >
-              {resending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {t('general.loading')}
-                </>
-              ) : (
-                t('auth.resendVerification')
-              )}
-            </Button>
+          <div className="space-y-2">
+            <Label htmlFor="name">{t('auth.name')}</Label>
+            <div className="relative">
+              <UserIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="name"
+                name="name"
+                type="text"
+                placeholder={t('auth.name')}
+                className="pl-10"
+                value={userData.name || ''}
+                onChange={handleChange}
+                required
+              />
+            </div>
           </div>
-        </CardContent>
-      ) : (
-        <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">{t('auth.name')}</Label>
-              <div className="relative">
-                <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="name"
-                  type="text"
-                  placeholder={t('auth.name')}
-                  className="pl-10"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                />
-              </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="email">{t('auth.email')}</Label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="tu@email.com"
+                className="pl-10"
+                value={userData.email || ''}
+                onChange={handleChange}
+                required
+              />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">{t('auth.email')}</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="tu@email.com"
-                  className="pl-10"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="password">{t('auth.password')}</Label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                placeholder="********"
+                className="pl-10"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">{t('auth.password')}</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="********"
-                  className="pl-10"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
-            
-            <Button 
-              type="submit" 
-              className="w-full" 
-              disabled={isLoading}
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <Checkbox 
+              id="isOrganization" 
+              name="isOrganization"
+              checked={userData.isOrganization || false}
+              onCheckedChange={(checked) => 
+                setUserData(prev => ({...prev, isOrganization: checked === true}))
+              }
+            />
+            <label 
+              htmlFor="isOrganization" 
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
             >
-              {isLoading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <LogIn className="mr-2 h-4 w-4" />
-              )}
-              {isLoading ? t('general.loading') : t('auth.register')}
-            </Button>
-            
-            {/* Sección de redes sociales comentada para uso futuro */}
-          </CardContent>
-          <CardFooter className="flex flex-col space-y-2">
-            <div className="text-sm text-center">
-              {t('auth.alreadyHaveAccount')}{" "}
-              <Link to="/login" className="text-primary hover:underline">
-                {t('auth.login')}
-              </Link>
+              {t('auth.isOrganization')}
+            </label>
+          </div>
+          
+          <div className="space-y-2">
+            <Label>{t('auth.role')}</Label>
+            <div className="flex space-x-4">
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input 
+                  type="radio" 
+                  name="role"
+                  value="publisher"
+                  checked={userData.role === 'publisher'}
+                  onChange={handleChange}
+                  className="form-radio h-4 w-4 text-primary"
+                />
+                <span>{t('auth.publisher')}</span>
+              </label>
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input 
+                  type="radio" 
+                  name="role"
+                  value="recycler"
+                  checked={userData.role === 'recycler'}
+                  onChange={handleChange}
+                  className="form-radio h-4 w-4 text-primary"
+                />
+                <span>{t('auth.recycler')}</span>
+              </label>
             </div>
-          </CardFooter>
-        </form>
-      )}
+          </div>
+          
+          <Button 
+            type="submit" 
+            className="w-full" 
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <div className="animate-spin mr-2">⏳</div>
+            ) : (
+              <LogIn className="mr-2 h-4 w-4" />
+            )}
+            {isLoading ? t('general.loading') : t('auth.register')}
+          </Button>
+        </CardContent>
+        <CardFooter className="flex flex-col space-y-2">
+          <div className="text-sm text-center">
+            {t('auth.alreadyHaveAccount')}{" "}
+            <Link to="/login" className="text-primary hover:underline">
+              {t('auth.login')}
+            </Link>
+          </div>
+        </CardFooter>
+      </form>
     </Card>
   );
 };

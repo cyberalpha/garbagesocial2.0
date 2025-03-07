@@ -11,6 +11,7 @@ export const users: User[] = [
     isOrganization: false,
     averageRating: 4.8,
     profileImage: "https://randomuser.me/api/portraits/women/2.jpg",
+    emailVerified: true,
     location: {
       type: "Point",
       coordinates: [-58.3716, -34.6137]
@@ -24,12 +25,16 @@ export const users: User[] = [
     isOrganization: true,
     averageRating: 4.7,
     profileImage: "https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?q=80&w=200&auto=format&fit=crop",
+    emailVerified: true,
     location: {
       type: "Point",
       coordinates: [-58.3916, -34.5937]
     }
   }
 ];
+
+// For simplicity we'll maintain a local "database" of users
+let localUsers = [...users];
 
 // Images for each waste type
 const wasteTypeImages: Record<WasteType, string> = {
@@ -104,57 +109,82 @@ export const wastes: Waste[] = [
   }
 ];
 
+// For simplicity we'll maintain a local "database" of wastes
+let localWastes = [...wastes];
+
 // Get all wastes
 export const getAllWastes = (): Waste[] => {
-  return wastes;
+  return localWastes;
 };
 
 // Get waste by id
 export const getWasteById = (id: string): Waste | undefined => {
-  return wastes.find(waste => waste.id === id);
+  return localWastes.find(waste => waste.id === id);
 };
 
 // Get wastes by user id
 export const getWastesByUserId = (userId: string): Waste[] => {
-  return wastes.filter(waste => waste.userId === userId);
+  return localWastes.filter(waste => waste.userId === userId);
 };
 
 // Get wastes by type
 export const getWastesByType = (type: WasteType): Waste[] => {
-  return wastes.filter(waste => waste.type === type);
+  return localWastes.filter(waste => waste.type === type);
 };
 
 // Get wastes by status
 export const getWastesByStatus = (status: WasteStatus): Waste[] => {
-  return wastes.filter(waste => waste.status === status);
+  return localWastes.filter(waste => waste.status === status);
 };
 
 // Get all users
 export const getAllUsers = (): User[] => {
-  return users;
+  return localUsers;
 };
 
 // Get user by id
 export const getUserById = (id: string): User | undefined => {
-  return users.find(user => user.id === id);
+  return localUsers.find(user => user.id === id);
 };
 
-// Get current user (mock) - ahora devuelve null para simular que no hay usuario autenticado
-export const getCurrentUser = (): User | null => {
-  return null;
+// Get user by email
+export const getUserByEmail = (email: string): User | undefined => {
+  return localUsers.find(user => user.email === email);
 };
 
-// Add the missing commitToCollect function
+// Add a new user
+export const addUser = (user: User): User => {
+  localUsers.push(user);
+  return user;
+};
+
+// Update a user
+export const updateUser = (userId: string, userData: Partial<User>): User | null => {
+  const index = localUsers.findIndex(user => user.id === userId);
+  if (index === -1) return null;
+  
+  localUsers[index] = { ...localUsers[index], ...userData };
+  return localUsers[index];
+};
+
+// Delete a user
+export const deleteUser = (userId: string): boolean => {
+  const initialLength = localUsers.length;
+  localUsers = localUsers.filter(user => user.id !== userId);
+  return localUsers.length < initialLength;
+};
+
+// Add the commitToCollect function
 export const commitToCollect = (wasteId: string, recyclerId: string): Waste => {
-  const wasteIndex = wastes.findIndex(waste => waste.id === wasteId);
+  const wasteIndex = localWastes.findIndex(waste => waste.id === wasteId);
   
   if (wasteIndex === -1) {
     throw new Error('Waste not found');
   }
   
   // Update the waste status and add pickup commitment
-  wastes[wasteIndex] = {
-    ...wastes[wasteIndex],
+  localWastes[wasteIndex] = {
+    ...localWastes[wasteIndex],
     status: 'in_progress',
     pickupCommitment: {
       recyclerId: recyclerId,
@@ -162,5 +192,5 @@ export const commitToCollect = (wasteId: string, recyclerId: string): Waste => {
     }
   };
   
-  return wastes[wasteIndex];
+  return localWastes[wasteIndex];
 };
