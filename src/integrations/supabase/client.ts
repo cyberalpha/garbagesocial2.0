@@ -12,7 +12,76 @@ export const SUPABASE_CONFIG = {
   key: SUPABASE_PUBLISHABLE_KEY
 };
 
+// Configuración de opciones avanzadas para mejorar la estabilidad
+const supabaseOptions = {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+  },
+  // Incrementamos los tiempos de espera para redes lentas
+  global: {
+    headers: {
+      'x-application-name': 'wasteless-app'
+    },
+    fetch: (url: RequestInfo | URL, options?: RequestInit) => {
+      const controller = new AbortController();
+      const { signal } = controller;
+      
+      // Timeout de 30 segundos para peticiones lentas
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      
+      return fetch(url, { 
+        ...options, 
+        signal,
+        // Caché agresivo para mejorar rendimiento
+        cache: 'default'
+      })
+        .finally(() => clearTimeout(timeoutId));
+    }
+  },
+  realtime: {
+    // Configuración optimizada para realtime
+    timeout: 30000,
+    heartbeatIntervalMs: 15000
+  },
+  db: {
+    // Aumentar timeout para operaciones de base de datos
+    schema: 'public'
+  }
+};
+
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, supabaseOptions);
+
+// Añadimos evento para monitorear la conexión
+supabase.auth.onAuthStateChange((event) => {
+  console.log("Auth state changed:", event);
+  if (event === 'SIGNED_OUT') {
+    // Limpiamos la caché local al cerrar sesión
+    localStorage.removeItem('supabase-auth');
+  }
+});
+
+// Función de utilidad para probar la conexión
+export const testSupabaseConnection = async (): Promise<boolean> => {
+  try {
+    const startTime = Date.now();
+    // Hacemos una consulta ligera para probar conexión
+    const { error } = await supabase.from('profiles').select('count').limit(1).maybeSingle();
+    const latency = Date.now() - startTime;
+    
+    console.log(`Latencia de Supabase: ${latency}ms`);
+    
+    if (error) {
+      console.error("Error de conexión con Supabase:", error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Error al probar conexión con Supabase:", error);
+    return false;
+  }
+};
