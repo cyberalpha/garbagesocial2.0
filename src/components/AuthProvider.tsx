@@ -11,6 +11,10 @@ interface AuthContextType {
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   switchRole: () => void;
+  verifyEmail: (token: string) => Promise<boolean>;
+  loginWithSocialMedia: (provider: string) => Promise<void>;
+  pendingVerification: boolean;
+  resendVerificationEmail: (email: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -30,6 +34,7 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [pendingVerification, setPendingVerification] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -58,6 +63,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const user = users.find(u => u.email === email);
       
       if (user) {
+        // Verificar si el usuario ha verificado su correo electrónico
+        if (!user.emailVerified) {
+          setPendingVerification(true);
+          toast({
+            title: "Verificación pendiente",
+            description: "Por favor, verifica tu correo electrónico antes de iniciar sesión",
+            variant: "destructive"
+          });
+          setIsLoading(false);
+          return;
+        }
+        
         setCurrentUser(user);
         toast({
           title: "Sesión iniciada",
@@ -86,9 +103,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsLoading(true);
     try {
       // Simulación de registro
-      // En una implementación real, enviaríamos los datos al servidor para crear la cuenta
-      
-      // Verificar si el email ya está registrado
       const users = getAllUsers();
       const existingUser = users.find(u => u.email === email);
       
@@ -106,24 +120,124 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         id: `user-${Date.now()}`,
         name,
         email,
-        role: 'publisher', // Por defecto, los nuevos usuarios son publicadores
+        role: 'publisher',
         isOrganization: false,
         averageRating: 0,
-        profileImage: `https://api.dicebear.com/7.x/initials/svg?seed=${name}` // Avatar generado
+        emailVerified: false, // El usuario no está verificado inicialmente
+        profileImage: `https://api.dicebear.com/7.x/initials/svg?seed=${name}`
       };
       
-      // En una implementación real, esto sería manejado por el backend
-      setCurrentUser(newUser);
+      // Simular envío de correo de verificación
+      console.log(`Enviando correo de verificación a ${email}`);
+      
+      // En una implementación real, el usuario no se establecería como currentUser hasta después de la verificación
+      // Pero para simular, lo guardamos en localStorage para la verificación
+      localStorage.setItem('pendingVerification', JSON.stringify(newUser));
+      
+      setPendingVerification(true);
       
       toast({
         title: "Registro exitoso",
-        description: "Tu cuenta ha sido creada correctamente"
+        description: "Te hemos enviado un correo electrónico de verificación. Por favor, verifica tu correo para completar el registro."
       });
     } catch (error) {
       console.error('Error al registrar usuario:', error);
       toast({
         title: "Error",
         description: "Ocurrió un error durante el registro",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const verifyEmail = async (token: string): Promise<boolean> => {
+    try {
+      // En una implementación real, se enviaría el token al servidor
+      // para verificar y activar la cuenta
+      
+      // Simulación de verificación exitosa
+      const pendingUser = localStorage.getItem('pendingVerification');
+      
+      if (pendingUser) {
+        const user = JSON.parse(pendingUser);
+        user.emailVerified = true;
+        
+        // En una implementación real, el backend actualizaría el usuario en la base de datos
+        setCurrentUser(user);
+        localStorage.removeItem('pendingVerification');
+        setPendingVerification(false);
+        
+        toast({
+          title: "Verificación exitosa",
+          description: "Tu cuenta ha sido verificada. ¡Bienvenido/a a GarbageSocial!"
+        });
+        
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Error al verificar correo:', error);
+      toast({
+        title: "Error de verificación",
+        description: "No pudimos verificar tu correo electrónico. Por favor, intenta nuevamente."
+      });
+      return false;
+    }
+  };
+
+  const resendVerificationEmail = async (email: string) => {
+    try {
+      // Simulación de reenvío de correo
+      console.log(`Reenviando correo de verificación a ${email}`);
+      
+      toast({
+        title: "Correo reenviado",
+        description: "Hemos reenviado el correo de verificación. Por favor, revisa tu bandeja de entrada."
+      });
+    } catch (error) {
+      console.error('Error al reenviar correo:', error);
+      toast({
+        title: "Error",
+        description: "No pudimos reenviar el correo. Intenta nuevamente más tarde."
+      });
+    }
+  };
+
+  const loginWithSocialMedia = async (provider: string) => {
+    setIsLoading(true);
+    try {
+      // Simulación de inicio de sesión con redes sociales
+      console.log(`Iniciando sesión con ${provider}`);
+      
+      // En una implementación real, aquí se integraría con el proveedor de autenticación
+      // para obtener los datos del usuario
+      
+      // Simulamos un usuario que ya existe en el sistema
+      const newUser: User = {
+        id: `user-social-${Date.now()}`,
+        name: `Usuario de ${provider}`,
+        email: `usuario.${provider}@example.com`,
+        role: 'publisher',
+        isOrganization: false,
+        averageRating: 0,
+        emailVerified: true, // Las redes sociales ya verifican el usuario
+        profileImage: `https://api.dicebear.com/7.x/initials/svg?seed=${provider}`
+      };
+      
+      setCurrentUser(newUser);
+      
+      toast({
+        title: "Sesión iniciada",
+        description: `Bienvenido/a ${newUser.name}`
+      });
+    } catch (error) {
+      console.error(`Error al iniciar sesión con ${provider}:`, error);
+      toast({
+        title: "Error de autenticación",
+        description: `No pudimos autenticarte con ${provider}. Por favor, intenta nuevamente.`,
         variant: "destructive"
       });
     } finally {
@@ -156,7 +270,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ currentUser, isLoading, login, register, logout, switchRole }}>
+    <AuthContext.Provider value={{ 
+      currentUser, 
+      isLoading, 
+      login, 
+      register, 
+      logout, 
+      switchRole, 
+      verifyEmail,
+      loginWithSocialMedia,
+      pendingVerification,
+      resendVerificationEmail
+    }}>
       {children}
     </AuthContext.Provider>
   );

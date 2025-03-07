@@ -12,6 +12,7 @@ import WasteDetail from "./pages/WasteDetail";
 import Profile from "./pages/Profile";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import EmailVerification from "./pages/EmailVerification";
 import NotFound from "./pages/NotFound";
 import Navbar from "@/components/Navbar";
 
@@ -38,6 +39,7 @@ const AppRoutes = () => {
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/verify-email" element={<EmailVerification />} />
       <Route path="/map" element={
         <ProtectedRoute>
           <MapView />
