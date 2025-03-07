@@ -11,3 +11,32 @@ export const formatDate = (date: Date) => {
     minute: '2-digit'
   }).format(date);
 };
+
+/**
+ * Translates waste type to Spanish
+ */
+export const getWasteTypeText = (type: string) => {
+  switch(type) {
+    case 'organic': return 'Orgánico';
+    case 'paper': return 'Papel';
+    case 'glass': return 'Vidrio';
+    case 'plastic': return 'Plástico';
+    case 'metal': return 'Metal';
+    case 'sanitary': return 'Control Sanitario';
+    case 'dump': return 'Basural';
+    default: return 'Varios';
+  }
+};
+
+/**
+ * Translates waste status to Spanish
+ */
+export const getStatusText = (status: string) => {
+  switch(status) {
+    case 'pending': return 'Pendiente';
+    case 'in_progress': return 'En proceso';
+    case 'collected': return 'Retirado';
+    case 'canceled': return 'Cancelado';
+    default: return 'Desconocido';
+  }
+};
