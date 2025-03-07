@@ -1,24 +1,21 @@
-
 import React, { useCallback, useRef, useState, useEffect } from 'react';
 import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
 import { GeoLocation, MapOptions, Waste } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
+import { Button } from '@/components/ui/button';
 import MapControls from './MapControls';
 import MapMarkers from './MapMarkers';
 import MapRoutePolyline from './MapRoutePolyline';
 import SelectedWasteCard from './SelectedWasteCard';
 import RouteDisplay from '../RouteDisplay';
 
-// Map container style
 const containerStyle = {
   width: '100%',
   height: '100%'
 };
 
-// Google Maps API Key
 const GOOGLE_MAPS_API_KEY = "AIzaSyBpySf9Hxcg-Awq6VK00R5RGmn3_D9-W9g";
 
-// Map Libraries
 const libraries = ['places', 'geometry'] as any;
 
 interface MapContainerProps {
@@ -84,7 +81,6 @@ const MapContainer = ({
     setMapLoaded(true);
   }, []);
 
-  // Prevent memory issues if the component is unmounted
   useEffect(() => {
     return () => {
       mapRef.current = null;
@@ -93,7 +89,6 @@ const MapContainer = ({
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      // Load example wastes
       setWastes([
         {
           id: '1',
@@ -311,7 +306,6 @@ const MapContainer = ({
         </GoogleMap>
       )}
       
-      {/* Map controls */}
       <MapControls 
         onZoomIn={zoomIn}
         onZoomOut={zoomOut}
@@ -321,7 +315,6 @@ const MapContainer = ({
         isRoutingMode={isRoutingMode}
       />
       
-      {/* Selected waste card */}
       <SelectedWasteCard 
         selectedWaste={selectedWaste}
         isRoutingMode={isRoutingMode}
@@ -329,7 +322,6 @@ const MapContainer = ({
         onCommit={handleWasteCommit}
       />
       
-      {/* Route planning panel */}
       {isRoutingMode && (
         <div className="absolute bottom-4 left-4 right-4 md:w-96">
           <RouteDisplay 
@@ -343,14 +335,12 @@ const MapContainer = ({
         </div>
       )}
       
-      {/* Error message */}
       {error && (
         <div className="absolute bottom-4 left-4 right-4 bg-red-100 border border-red-200 text-red-800 px-4 py-3 rounded-md">
           {error}
         </div>
       )}
       
-      {/* Loading indicator */}
       {loading && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm">
           <div className="bg-white p-4 rounded-md shadow-lg">
