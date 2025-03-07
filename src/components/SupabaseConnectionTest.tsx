@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { supabase, SUPABASE_CONFIG } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -42,32 +41,41 @@ const SupabaseConnectionTest = () => {
       console.log("Attempting to connect to Supabase...");
       console.log("Supabase URL:", SUPABASE_CONFIG.url);
       
-      // Try to get service status first - lightweight call
-      const { error: pingError } = await supabase.from('_http').select('*').limit(1);
+      // Try to get auth session first - lightweight call
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
       
-      if (pingError) {
-        console.log("Ping failed, trying auth.getSession() instead:", pingError);
-        // If ping fails, try auth - this is typically more reliable
-        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) {
+        console.log("Auth check failed:", sessionError);
+        throw sessionError;
+      }
+      
+      console.log("Auth session check successful:", sessionData);
+      
+      // If auth worked, try a simple data query as well
+      try {
+        const { error: pingError } = await supabase.from('profiles').select('count').limit(1);
         
-        if (sessionError) {
-          throw sessionError;
+        if (pingError) {
+          console.log("Data query failed, but auth worked:", pingError);
+          setIsConnected(true);
+          toast({
+            title: "Partial Connection",
+            description: "Authentication is working but data access may be limited.",
+          });
+        } else {
+          console.log("Supabase connection fully successful!");
+          setIsConnected(true);
+          toast({
+            title: "Connection Successful",
+            description: "The application is properly connected to Supabase.",
+          });
         }
-        
-        // If authentication works but ping failed, we still consider it a success
-        console.log("Auth session check successful:", sessionData);
+      } catch (dataError) {
+        console.log("Data query failed with exception, but auth worked:", dataError);
         setIsConnected(true);
         toast({
           title: "Partial Connection",
           description: "Authentication is working but data access may be limited.",
-        });
-      } else {
-        // Both ping and auth worked
-        console.log("Supabase connection successful!");
-        setIsConnected(true);
-        toast({
-          title: "Connection Successful",
-          description: "The application is properly connected to Supabase.",
         });
       }
       
@@ -83,7 +91,7 @@ const SupabaseConnectionTest = () => {
         timeoutRef.current = null;
       }
       
-      console.error("Unexpected error:", error);
+      console.error("Connection error:", error);
       setIsConnected(false);
       setErrorMessage(error.message || "Unknown error");
       toast({

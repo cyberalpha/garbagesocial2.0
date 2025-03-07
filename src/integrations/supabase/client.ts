@@ -25,8 +25,8 @@ export const supabase = createClient<Database>(
       }
     },
     realtime: {
-      // Disable realtime subscriptions to reduce connection overhead
-      enabled: false
+      // Configure realtime according to available options
+      presence: false
     }
   }
 );
