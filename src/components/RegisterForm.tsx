@@ -1,19 +1,21 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from './AuthProvider';
+import { useLanguage } from './LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Mail, Lock, User, LogIn, Facebook, Instagram } from 'lucide-react';
+import LanguageSelector from './LanguageSelector';
 
 const RegisterForm = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { register, isLoading, pendingVerification, resendVerificationEmail, loginWithSocialMedia } = useAuth();
+  const { t } = useLanguage();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,8 +28,11 @@ const RegisterForm = () => {
 
   return (
     <Card className="w-full max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle className="text-2xl">Crear Cuenta</CardTitle>
+      <CardHeader className="relative">
+        <div className="absolute top-4 right-4">
+          <LanguageSelector />
+        </div>
+        <CardTitle className="text-2xl">{t('auth.register')}</CardTitle>
         <CardDescription>
           Regístrate para empezar a publicar tus residuos reciclables
         </CardDescription>
@@ -35,17 +40,16 @@ const RegisterForm = () => {
       {pendingVerification ? (
         <CardContent className="space-y-4">
           <div className="bg-amber-50 border border-amber-200 rounded-md p-4 text-amber-800">
-            <h3 className="font-semibold mb-2">Verificación de correo pendiente</h3>
+            <h3 className="font-semibold mb-2">{t('auth.verificationPending')}</h3>
             <p className="text-sm mb-3">
-              Te hemos enviado un correo electrónico con un enlace de verificación.
-              Por favor, revisa tu bandeja de entrada y haz clic en el enlace para activar tu cuenta.
+              {t('auth.verificationSent')}
             </p>
             <Button 
               variant="outline" 
               className="w-full" 
               onClick={() => resendVerificationEmail(email)}
             >
-              Reenviar correo de verificación
+              {t('auth.resendVerification')}
             </Button>
           </div>
         </CardContent>
@@ -53,13 +57,13 @@ const RegisterForm = () => {
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Nombre Completo</Label>
+              <Label htmlFor="name">{t('auth.name')}</Label>
               <div className="relative">
                 <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="name"
                   type="text"
-                  placeholder="Tu nombre"
+                  placeholder={t('auth.name')}
                   className="pl-10"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -68,7 +72,7 @@ const RegisterForm = () => {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Correo Electrónico</Label>
+              <Label htmlFor="email">{t('auth.email')}</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -83,7 +87,7 @@ const RegisterForm = () => {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Contraseña</Label>
+              <Label htmlFor="password">{t('auth.password')}</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -108,13 +112,13 @@ const RegisterForm = () => {
               ) : (
                 <LogIn className="mr-2 h-4 w-4" />
               )}
-              {isLoading ? 'Creando cuenta...' : 'Crear Cuenta'}
+              {isLoading ? t('general.loading') : t('auth.register')}
             </Button>
             
             <div className="relative my-4">
               <Separator />
               <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-2 text-xs text-gray-400">
-                O continúa con
+                {t('auth.continueWith')}
               </span>
             </div>
             
@@ -181,9 +185,9 @@ const RegisterForm = () => {
           </CardContent>
           <CardFooter className="flex flex-col space-y-2">
             <div className="text-sm text-center">
-              ¿Ya tienes una cuenta?{" "}
+              {t('auth.alreadyHaveAccount')}{" "}
               <Link to="/login" className="text-primary hover:underline">
-                Iniciar Sesión
+                {t('auth.login')}
               </Link>
             </div>
           </CardFooter>
