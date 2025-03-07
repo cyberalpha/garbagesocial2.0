@@ -13,11 +13,11 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Logo y descripción */}
           <div className="md:col-span-1">
-            <Link to="/" className="flex flex-col items-center md:items-start mb-4">
+            <Link to="/" className="flex flex-col items-center mb-4">
               <img 
                 src="/lovable-uploads/7989feae-08a4-4881-a7f9-239a82906dd2.png" 
                 alt="GarbageSocial Logo" 
-                className="h-12 w-12 mb-2" 
+                className="h-14 w-14 mb-2" 
               />
               <span className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                 GarbageSocial
