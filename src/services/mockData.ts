@@ -148,7 +148,11 @@ export const getAllActiveUsers = (): User[] => {
 
 // Get user by id
 export const getUserById = (id: string): User | undefined => {
-  return localUsers.find(user => user.id === id);
+  console.log('Looking for user with ID:', id);
+  console.log('Available users:', localUsers);
+  const user = localUsers.find(user => user.id === id);
+  console.log('Found user:', user);
+  return user;
 };
 
 // Get active user by id
@@ -168,6 +172,8 @@ export const getActiveUserByEmail = (email: string): User | undefined => {
 
 // Add a new user
 export const addUser = (user: User): User => {
+  console.log('Adding user:', user);
+  
   // Check if user with the same email exists but is deactivated
   const existingUserIndex = localUsers.findIndex(u => u.email === user.email);
   
@@ -178,12 +184,15 @@ export const addUser = (user: User): User => {
       ...user, 
       active: true 
     };
+    console.log('Reactivated user:', localUsers[existingUserIndex]);
     return localUsers[existingUserIndex];
   }
   
   // Add as new user with active status
   const newUser = { ...user, active: true };
   localUsers.push(newUser);
+  console.log('Added new user:', newUser);
+  console.log('Updated users list:', localUsers);
   return newUser;
 };
 

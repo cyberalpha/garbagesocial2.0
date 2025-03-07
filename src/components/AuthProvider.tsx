@@ -35,13 +35,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const loadUser = () => {
       try {
         const savedUserJson = localStorage.getItem(CURRENT_USER_KEY);
+        console.log('Loading user from localStorage:', savedUserJson);
+        
         if (savedUserJson) {
           const savedUser = JSON.parse(savedUserJson);
           // Verify the user still exists and is active in our database
           const existingUser = getUserById(savedUser.id);
+          console.log('Existing user from database:', existingUser);
+          
           if (existingUser && existingUser.active !== false) {
+            console.log('Setting current user from localStorage');
             setCurrentUser(existingUser);
           } else {
+            console.log('User not found in database or inactive, clearing localStorage');
             // Clear invalid user data
             localStorage.removeItem(CURRENT_USER_KEY);
           }
@@ -60,6 +66,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Save user to localStorage whenever it changes
   useEffect(() => {
     if (currentUser) {
+      console.log('Saving user to localStorage:', currentUser);
       localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(currentUser));
     } else {
       localStorage.removeItem(CURRENT_USER_KEY);
