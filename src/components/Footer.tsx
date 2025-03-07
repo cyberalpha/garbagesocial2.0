@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { 
-  Github, Twitter, Facebook, Instagram, Mail, Heart 
+  Github, X, Facebook, Instagram, Mail, Heart 
 } from 'lucide-react';
 
 const Footer = () => {
@@ -25,9 +25,15 @@ const Footer = () => {
               <Button variant="ghost" size="icon" className="rounded-full h-8 w-8">
                 <Github className="h-4 w-4" />
               </Button>
-              <Button variant="ghost" size="icon" className="rounded-full h-8 w-8">
-                <Twitter className="h-4 w-4" />
-              </Button>
+              <a 
+                href="https://x.com/GarbageSocial" 
+                target="_blank" 
+                rel="noopener noreferrer"
+              >
+                <Button variant="ghost" size="icon" className="rounded-full h-8 w-8">
+                  <X className="h-4 w-4" />
+                </Button>
+              </a>
               <a 
                 href="https://www.facebook.com/GarbageSocial/" 
                 target="_blank" 
