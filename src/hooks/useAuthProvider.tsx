@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { User } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
@@ -24,7 +23,6 @@ export const useAuthProvider = () => {
   const { toast } = useToast();
   const { t } = useLanguage();
 
-  // Función para manejar el cambio de sesión
   const handleSessionChange = async (session: any) => {
     try {
       if (session?.user) {
@@ -48,9 +46,7 @@ export const useAuthProvider = () => {
     }
   };
 
-  // Funciones de autenticación
   const login = async (email: string, password: string) => {
-    setIsLoading(true);
     try {
       const { data, error } = await loginUser(email, password);
 
@@ -61,13 +57,15 @@ export const useAuthProvider = () => {
           description: error.message || "Error al iniciar sesión",
           variant: "destructive"
         });
-        return;
+        throw error;
       }
 
-      toast({
-        title: t('general.success'),
-        description: `${t('auth.login')} ${data.user?.email}`,
-      });
+      if (data.user) {
+        toast({
+          title: t('general.success'),
+          description: `${t('auth.login')} ${data.user.email}`,
+        });
+      }
     } catch (error: any) {
       console.error('Error inesperado al iniciar sesión:', error);
       toast({
@@ -75,8 +73,7 @@ export const useAuthProvider = () => {
         description: error.message || "Ocurrió un error durante el inicio de sesión",
         variant: "destructive"
       });
-    } finally {
-      setIsLoading(false);
+      throw error;
     }
   };
 
@@ -172,7 +169,6 @@ export const useAuthProvider = () => {
         return null;
       }
 
-      // Actualizar el perfil en la tabla profiles
       const { data, error } = await updateUserProfile(currentUser.id, userData);
 
       if (error) {
@@ -185,7 +181,6 @@ export const useAuthProvider = () => {
         return null;
       }
 
-      // Si se cambió el email, actualizar también en Auth
       if (userData.email && userData.email !== currentUser.email) {
         const { error: updateAuthError } = await updateUserEmail(userData.email);
 
@@ -200,7 +195,6 @@ export const useAuthProvider = () => {
         }
       }
 
-      // Convertir el perfil actualizado al formato User
       const updatedUser = mapProfileToUser(data);
 
       setCurrentUser(updatedUser);
@@ -236,7 +230,6 @@ export const useAuthProvider = () => {
         return false;
       }
 
-      // Desactivar el perfil en la tabla profiles (soft delete)
       const { error } = await deactivateProfile(currentUser.id);
 
       if (error) {
@@ -249,7 +242,6 @@ export const useAuthProvider = () => {
         return false;
       }
 
-      // Cerrar sesión después de desactivar el perfil
       await logout();
       
       toast({
@@ -303,8 +295,6 @@ export const useAuthProvider = () => {
   };
 
   const verifyEmail = async (token: string) => {
-    // Esta función no se utiliza directamente con Supabase
-    // ya que la verificación se maneja a través de URLs específicas
     return true;
   };
 

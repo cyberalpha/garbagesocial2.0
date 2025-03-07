@@ -12,13 +12,23 @@ import { Mail, Lock, LogIn, UserPlus, Loader2 } from 'lucide-react';
 const LoginForm = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { login, isLoading } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { login } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await login(email, password);
+    setIsSubmitting(true);
+    
+    try {
+      await login(email, password);
+      // La redirección se maneja automáticamente por el AuthProvider
+    } catch (error) {
+      console.error('Error during login:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const goToRegister = () => {
@@ -47,6 +57,7 @@ const LoginForm = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                disabled={isSubmitting}
               />
             </div>
           </div>
@@ -62,6 +73,7 @@ const LoginForm = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                disabled={isSubmitting}
               />
             </div>
           </div>
@@ -69,14 +81,14 @@ const LoginForm = () => {
           <Button 
             type="submit" 
             className="w-full" 
-            disabled={isLoading}
+            disabled={isSubmitting}
           >
-            {isLoading ? (
+            {isSubmitting ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
               <LogIn className="mr-2 h-4 w-4" />
             )}
-            {isLoading ? t('general.loading') : t('auth.login')}
+            {isSubmitting ? t('general.loading') : t('auth.login')}
           </Button>
           
           <Button 
@@ -84,6 +96,7 @@ const LoginForm = () => {
             variant="outline" 
             className="w-full bg-primary/5" 
             onClick={goToRegister}
+            disabled={isSubmitting}
           >
             <UserPlus className="mr-2 h-4 w-4" />
             {t('auth.noAccount')}
