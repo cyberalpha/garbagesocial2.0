@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,7 +27,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Save, X, Trash2 } from 'lucide-react';
+import { Save, X, Trash2, Camera, ImagePlus } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
 
 interface ProfileEditFormProps {
   user: User;
@@ -36,11 +38,15 @@ interface ProfileEditFormProps {
 const ProfileEditForm: React.FC<ProfileEditFormProps> = ({ user, onCancel }) => {
   const { updateProfile, deleteProfile, isLoading } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     name: user.name,
     email: user.email,
     isOrganization: user.isOrganization,
+    profileImage: user.profileImage || '',
   });
+  const [previewImage, setPreviewImage] = useState<string | undefined>(user.profileImage);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -49,6 +55,43 @@ const ProfileEditForm: React.FC<ProfileEditFormProps> = ({ user, onCancel }) => 
 
   const handleToggleChange = (checked: boolean) => {
     setFormData(prev => ({ ...prev, isOrganization: checked }));
+  };
+
+  const handleImageClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Check file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "Error",
+          description: "La imagen no debe superar los 5MB",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Check file type
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Error",
+          description: "El archivo debe ser una imagen",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const result = event.target?.result as string;
+        setPreviewImage(result);
+        setFormData(prev => ({ ...prev, profileImage: result }));
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -74,6 +117,31 @@ const ProfileEditForm: React.FC<ProfileEditFormProps> = ({ user, onCancel }) => 
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
+          <div className="flex flex-col items-center space-y-3">
+            <div className="relative">
+              <Avatar className="w-24 h-24 border-4 border-white shadow-lg cursor-pointer" onClick={handleImageClick}>
+                {previewImage ? (
+                  <AvatarImage src={previewImage} alt={formData.name} />
+                ) : (
+                  <AvatarFallback className="bg-primary/10 text-primary text-xl">
+                    {formData.name.substring(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                )}
+                <div className="absolute bottom-0 right-0 w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white shadow-lg">
+                  <Camera className="h-4 w-4" />
+                </div>
+              </Avatar>
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept="image/*"
+                onChange={handleImageChange}
+              />
+            </div>
+            <span className="text-sm text-muted-foreground">Haz clic para cambiar la foto</span>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="name">Nombre</Label>
             <Input
