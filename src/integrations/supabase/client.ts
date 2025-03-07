@@ -16,6 +16,8 @@ export const supabase = createClient<Database>(
     auth: {
       autoRefreshToken: true,
       persistSession: true,
+      storageKey: 'garbage-social-auth-storage',
+      debug: true
     }
   }
 );

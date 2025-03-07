@@ -9,14 +9,17 @@ import { useToast } from '@/components/ui/use-toast';
 const SupabaseConnectionTest = () => {
   const [isConnected, setIsConnected] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { toast } = useToast();
 
   const testConnection = async () => {
     setIsLoading(true);
     setIsConnected(null);
+    setErrorMessage(null);
     
     try {
-      // Use a simple getSession() API call to check if Supabase is connected
+      // Comprobamos que podemos conectar a Supabase
+      console.log("Intentando conectar a Supabase...");
       const { data, error } = await supabase.auth.getSession();
       
       console.log("Supabase connection test response:", { data, error });
@@ -24,12 +27,14 @@ const SupabaseConnectionTest = () => {
       if (error) {
         console.error("Error de conexión:", error);
         setIsConnected(false);
+        setErrorMessage(error.message);
         toast({
           title: "Error de conexión",
           description: error.message,
           variant: "destructive"
         });
       } else {
+        console.log("Conexión exitosa a Supabase");
         setIsConnected(true);
         toast({
           title: "Conexión exitosa",
@@ -39,6 +44,7 @@ const SupabaseConnectionTest = () => {
     } catch (error: any) {
       console.error("Error inesperado:", error);
       setIsConnected(false);
+      setErrorMessage(error.message || "Error desconocido");
       toast({
         title: "Error inesperado",
         description: "Ocurrió un error al intentar conectar con Supabase",
@@ -55,6 +61,7 @@ const SupabaseConnectionTest = () => {
       if (isLoading) {
         setIsLoading(false);
         setIsConnected(false);
+        setErrorMessage("Tiempo de espera excedido");
         toast({
           title: "Tiempo de espera excedido",
           description: "La conexión a Supabase está tomando demasiado tiempo. Verifica tu conexión a internet o intenta más tarde.",
@@ -93,6 +100,9 @@ const SupabaseConnectionTest = () => {
           <div className="flex flex-col items-center gap-2 text-red-600">
             <XCircle className="h-12 w-12" />
             <p className="text-lg font-medium">No se pudo conectar a Supabase</p>
+            {errorMessage && (
+              <p className="text-sm text-center mt-2 max-w-xs">{errorMessage}</p>
+            )}
           </div>
         )}
       </CardContent>
