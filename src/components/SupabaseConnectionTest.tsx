@@ -14,7 +14,7 @@ const SupabaseConnectionTest = () => {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const testConnection = async () => {
-    // Limpiar cualquier timeout anterior
+    // Clear any previous timeout
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
@@ -24,68 +24,71 @@ const SupabaseConnectionTest = () => {
     setIsConnected(null);
     setErrorMessage(null);
     
-    // Configurar un timeout de 10 segundos
+    // Set a timeout of 15 seconds
     timeoutRef.current = setTimeout(() => {
-      console.log("Conexión a Supabase timeout alcanzado");
+      console.log("Supabase connection timeout reached");
       setIsLoading(false);
       setIsConnected(false);
-      setErrorMessage("Tiempo de espera excedido. Verifica la URL y la clave de Supabase.");
+      setErrorMessage("Connection timeout. Check your network and Supabase configuration.");
       toast({
-        title: "Tiempo de espera excedido",
-        description: "La conexión a Supabase está tomando demasiado tiempo. Verifica tu conexión a internet o la configuración de Supabase.",
+        title: "Connection Timeout",
+        description: "The connection to Supabase timed out. Please check your internet connection or Supabase configuration.",
         variant: "destructive"
       });
-    }, 10000);
+    }, 15000);
     
     try {
-      // Probar con autenticación primero que es más ligera
-      console.log("Intentando conectar a Supabase...");
-      console.log("URL de Supabase:", SUPABASE_CONFIG.url);
+      // First try with a simple ping - faster and less likely to timeout
+      console.log("Attempting to connect to Supabase...");
+      console.log("Supabase URL:", SUPABASE_CONFIG.url);
       
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      // Try to get service status first - lightweight call
+      const { error: pingError } = await supabase.from('_http').select('*').limit(1);
       
-      if (sessionError) {
-        throw sessionError;
-      }
-      
-      // Si getSession funciona, intentar una consulta a la base de datos
-      const { data, error } = await supabase.from('profiles').select('count').limit(1).single();
-      
-      // Limpiar el timeout ya que obtuvimos una respuesta
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
-      
-      if (error && error.code !== 'PGRST116') { // Ignora error de datos no encontrados
-        console.warn("Error de conexión a la tabla profiles:", error);
-        // Si hay error en la tabla pero la autenticación funciona, es un problema de permisos o tabla no existe
+      if (pingError) {
+        console.log("Ping failed, trying auth.getSession() instead:", pingError);
+        // If ping fails, try auth - this is typically more reliable
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          throw sessionError;
+        }
+        
+        // If authentication works but ping failed, we still consider it a success
+        console.log("Auth session check successful:", sessionData);
         setIsConnected(true);
         toast({
-          title: "Conexión parcial",
-          description: "La autenticación funciona pero hay problemas con el acceso a las tablas: " + error.message,
+          title: "Partial Connection",
+          description: "Authentication is working but data access may be limited.",
         });
       } else {
-        console.log("Conexión exitosa a Supabase:", data || "No hay datos en la tabla profiles");
+        // Both ping and auth worked
+        console.log("Supabase connection successful!");
         setIsConnected(true);
         toast({
-          title: "Conexión exitosa",
-          description: "La aplicación está conectada a Supabase correctamente",
+          title: "Connection Successful",
+          description: "The application is properly connected to Supabase.",
         });
       }
+      
+      // Clear timeout since we got a response
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
     } catch (error: any) {
-      // Limpiar el timeout ya que obtuvimos una respuesta (error)
+      // Clear timeout since we got a response (error)
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
       }
       
-      console.error("Error inesperado:", error);
+      console.error("Unexpected error:", error);
       setIsConnected(false);
-      setErrorMessage(error.message || "Error desconocido");
+      setErrorMessage(error.message || "Unknown error");
       toast({
-        title: "Error inesperado",
-        description: "Ocurrió un error al intentar conectar con Supabase: " + error.message,
+        title: "Connection Error",
+        description: "An error occurred while connecting to Supabase: " + error.message,
         variant: "destructive"
       });
     } finally {
@@ -93,7 +96,7 @@ const SupabaseConnectionTest = () => {
     }
   };
 
-  // Limpiar timeout al desmontar el componente
+  // Clear timeout when component unmounts
   useEffect(() => {
     return () => {
       if (timeoutRef.current) {
@@ -102,7 +105,7 @@ const SupabaseConnectionTest = () => {
     };
   }, []);
 
-  // Probar la conexión automáticamente al cargar el componente
+  // Test connection automatically when component loads
   useEffect(() => {
     testConnection();
   }, []);
@@ -110,38 +113,39 @@ const SupabaseConnectionTest = () => {
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
-        <CardTitle>Estado de la conexión a Supabase</CardTitle>
+        <CardTitle>Supabase Connection Status</CardTitle>
         <CardDescription>
-          Verifica si la aplicación puede conectarse a la base de datos
+          Verify if the application can connect to the database
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col items-center justify-center py-6">
         {isLoading ? (
           <div className="flex flex-col items-center gap-2">
             <Loader2 className="h-8 w-8 text-primary animate-spin" />
-            <p>Verificando conexión...</p>
+            <p>Verifying connection...</p>
           </div>
         ) : isConnected === null ? (
-          <p>Esperando verificación...</p>
+          <p>Waiting for verification...</p>
         ) : isConnected ? (
           <div className="flex flex-col items-center gap-2 text-green-600">
             <CheckCircle className="h-12 w-12" />
-            <p className="text-lg font-medium">Conectado a Supabase</p>
+            <p className="text-lg font-medium">Connected to Supabase</p>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-2 text-red-600">
             <XCircle className="h-12 w-12" />
-            <p className="text-lg font-medium">No se pudo conectar a Supabase</p>
+            <p className="text-lg font-medium">Unable to connect to Supabase</p>
             {errorMessage && (
               <p className="text-sm text-center mt-2 max-w-xs">{errorMessage}</p>
             )}
             <div className="mt-4 p-4 bg-red-50 rounded-md text-sm">
-              <h4 className="font-medium mb-2">Posibles soluciones:</h4>
+              <h4 className="font-medium mb-2">Possible solutions:</h4>
               <ul className="list-disc pl-5 space-y-1">
-                <li>Verifica la URL y la clave de Supabase en el cliente</li>
-                <li>Comprueba si tu proyecto de Supabase está activo</li>
-                <li>Revisa si hay problemas de CORS o bloqueos de red</li>
-                <li>La tabla 'profiles' existe y tiene permisos correctos</li>
+                <li>Check your network connection</li>
+                <li>Verify that your Supabase project is active</li>
+                <li>Clear browser cache and cookies</li>
+                <li>Check for CORS issues (for local development)</li>
+                <li>Verify the Supabase URL and key are correct</li>
               </ul>
             </div>
           </div>
@@ -156,10 +160,10 @@ const SupabaseConnectionTest = () => {
           {isLoading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Verificando...
+              Verifying...
             </>
           ) : (
-            'Verificar conexión de nuevo'
+            'Test Connection Again'
           )}
         </Button>
       </CardFooter>

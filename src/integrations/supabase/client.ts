@@ -17,17 +17,22 @@ export const supabase = createClient<Database>(
       autoRefreshToken: true,
       persistSession: true,
       storageKey: 'garbage-social-auth-storage',
-      debug: false
+      detectSessionInUrl: true
     },
     global: {
       headers: {
         'x-application-name': 'garbage-social-app'
       }
+    },
+    realtime: {
+      // Disable realtime subscriptions to reduce connection overhead
+      enabled: false
     }
   }
 );
 
-// Exportamos las constantes de configuración para que puedan ser usadas en otros componentes
+// Export the constants for use in other components
 export const SUPABASE_CONFIG = {
-  url: SUPABASE_URL
+  url: SUPABASE_URL,
+  key: SUPABASE_PUBLISHABLE_KEY
 };
