@@ -8,9 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { User, Mail, Lock, LogIn, Building } from 'lucide-react';
+import { User, Mail, Lock, LogIn, Building, Loader2 } from 'lucide-react';
 import { User as UserType } from '@/types';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const RegisterForm = () => {
   const [userData, setUserData] = useState<Partial<UserType>>({
@@ -19,14 +18,14 @@ const RegisterForm = () => {
     isOrganization: false
   });
   const [password, setPassword] = useState('');
-  const { register, isLoading, pendingVerification, resendVerificationEmail } = useAuth();
+  const { register, isLoading } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const user = await register(userData);
-    if (user && user.emailVerified) {
+    if (user) {
       navigate('/');
     }
   };
@@ -38,42 +37,6 @@ const RegisterForm = () => {
       [name]: type === 'checkbox' ? checked : value
     }));
   };
-
-  const handleResendVerification = async () => {
-    if (userData.email) {
-      await resendVerificationEmail(userData.email);
-    }
-  };
-
-  if (pendingVerification) {
-    return (
-      <Card className="w-full max-w-md mx-auto">
-        <CardHeader>
-          <CardTitle className="text-2xl">{t('auth.verificationPending')}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Alert>
-            <AlertDescription>
-              {`${t('auth.verificationSent')} ${userData.email}`}
-            </AlertDescription>
-          </Alert>
-          <div className="mt-6 text-center">
-            <Button onClick={handleResendVerification} variant="outline">
-              {t('auth.resendVerification')}
-            </Button>
-          </div>
-        </CardContent>
-        <CardFooter className="flex flex-col space-y-2">
-          <div className="text-sm text-center">
-            {t('auth.alreadyHaveAccount')}{" "}
-            <Link to="/login" className="text-primary hover:underline">
-              {t('auth.login')}
-            </Link>
-          </div>
-        </CardFooter>
-      </Card>
-    );
-  }
 
   return (
     <Card className="w-full max-w-md mx-auto">
@@ -159,7 +122,7 @@ const RegisterForm = () => {
             disabled={isLoading}
           >
             {isLoading ? (
-              <div className="animate-spin mr-2">⏳</div>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
               <LogIn className="mr-2 h-4 w-4" />
             )}
