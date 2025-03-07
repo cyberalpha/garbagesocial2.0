@@ -69,22 +69,22 @@ const Footer = () => {
             <h3 className="font-medium text-sm mb-4 text-gray-900">Recursos</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <a href="#" className="text-gray-600 hover:text-primary transition-colors">
+                <a href="#" className="text-gray-600 hover:text-primary transition-colors" target="_blank" rel="noopener noreferrer">
                   Guía de Reciclaje
                 </a>
               </li>
               <li>
-                <a href="https://garbagesocial.blogspot.com" className="text-gray-600 hover:text-primary transition-colors">
+                <a href="https://garbagesocial.blogspot.com" className="text-gray-600 hover:text-primary transition-colors" target="_blank" rel="noopener noreferrer">
                   Blog
                 </a>
               </li>
               <li>
-                <a href="#" className="text-gray-600 hover:text-primary transition-colors">
+                <a href="#" className="text-gray-600 hover:text-primary transition-colors" target="_blank" rel="noopener noreferrer">
                   Preguntas Frecuentes
                 </a>
               </li>
               <li>
-                <a href="#" className="text-gray-600 hover:text-primary transition-colors">
+                <a href="#" className="text-gray-600 hover:text-primary transition-colors" target="_blank" rel="noopener noreferrer">
                   Términos y Condiciones
                 </a>
               </li>
@@ -98,6 +98,8 @@ const Footer = () => {
               <a 
                 href="mailto:contacto@garbagesocial.com" 
                 className="flex items-center text-gray-600 hover:text-primary transition-colors"
+                target="_blank" 
+                rel="noopener noreferrer"
               >
                 <Mail className="h-4 w-4 mr-2" />
                 contacto@garbagesocial.com
