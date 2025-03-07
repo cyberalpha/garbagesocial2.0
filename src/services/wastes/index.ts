@@ -1,5 +1,5 @@
 
-import { Waste, WasteType } from "@/types";
+import { Waste, WasteType, WasteStatus } from "@/types";
 import { WASTES_STORAGE_KEY, initialWastes } from "./constants";
 import { getFromStorage, saveToStorage } from "../localStorage";
 
@@ -66,7 +66,7 @@ export const deleteWaste = (id: string): void => {
 /**
  * Update waste status
  */
-export const updateWasteStatus = (id: string, status: string): Waste | null => {
+export const updateWasteStatus = (id: string, status: WasteStatus): Waste | null => {
   const waste = getWasteById(id);
   
   if (!waste) {
@@ -75,7 +75,7 @@ export const updateWasteStatus = (id: string, status: string): Waste | null => {
   
   const updatedWaste = {
     ...waste,
-    status: status as any
+    status
   };
   
   saveWaste(updatedWaste);
@@ -92,9 +92,9 @@ export const commitToCollect = (wasteId: string, recyclerId: string): Waste | nu
     return null;
   }
   
-  const updatedWaste = {
+  const updatedWaste: Waste = {
     ...waste,
-    status: 'in_progress',
+    status: 'in_progress' as WasteStatus,
     pickupCommitment: {
       recyclerId,
       commitmentDate: new Date()

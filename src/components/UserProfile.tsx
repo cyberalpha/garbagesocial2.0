@@ -9,6 +9,7 @@ import ProfileHeader from './profile/ProfileHeader';
 import ProfileStatistics from './profile/ProfileStatistics';
 import ProfileAchievements from './profile/ProfileAchievements';
 import WasteTabs from './profile/WasteTabs';
+import { getWastesByUserId } from '@/services/users';
 
 interface UserProfileProps {
   userId?: string;
@@ -19,50 +20,13 @@ interface UserProfileProps {
 const UserProfile = ({ userId, isEditable = false, user }: UserProfileProps) => {
   const { deleteProfile } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
-  const [wastes] = useState<Waste[]>([
-    {
-      id: '1',
-      userId: user.id,
-      type: 'plastic',
-      description: 'Botellas de plástico',
-      imageUrl: 'https://images.unsplash.com/photo-1605600659453-128bfdb3a5eb?w=600&auto=format&fit=crop',
-      location: {
-        type: 'Point',
-        coordinates: [-58.3816, -34.6037]
-      },
-      publicationDate: new Date('2023-05-15T10:30:00'),
-      status: 'pending'
-    },
-    {
-      id: '2',
-      userId: user.id,
-      type: 'paper',
-      description: 'Cajas de cartón',
-      imageUrl: 'https://images.unsplash.com/photo-1607625004976-fe1049860b6b?w=600&auto=format&fit=crop',
-      location: {
-        type: 'Point',
-        coordinates: [-58.3712, -34.6083]
-      },
-      publicationDate: new Date('2023-05-14T14:45:00'),
-      status: 'pending'
-    },
-    {
-      id: '3',
-      userId: user.id,
-      type: 'organic',
-      description: 'Restos de poda',
-      location: {
-        type: 'Point',
-        coordinates: [-58.3948, -34.6011]
-      },
-      publicationDate: new Date('2023-05-16T09:15:00'),
-      status: 'collected',
-      pickupCommitment: {
-        recyclerId: 'recycler123',
-        commitmentDate: new Date('2023-05-16T11:00:00')
-      }
+  const [wastes] = useState<Waste[]>(() => {
+    // Get real wastes from the user if we have an ID
+    if (user.id) {
+      return getWastesByUserId(user.id);
     }
-  ]);
+    return [];
+  });
 
   const handleEditClick = () => {
     setIsEditing(true);
@@ -94,7 +58,7 @@ const UserProfile = ({ userId, isEditable = false, user }: UserProfileProps) => 
           
           <Separator className="my-4" />
           
-          <ProfileAchievements />
+          <ProfileAchievements user={user} wastes={wastes} />
         </CardContent>
       </Card>
       
