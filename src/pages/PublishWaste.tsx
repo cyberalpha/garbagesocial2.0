@@ -6,12 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Waste, WasteType } from "@/types";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { getCurrentUser } from "@/services/mockData";
+import { useAuth } from "@/components/AuthProvider";
 import WasteForm from "@/components/WasteForm";
 
 const PublishWaste = () => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { currentUser } = useAuth();
   
   const handleSubmit = (data: {
     type: WasteType;
@@ -23,8 +24,15 @@ const PublishWaste = () => {
     
     // Simulating API call
     setTimeout(() => {
-      // Get current user
-      const currentUser = getCurrentUser();
+      if (!currentUser) {
+        toast({
+          title: "Error",
+          description: "Debes iniciar sesión para publicar un residuo",
+          variant: "destructive"
+        });
+        setIsSubmitting(false);
+        return;
+      }
       
       // Create new waste object
       const newWaste: Partial<Waste> = {
