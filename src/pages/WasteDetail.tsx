@@ -1,28 +1,19 @@
+
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { Waste, User } from '../types';
 import { getWasteById, commitToCollect } from '@/services/wastes';
 import { getUserById } from '@/services/users';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft } from 'lucide-react';
 import { toast } from "@/hooks/use-toast";
-import Map from "@/components/Map";
-import { formatDate } from "@/utils/formatters";
-
-// Import the new components
-import StatusBadge from "@/components/waste-detail/StatusBadge";
-import WasteHeaderInfo from "@/components/waste-detail/WasteHeaderInfo";
-import WasteImageDisplay from "@/components/waste-detail/WasteImageDisplay";
-import LocationInfo from "@/components/waste-detail/LocationInfo";
-import PickupCommitmentInfo from "@/components/waste-detail/PickupCommitmentInfo";
-import ActionButtons from "@/components/waste-detail/ActionButtons";
-import UserCard from "@/components/waste-detail/UserCard";
-import ActionTabs from "@/components/waste-detail/ActionTabs";
+import DetailHeader from '@/components/waste-detail/DetailHeader';
+import DetailMainContent from '@/components/waste-detail/DetailMainContent';
+import DetailMapSection from '@/components/waste-detail/DetailMapSection';
+import DetailSidebar from '@/components/waste-detail/DetailSidebar';
+import LoadingView from '@/components/waste-detail/LoadingView';
+import NotFoundView from '@/components/waste-detail/NotFoundView';
 
 const WasteDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const [waste, setWaste] = useState<Waste | null>(null);
   const [publisher, setPublisher] = useState<User | null>(null);
   const [recycler, setRecycler] = useState<User | null>(null);
@@ -105,104 +96,33 @@ const WasteDetail = () => {
   };
   
   if (loading) {
-    return (
-      <div className="container mx-auto py-8 px-4 text-center">
-        <p>Cargando detalles...</p>
-      </div>
-    );
+    return <LoadingView />;
   }
   
   if (!waste || !publisher) {
-    return (
-      <div className="container mx-auto py-8 px-4 text-center">
-        <p>Residuo no encontrado</p>
-        <Button 
-          variant="ghost" 
-          className="mt-4" 
-          onClick={() => navigate('/')}
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Volver al inicio
-        </Button>
-      </div>
-    );
+    return <NotFoundView />;
   }
   
   return (
     <div className="container mx-auto max-w-4xl py-8 px-4">
-      <Button 
-        variant="ghost" 
-        className="mb-4" 
-        onClick={() => navigate(-1)}
-      >
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Volver
-      </Button>
+      <DetailHeader />
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          <Card>
-            <CardHeader className="pb-2">
-              <div className="flex justify-between items-start">
-                <CardTitle className="text-2xl font-bold">{waste.description}</CardTitle>
-                <StatusBadge status={waste.status} />
-              </div>
-              <WasteHeaderInfo waste={waste} formatDate={formatDate} />
-            </CardHeader>
-            
-            <WasteImageDisplay imageUrl={waste.imageUrl} description={waste.description} />
-            
-            <CardContent className="pt-6 space-y-4">
-              <div className="text-gray-700">{waste.description}</div>
-              
-              <LocationInfo location={waste.location} />
-              
-              {waste.pickupCommitment && (
-                <PickupCommitmentInfo 
-                  commitment={waste.pickupCommitment} 
-                  recycler={recycler} 
-                  formatDate={formatDate}
-                />
-              )}
-            </CardContent>
-            
-            <CardFooter className="pt-0 pb-4">
-              <ActionButtons 
-                waste={waste} 
-                committing={committing} 
-                onCommit={handleCommitToCollect} 
-              />
-            </CardFooter>
-          </Card>
+          <DetailMainContent 
+            waste={waste} 
+            recycler={recycler} 
+            committing={committing} 
+            onCommit={handleCommitToCollect} 
+          />
           
-          <Card>
-            <CardHeader>
-              <CardTitle>Ubicación</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0 h-64">
-              {waste && (
-                <Map
-                  initialOptions={{
-                    center: waste.location.coordinates,
-                    zoom: 15
-                  }}
-                />
-              )}
-            </CardContent>
-          </Card>
+          <DetailMapSection waste={waste} />
         </div>
         
-        <div className="space-y-6">
-          {publisher && (
-            <UserCard user={publisher} title="Publicador" />
-          )}
-          
-          {recycler && (
-            <UserCard user={recycler} title="Reciclador" />
-          )}
-          
-          <ActionTabs />
-        </div>
+        <DetailSidebar 
+          publisher={publisher} 
+          recycler={recycler} 
+        />
       </div>
     </div>
   );
