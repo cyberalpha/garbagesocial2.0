@@ -33,7 +33,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const user = getActiveUserByEmail(email);
       
       if (user) {
-        // Verificar si el correo está verificado
+        // Comentado: Verificación de correo electrónico
+        /*
         if (!user.emailVerified) {
           setPendingVerification(true);
           toast({
@@ -44,6 +45,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setIsLoading(false);
           return;
         }
+        */
         
         setCurrentUser(user);
         toast({
