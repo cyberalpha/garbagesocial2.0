@@ -1,16 +1,16 @@
 
-import React from 'react';
+import React, { memo } from 'react';
 import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
 import { MapOptions } from '@/types';
-import LoadingOverlay from './LoadingOverlay';
-import ErrorMessage from './ErrorMessage';
+import LoadingState from './LoadingState';
+import ErrorState from './ErrorState';
 
 const containerStyle = {
   width: '100%',
   height: '100%'
 };
 
-// Definimos las bibliotecas que necesitamos para Google Maps
+// Bibliotecas necesarias para Google Maps
 const libraries = ['places', 'geometry'] as any;
 
 interface GoogleMapWrapperProps {
@@ -19,8 +19,22 @@ interface GoogleMapWrapperProps {
   onMapLoad: (map: google.maps.Map) => void;
 }
 
+// Opciones fijas para el mapa de Google
+const defaultMapOptions = {
+  fullscreenControl: false,
+  streetViewControl: false,
+  mapTypeControl: false,
+  zoomControl: false,
+  styles: [
+    {
+      featureType: "poi",
+      elementType: "labels",
+      stylers: [{ visibility: "off" }]
+    }
+  ]
+};
+
 const GoogleMapWrapper = ({ children, mapOptions, onMapLoad }: GoogleMapWrapperProps) => {
-  // Usamos la clave API encontrada en el repositorio anterior
   const GOOGLE_MAPS_API_KEY = "AIzaSyDoOHTnpE8apO6OzsrAnbv-JMx3_K1xfNY";
 
   console.log("Using Google Maps API Key:", GOOGLE_MAPS_API_KEY ? "Key is present" : "No key found");
@@ -36,11 +50,11 @@ const GoogleMapWrapper = ({ children, mapOptions, onMapLoad }: GoogleMapWrapperP
   console.log("GoogleMapWrapper:", isLoaded ? "API loaded" : "Loading API", loadError ? `Error: ${loadError.message}` : "No errors");
 
   if (loadError) {
-    return <ErrorMessage message={`Error al cargar Google Maps: ${loadError.message || "Comprueba que has configurado la API Key correctamente"}`} />;
+    return <ErrorState message={`Error al cargar Google Maps: ${loadError.message || "Comprueba que has configurado la API Key correctamente"}`} />;
   }
 
   if (!isLoaded) {
-    return <LoadingOverlay message="Cargando mapa..." />;
+    return <LoadingState message="Cargando mapa..." />;
   }
 
   return (
@@ -52,23 +66,12 @@ const GoogleMapWrapper = ({ children, mapOptions, onMapLoad }: GoogleMapWrapperP
       }}
       zoom={mapOptions.zoom}
       onLoad={onMapLoad}
-      options={{
-        fullscreenControl: false,
-        streetViewControl: false,
-        mapTypeControl: false,
-        zoomControl: false,
-        styles: [
-          {
-            featureType: "poi",
-            elementType: "labels",
-            stylers: [{ visibility: "off" }]
-          }
-        ]
-      }}
+      options={defaultMapOptions}
     >
       {children}
     </GoogleMap>
   );
 };
 
-export default GoogleMapWrapper;
+// Uso de memo para evitar renderizados innecesarios
+export default memo(GoogleMapWrapper);

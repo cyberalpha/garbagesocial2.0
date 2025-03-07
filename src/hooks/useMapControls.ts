@@ -19,33 +19,37 @@ export const useMapControls = ({ mapOptions, location }: UseMapControlsProps) =>
 
   const zoomIn = useCallback(() => {
     if (mapRef.current) {
-      mapRef.current.setZoom((mapRef.current.getZoom() || mapOptions.zoom) + 1);
+      const currentZoom = mapRef.current.getZoom() || mapOptions.zoom;
+      mapRef.current.setZoom(currentZoom + 1);
     }
   }, [mapOptions.zoom]);
 
   const zoomOut = useCallback(() => {
     if (mapRef.current) {
-      mapRef.current.setZoom((mapRef.current.getZoom() || mapOptions.zoom) - 1);
+      const currentZoom = mapRef.current.getZoom() || mapOptions.zoom;
+      mapRef.current.setZoom(currentZoom - 1);
     }
   }, [mapOptions.zoom]);
 
   const centerOnUser = useCallback(() => {
-    if (location && mapRef.current) {
-      mapRef.current.panTo({ 
-        lat: location.coordinates[1], 
-        lng: location.coordinates[0] 
-      });
-      toast({
-        title: "Centrado en tu ubicación",
-        description: "El mapa se ha centrado en tu posición actual",
-      });
-    } else {
+    if (!location || !mapRef.current) {
       toast({
         title: "Ubicación no disponible",
         description: "No se pudo encontrar tu ubicación",
         variant: "destructive"
       });
+      return;
     }
+    
+    mapRef.current.panTo({ 
+      lat: location.coordinates[1], 
+      lng: location.coordinates[0] 
+    });
+    
+    toast({
+      title: "Centrado en tu ubicación",
+      description: "El mapa se ha centrado en tu posición actual",
+    });
   }, [location, toast]);
 
   return {

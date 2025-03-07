@@ -4,8 +4,8 @@ import { Waste, MapOptions } from '../types';
 import useGeolocation from '../hooks/useGeolocation';
 import useRouteOptimization from '../hooks/useRouteOptimization';
 import MapContainer from './map/MapContainer';
-import LoadingOverlay from './map/LoadingOverlay';
-import ErrorMessage from './map/ErrorMessage';
+import LoadingState from './map/LoadingState';
+import ErrorState from './map/ErrorState';
 
 interface MapProps {
   initialOptions?: Partial<MapOptions>;
@@ -19,14 +19,12 @@ const Map = ({ initialOptions, onMarkerClick, showRouteTools = false }: MapProps
   
   console.log("Map rendering, geolocation:", geolocation.location ? "available" : "unavailable");
   
-  // Si hay error de geolocalización, mostramos el mensaje
   if (geolocation.error) {
-    return <ErrorMessage message={geolocation.error} />;
+    return <ErrorState message={geolocation.error} />;
   }
   
-  // Si está cargando la geolocalización, mostramos el overlay de carga
   if (geolocation.loading) {
-    return <LoadingOverlay message="Obteniendo ubicación..." />;
+    return <LoadingState message="Obteniendo ubicación..." />;
   }
   
   return (
