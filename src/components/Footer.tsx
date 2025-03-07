@@ -102,13 +102,13 @@ const Footer = () => {
             <h3 className="font-medium text-sm mb-4 text-gray-900">Contacto</h3>
             <div className="space-y-3 text-sm">
               <a 
-                href="mailto:contacto@garbagesocial.com" 
+                href="mailto:socialgarbage3000@gmail.com" 
                 className="flex items-center text-gray-600 hover:text-primary transition-colors"
                 target="_blank" 
                 rel="noopener noreferrer"
               >
                 <Mail className="h-4 w-4 mr-2" />
-                contacto@garbagesocial.com
+                socialgarbage3000@gmail.com
               </a>
               <p className="text-gray-600">
                 Buenos Aires, Argentina
