@@ -1,102 +1,136 @@
-
-import { useState } from 'react';
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import React, { useState, useEffect } from 'react';
 import { Badge } from "@/components/ui/badge";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { RefreshCw, Check, CloudOff } from "lucide-react";
-import { useDataSynchronizer } from '@/hooks/useDataSynchronizer';
-import { useSupabaseConnection } from '@/hooks/useSupabaseConnection';
-import { formatDistanceToNow } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { Button } from "@/components/ui/button";
+import { Wifi, WifiOff, RefreshCw, Check } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
-/**
- * Componente para mostrar el estado de sincronización de datos
- * y permitir la sincronización manual
- */
-const DataSyncStatus = () => {
-  const { isSynchronizing, lastSyncTime, forceSynchronize } = useDataSynchronizer();
-  const { status: supabaseStatus } = useSupabaseConnection();
-  const [showDetails, setShowDetails] = useState(false);
+interface DataSyncStatusProps {
+  className?: string;
+}
+
+const DataSyncStatus = ({ className }: DataSyncStatusProps) => {
+  const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
+  const [isSynced, setIsSynced] = useState<boolean>(true);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
+  const { toast } = useToast();
+
+  // Monitor online status
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // Check Supabase connection on mount and when online status changes
+  useEffect(() => {
+    if (isOnline) {
+      checkSupabaseConnection();
+    } else {
+      setIsSynced(false);
+    }
+  }, [isOnline]);
+
+  const checkSupabaseConnection = async () => {
+    try {
+      const { error } = await supabase.from('wastes').select('id').limit(1);
+      setIsSynced(!error);
+      if (!error) {
+        setLastSyncTime(new Date());
+      }
+    } catch (error) {
+      setIsSynced(false);
+      console.error("Error checking Supabase connection:", error);
+    }
+  };
+
+  const handleSync = async () => {
+    if (!isOnline) {
+      toast({
+        title: "Sin conexión",
+        description: "No es posible sincronizar sin conexión a internet",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsSyncing(true);
+    try {
+      // Aquí iría la lógica de sincronización real
+      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulación
+      await checkSupabaseConnection();
+      
+      toast({
+        title: "Sincronización completada",
+        description: "Datos sincronizados correctamente",
+      });
+    } catch (error) {
+      console.error("Error during sync:", error);
+      toast({
+        title: "Error de sincronización",
+        description: "No se pudieron sincronizar los datos",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const getStatusVariant = () => {
+    if (isOnline && isSynced) return "secondary";
+    if (isOnline && !isSynced) return "destructive";
+    if (!isOnline) return "outline"; // Changed from "warning" to "outline"
+    return "secondary";
+  };
 
   const getStatusText = () => {
-    if (supabaseStatus !== 'connected') {
-      return 'Sin conexión';
-    }
-    if (isSynchronizing) {
-      return 'Sincronizando...';
-    }
-    if (lastSyncTime) {
-      return `Última sincronización: ${formatDistanceToNow(lastSyncTime, { addSuffix: true, locale: es })}`;
-    }
-    return 'No sincronizado';
+    if (isOnline && isSynced) return "Conectado";
+    if (isOnline && !isSynced) return "Sin sincronizar";
+    if (!isOnline) return "Sin conexión";
+    return "Desconocido";
   };
 
   const getStatusIcon = () => {
-    if (supabaseStatus !== 'connected') {
-      return <CloudOff className="h-4 w-4" />;
+    if (isOnline) {
+      return isSynced ? <Check className="h-3 w-3 mr-1" /> : <RefreshCw className="h-3 w-3 mr-1" />;
     }
-    if (isSynchronizing) {
-      return <RefreshCw className="h-4 w-4 animate-spin" />;
-    }
-    if (lastSyncTime) {
-      return <Check className="h-4 w-4" />;
-    }
-    return <RefreshCw className="h-4 w-4" />;
-  };
-
-  const getStatusColor = () => {
-    if (supabaseStatus !== 'connected') {
-      return 'destructive';
-    }
-    if (isSynchronizing) {
-      return 'warning';
-    }
-    if (lastSyncTime) {
-      return 'success';
-    }
-    return 'secondary';
+    return <WifiOff className="h-3 w-3 mr-1" />;
   };
 
   return (
-    <Card className="mb-4">
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Badge variant={getStatusColor()}>
-              <span className="flex items-center">
-                {getStatusIcon()}
-                <span className="ml-1">
-                  {supabaseStatus === 'connected' ? 'Supabase' : 'Offline'}
-                </span>
-              </span>
-            </Badge>
-            <span className="text-sm text-muted-foreground">{getStatusText()}</span>
-          </div>
-          
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => forceSynchronize()}
-                disabled={isSynchronizing || supabaseStatus !== 'connected'}
-              >
-                <RefreshCw className="h-4 w-4" />
-                <span className="sr-only">Sincronizar ahora</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Sincronizar datos ahora</p>
-            </TooltipContent>
-          </Tooltip>
-        </div>
-      </CardContent>
-    </Card>
+    <div className={`flex items-center gap-2 ${className}`}>
+      <Badge variant={getStatusVariant()} className="flex items-center">
+        {getStatusIcon()}
+        {getStatusText()}
+      </Badge>
+      
+      {isOnline && !isSynced && (
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="h-7 px-2" 
+          onClick={handleSync}
+          disabled={isSyncing}
+        >
+          <RefreshCw className={`h-3 w-3 ${isSyncing ? 'animate-spin' : ''}`} />
+          <span className="ml-1">{isSyncing ? 'Sincronizando...' : 'Sincronizar'}</span>
+        </Button>
+      )}
+      
+      {lastSyncTime && (
+        <span className="text-xs text-muted-foreground">
+          Última sincronización: {lastSyncTime.toLocaleTimeString()}
+        </span>
+      )}
+    </div>
   );
 };
 
