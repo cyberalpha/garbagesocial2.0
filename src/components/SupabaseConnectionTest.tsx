@@ -16,8 +16,10 @@ const SupabaseConnectionTest = () => {
     setIsConnected(null);
     
     try {
-      // Use a simple getRoles() API call to check if Supabase is connected
-      const { error } = await supabase.auth.getSession();
+      // Use a simple getSession() API call to check if Supabase is connected
+      const { data, error } = await supabase.auth.getSession();
+      
+      console.log("Supabase connection test response:", { data, error });
       
       if (error) {
         console.error("Error de conexión:", error);
@@ -34,7 +36,7 @@ const SupabaseConnectionTest = () => {
           description: "La aplicación está conectada a Supabase correctamente",
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error inesperado:", error);
       setIsConnected(false);
       toast({
@@ -47,9 +49,23 @@ const SupabaseConnectionTest = () => {
     }
   };
 
-  // Probar la conexión automáticamente al cargar el componente
+  // Probar la conexión automáticamente al cargar el componente, con un timeout
   useEffect(() => {
+    const connectionTimeout = setTimeout(() => {
+      if (isLoading) {
+        setIsLoading(false);
+        setIsConnected(false);
+        toast({
+          title: "Tiempo de espera excedido",
+          description: "La conexión a Supabase está tomando demasiado tiempo. Verifica tu conexión a internet o intenta más tarde.",
+          variant: "destructive"
+        });
+      }
+    }, 10000); // 10 segundos de timeout
+
     testConnection();
+
+    return () => clearTimeout(connectionTimeout);
   }, []);
 
   return (
