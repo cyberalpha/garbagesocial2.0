@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,12 +14,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import useGeolocation from '../hooks/useGeolocation';
-import { WasteType, GeoLocation } from '../types';
+import { WasteType } from '../types';
 import { Camera, Trash2, MapPin, Upload, Loader } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
+import useGeolocation from '../hooks/useGeolocation';
 
-const WasteForm = () => {
+interface WasteFormProps {
+  onSubmit: (data: {
+    type: WasteType;
+    description: string;
+    imageUrl?: string;
+    location: { lat: number; lng: number };
+  }) => void;
+  isSubmitting: boolean;
+}
+
+const WasteForm = ({ onSubmit, isSubmitting }: WasteFormProps) => {
   const { toast } = useToast();
   const { location, error, loading } = useGeolocation();
   
@@ -26,8 +37,7 @@ const WasteForm = () => {
   const [description, setDescription] = useState('');
   const [image, setImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [customLocation, setCustomLocation] = useState<GeoLocation | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [customLocation, setCustomLocation] = useState<{ lat: number; lng: number } | null>(null);
   
   // Para futura implementación: usar la ubicación personalizada
   const [usingCustomLocation, setUsingCustomLocation] = useState(false);
@@ -133,31 +143,18 @@ const WasteForm = () => {
       return;
     }
     
-    setIsSubmitting(true);
+    // Preparar los datos para enviar
+    const formData = {
+      type: wasteType as WasteType,
+      description,
+      imageUrl: imagePreview || undefined,
+      location: customLocation || { 
+        lat: location?.coordinates[1] || 0, 
+        lng: location?.coordinates[0] || 0 
+      }
+    };
     
-    // Simular envío a API
-    setTimeout(() => {
-      console.log({
-        type: wasteType,
-        description,
-        image,
-        location: customLocation || location
-      });
-      
-      // Notificar éxito
-      toast({
-        title: "Publicación exitosa",
-        description: "Tu residuo ha sido publicado correctamente",
-      });
-      
-      // Reiniciar formulario
-      setWasteType('');
-      setDescription('');
-      setImage(null);
-      setImagePreview(null);
-      setCustomLocation(null);
-      setIsSubmitting(false);
-    }, 1500);
+    onSubmit(formData);
   };
   
   return (

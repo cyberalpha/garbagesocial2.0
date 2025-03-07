@@ -1,57 +1,14 @@
+
 import { useState, useEffect, useRef } from 'react';
-import useGeolocation from '../hooks/useGeolocation';
 import { Waste, MapOptions } from '../types';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import MapMarker from './MapMarker';
 import WasteCard from './WasteCard';
 import { Locate, Layers, ZoomIn, ZoomOut, X } from 'lucide-react';
+import useGeolocation from '../hooks/useGeolocation';
 
-const sampleWastes: Waste[] = [
-  {
-    id: '1',
-    userId: 'user123456789',
-    type: 'plastic',
-    description: 'Botellas de plástico',
-    imageUrl: 'https://images.unsplash.com/photo-1605600659453-128bfdb3a5eb?w=600&auto=format&fit=crop',
-    location: {
-      type: 'Point',
-      coordinates: [-58.3816, -34.6037]
-    },
-    publicationDate: new Date('2023-05-15T10:30:00'),
-    status: 'pending'
-  },
-  {
-    id: '2',
-    userId: 'user987654321',
-    type: 'paper',
-    description: 'Cajas de cartón',
-    imageUrl: 'https://images.unsplash.com/photo-1607625004976-fe1049860b6b?w=600&auto=format&fit=crop',
-    location: {
-      type: 'Point',
-      coordinates: [-58.3712, -34.6083]
-    },
-    publicationDate: new Date('2023-05-14T14:45:00'),
-    status: 'pending'
-  },
-  {
-    id: '3',
-    userId: 'user246813579',
-    type: 'organic',
-    description: 'Restos de poda',
-    location: {
-      type: 'Point',
-      coordinates: [-58.3948, -34.6011]
-    },
-    publicationDate: new Date('2023-05-16T09:15:00'),
-    status: 'in_progress',
-    pickupCommitment: {
-      recyclerId: 'recycler123',
-      commitmentDate: new Date('2023-05-16T11:00:00')
-    }
-  }
-];
-
+// Tipos de mapa
 interface MapProps {
   initialOptions?: Partial<MapOptions>;
   onMarkerClick?: (waste: Waste) => void;
@@ -71,7 +28,51 @@ const Map = ({ initialOptions, onMarkerClick }: MapProps) => {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setWastes(sampleWastes);
+      // Cargar desechos de ejemplo
+      setWastes([
+        {
+          id: '1',
+          userId: 'user123456789',
+          type: 'plastic',
+          description: 'Botellas de plástico',
+          imageUrl: 'https://images.unsplash.com/photo-1605600659453-128bfdb3a5eb?w=600&auto=format&fit=crop',
+          location: {
+            type: 'Point',
+            coordinates: [-58.3816, -34.6037]
+          },
+          publicationDate: new Date('2023-05-15T10:30:00'),
+          status: 'pending'
+        },
+        {
+          id: '2',
+          userId: 'user987654321',
+          type: 'paper',
+          description: 'Cajas de cartón',
+          imageUrl: 'https://images.unsplash.com/photo-1607625004976-fe1049860b6b?w=600&auto=format&fit=crop',
+          location: {
+            type: 'Point',
+            coordinates: [-58.3712, -34.6083]
+          },
+          publicationDate: new Date('2023-05-14T14:45:00'),
+          status: 'pending'
+        },
+        {
+          id: '3',
+          userId: 'user246813579',
+          type: 'organic',
+          description: 'Restos de poda',
+          location: {
+            type: 'Point',
+            coordinates: [-58.3948, -34.6011]
+          },
+          publicationDate: new Date('2023-05-16T09:15:00'),
+          status: 'in_progress',
+          pickupCommitment: {
+            recyclerId: 'recycler123',
+            commitmentDate: new Date('2023-05-16T11:00:00')
+          }
+        }
+      ]);
     }, 1000);
     
     return () => clearTimeout(timer);

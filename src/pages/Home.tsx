@@ -1,140 +1,203 @@
+
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Waste, WasteType } from "@/types";
+import { Waste } from "@/types";
+import { MapPin, Upload, Filter } from "lucide-react";
+import { getAllWastes } from "@/services/mockData";
 import Hero from "@/components/Hero";
 import WasteCard from "@/components/WasteCard";
 import Footer from "@/components/Footer";
-import { getAllWastes } from "@/services/mockData";
-import { MapPin, Plus, Filter } from "lucide-react";
-
-const wasteTypeLabels: Record<WasteType, string> = {
-  organic: 'Orgánico',
-  paper: 'Papel',
-  glass: 'Vidrio',
-  plastic: 'Plástico',
-  metal: 'Metal',
-  sanitary: 'Sanitario',
-  dump: 'Basural',
-  various: 'Varios'
-};
 
 const Home = () => {
-  const [wastes, setWastes] = useState<Waste[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedType, setSelectedType] = useState<WasteType | null>(null);
   const navigate = useNavigate();
+  const [wastes, setWastes] = useState<Waste[]>([]);
+  const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'in_progress' | 'collected'>('all');
+  const [loading, setLoading] = useState(true);
   
   useEffect(() => {
-    // Get all wastes
-    const allWastes = getAllWastes();
-    setWastes(allWastes);
-    setLoading(false);
+    setLoading(true);
+    // Simular carga de datos
+    const timer = setTimeout(() => {
+      const fetchedWastes = getAllWastes();
+      setWastes(fetchedWastes);
+      setLoading(false);
+    }, 1000);
+    
+    return () => clearTimeout(timer);
   }, []);
   
-  const handleFilterClick = (type: WasteType | null) => {
-    setSelectedType(type);
-    if (type) {
-      const filtered = getAllWastes().filter(waste => waste.type === type);
-      setWastes(filtered);
-    } else {
-      setWastes(getAllWastes());
-    }
+  const handleNavigateToPublish = () => {
+    navigate('/publish');
   };
   
-  const wasteTypes: WasteType[] = [
-    'organic', 'paper', 'glass', 'plastic', 
-    'metal', 'sanitary', 'dump', 'various'
-  ];
+  const handleNavigateToMap = () => {
+    navigate('/map');
+  };
+  
+  const handleWasteClick = (wasteId: string) => {
+    navigate(`/waste/${wasteId}`);
+  };
+  
+  // Filtrar los residuos según la pestaña activa
+  const filteredWastes = wastes.filter(waste => {
+    if (activeTab === 'all') return true;
+    return waste.status === activeTab;
+  });
+  
+  // Obtener wastes destacados
+  const featuredWastes = wastes.slice(0, 3);
   
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="flex flex-col min-h-screen">
       <Hero />
       
-      <div className="container mx-auto px-4 py-8 flex-grow">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold">Residuos Recientes</h2>
-          <div className="flex space-x-2">
-            <Button 
-              variant="outline" 
-              onClick={() => navigate('/map')}
-            >
-              <MapPin className="mr-2 h-4 w-4" />
-              Ver Mapa
-            </Button>
-            <Button 
-              onClick={() => navigate('/publish')}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Publicar
-            </Button>
-          </div>
+      <main className="flex-grow container mx-auto py-8 px-4 md:px-6">
+        {/* Sección de acciones */}
+        <div className="flex flex-col md:flex-row gap-4 mb-8">
+          <Button 
+            className="flex-1 h-auto py-6 bg-primary/90 hover:bg-primary"
+            onClick={handleNavigateToPublish}
+          >
+            <div className="flex flex-col items-center">
+              <Upload className="h-8 w-8 mb-2" />
+              <span className="text-lg font-medium">Publicar Residuo</span>
+              <span className="text-xs mt-1 text-white/80">
+                Comparte tus desechos para reciclar
+              </span>
+            </div>
+          </Button>
+          
+          <Button 
+            variant="outline"
+            className="flex-1 h-auto py-6 border-primary/20"
+            onClick={handleNavigateToMap}
+          >
+            <div className="flex flex-col items-center">
+              <MapPin className="h-8 w-8 mb-2 text-primary" />
+              <span className="text-lg font-medium">Ver Mapa</span>
+              <span className="text-xs mt-1 text-muted-foreground">
+                Encuentra residuos para recolectar
+              </span>
+            </div>
+          </Button>
         </div>
         
-        {/* Filter Tabs */}
-        <div className="mb-6 overflow-x-auto pb-2">
-          <div className="flex space-x-2">
-            <Button 
-              variant={selectedType === null ? "default" : "outline"}
-              size="sm"
-              onClick={() => handleFilterClick(null)}
-            >
-              Todos
-            </Button>
-            
-            {wasteTypes.map(type => (
-              <Button 
-                key={type}
-                variant={selectedType === type ? "default" : "outline"}
-                size="sm"
-                className={selectedType === type ? `bg-waste-${type}` : ""}
-                onClick={() => handleFilterClick(type)}
-              >
-                {wasteTypeLabels[type]}
-              </Button>
-            ))}
-          </div>
-        </div>
-        
-        {/* Wastes List */}
-        {loading ? (
-          <div className="text-center py-8">
-            <p>Cargando residuos...</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {wastes.length > 0 ? (
-              wastes.map(waste => (
-                <Card key={waste.id} className="h-full">
-                  <CardContent className="p-4 h-full">
-                    <WasteCard 
-                      waste={waste} 
-                      onClick={() => navigate(`/waste/${waste.id}`)} 
-                    />
+        {/* Residuos destacados */}
+        <section className="mb-12">
+          <h2 className="text-2xl font-bold mb-6">Publicaciones Recientes</h2>
+          
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[...Array(3)].map((_, i) => (
+                <Card key={i} className="h-80 animate-pulse">
+                  <CardContent className="p-0">
+                    <div className="h-40 bg-gray-200 rounded-t-lg" />
+                    <div className="p-4 space-y-3">
+                      <div className="h-4 bg-gray-200 rounded w-3/4" />
+                      <div className="h-4 bg-gray-200 rounded w-1/2" />
+                      <div className="h-4 bg-gray-200 rounded w-5/6" />
+                    </div>
                   </CardContent>
                 </Card>
-              ))
-            ) : (
-              <div className="col-span-full text-center py-8">
-                <p className="text-muted-foreground">
-                  No hay residuos para mostrar
-                </p>
-                {selectedType && (
-                  <Button 
-                    variant="link"
-                    onClick={() => handleFilterClick(null)}
-                    className="mt-2"
-                  >
-                    Quitar filtro
-                  </Button>
-                )}
-              </div>
-            )}
+              ))}
+            </div>
+          ) : featuredWastes.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {featuredWastes.map(waste => (
+                <WasteCard 
+                  key={waste.id} 
+                  waste={waste} 
+                  onClick={() => handleWasteClick(waste.id)} 
+                />
+              ))}
+            </div>
+          ) : (
+            <Card className="p-8 text-center">
+              <p className="text-muted-foreground mb-4">
+                No hay publicaciones para mostrar
+              </p>
+              <Button onClick={handleNavigateToPublish}>
+                <Upload className="mr-2 h-4 w-4" />
+                Publicar mi primer residuo
+              </Button>
+            </Card>
+          )}
+          
+          {featuredWastes.length > 0 && (
+            <div className="text-center mt-6">
+              <Button variant="outline" onClick={handleNavigateToMap}>
+                Ver todas las publicaciones
+              </Button>
+            </div>
+          )}
+        </section>
+        
+        {/* Lista completa de residuos */}
+        <section>
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold">Todos los Residuos</h2>
+            <Button variant="ghost" size="sm">
+              <Filter className="mr-2 h-4 w-4" />
+              Filtrar
+            </Button>
           </div>
-        )}
-      </div>
+          
+          <Tabs 
+            defaultValue="all" 
+            value={activeTab}
+            onValueChange={(value) => setActiveTab(value as any)}
+            className="w-full"
+          >
+            <TabsList className="w-full grid grid-cols-4">
+              <TabsTrigger value="all">Todos</TabsTrigger>
+              <TabsTrigger value="pending">Pendientes</TabsTrigger>
+              <TabsTrigger value="in_progress">En Proceso</TabsTrigger>
+              <TabsTrigger value="collected">Recolectados</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value={activeTab} className="mt-6">
+              {loading ? (
+                <div className="grid grid-cols-1 gap-4 animate-pulse">
+                  {[...Array(5)].map((_, i) => (
+                    <Card key={i} className="h-24">
+                      <CardContent className="p-4 flex items-center justify-between">
+                        <div className="space-y-2 flex-1">
+                          <div className="h-4 bg-gray-200 rounded w-1/3" />
+                          <div className="h-4 bg-gray-200 rounded w-1/2" />
+                        </div>
+                        <div className="h-8 w-8 bg-gray-200 rounded-full" />
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : filteredWastes.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredWastes.map(waste => (
+                    <WasteCard 
+                      key={waste.id} 
+                      waste={waste} 
+                      onClick={() => handleWasteClick(waste.id)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <Card className="p-8 text-center">
+                  <p className="text-muted-foreground mb-4">
+                    No hay residuos {activeTab !== 'all' ? `con estado "${activeTab}"` : ''} para mostrar
+                  </p>
+                  <Button onClick={handleNavigateToPublish}>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Publicar un residuo
+                  </Button>
+                </Card>
+              )}
+            </TabsContent>
+          </Tabs>
+        </section>
+      </main>
       
       <Footer />
     </div>

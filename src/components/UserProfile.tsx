@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { User, Waste, UserRole } from '../types';
@@ -21,70 +22,57 @@ import { Separator } from "@/components/ui/separator";
 import { Edit, Star, Award, Recycle, Upload, BarChart3 } from 'lucide-react';
 import WasteCard from './WasteCard';
 
-// Datos de ejemplo
-const sampleUser: User = {
-  id: 'user123',
-  name: 'Juan Pérez',
-  email: 'juan@example.com',
-  role: 'publisher',
-  isOrganization: false,
-  averageRating: 4.5,
-  profileImage: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=300&h=300&q=80'
-};
-
-const sampleWastes: Waste[] = [
-  {
-    id: '1',
-    userId: 'user123',
-    type: 'plastic',
-    description: 'Botellas de plástico',
-    imageUrl: 'https://images.unsplash.com/photo-1605600659453-128bfdb3a5eb?w=600&auto=format&fit=crop',
-    location: {
-      type: 'Point',
-      coordinates: [-58.3816, -34.6037]
-    },
-    publicationDate: new Date('2023-05-15T10:30:00'),
-    status: 'pending'
-  },
-  {
-    id: '2',
-    userId: 'user123',
-    type: 'paper',
-    description: 'Cajas de cartón',
-    imageUrl: 'https://images.unsplash.com/photo-1607625004976-fe1049860b6b?w=600&auto=format&fit=crop',
-    location: {
-      type: 'Point',
-      coordinates: [-58.3712, -34.6083]
-    },
-    publicationDate: new Date('2023-05-14T14:45:00'),
-    status: 'pending'
-  },
-  {
-    id: '3',
-    userId: 'user123',
-    type: 'organic',
-    description: 'Restos de poda',
-    location: {
-      type: 'Point',
-      coordinates: [-58.3948, -34.6011]
-    },
-    publicationDate: new Date('2023-05-16T09:15:00'),
-    status: 'collected',
-    pickupCommitment: {
-      recyclerId: 'recycler123',
-      commitmentDate: new Date('2023-05-16T11:00:00')
-    }
-  }
-];
-
 interface UserProfileProps {
-  userId?: string; // Si no se proporciona, se usa el usuario de ejemplo
+  userId?: string;
   isEditable?: boolean;
+  user: User;
 }
 
-const UserProfile = ({ userId, isEditable = false }: UserProfileProps) => {
-  const [user] = useState<User>(sampleUser);
-  const [wastes] = useState<Waste[]>(sampleWastes);
+const UserProfile = ({ userId, isEditable = false, user }: UserProfileProps) => {
+  const [wastes] = useState<Waste[]>([
+    {
+      id: '1',
+      userId: user.id,
+      type: 'plastic',
+      description: 'Botellas de plástico',
+      imageUrl: 'https://images.unsplash.com/photo-1605600659453-128bfdb3a5eb?w=600&auto=format&fit=crop',
+      location: {
+        type: 'Point',
+        coordinates: [-58.3816, -34.6037]
+      },
+      publicationDate: new Date('2023-05-15T10:30:00'),
+      status: 'pending'
+    },
+    {
+      id: '2',
+      userId: user.id,
+      type: 'paper',
+      description: 'Cajas de cartón',
+      imageUrl: 'https://images.unsplash.com/photo-1607625004976-fe1049860b6b?w=600&auto=format&fit=crop',
+      location: {
+        type: 'Point',
+        coordinates: [-58.3712, -34.6083]
+      },
+      publicationDate: new Date('2023-05-14T14:45:00'),
+      status: 'pending'
+    },
+    {
+      id: '3',
+      userId: user.id,
+      type: 'organic',
+      description: 'Restos de poda',
+      location: {
+        type: 'Point',
+        coordinates: [-58.3948, -34.6011]
+      },
+      publicationDate: new Date('2023-05-16T09:15:00'),
+      status: 'collected',
+      pickupCommitment: {
+        recyclerId: 'recycler123',
+        commitmentDate: new Date('2023-05-16T11:00:00')
+      }
+    }
+  ]);
   const [activeTab, setActiveTab] = useState('published');
   
   // Función para renderizar las estrellas de calificación
@@ -235,7 +223,10 @@ const UserProfile = ({ userId, isEditable = false }: UserProfileProps) => {
             {filteredWastes.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredWastes.map(waste => (
-                  <WasteCard key={waste.id} waste={waste} />
+                  <WasteCard 
+                    key={waste.id} 
+                    waste={waste} 
+                  />
                 ))}
               </div>
             ) : (

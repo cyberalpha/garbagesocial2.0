@@ -9,9 +9,10 @@ import { Clock, MapPin, User, AlertCircle } from 'lucide-react';
 interface WasteCardProps {
   waste: Waste;
   onCommit?: (waste: Waste) => void;
+  onClick?: () => void;
 }
 
-const WasteCard = ({ waste, onCommit }: WasteCardProps) => {
+const WasteCard = ({ waste, onCommit, onClick }: WasteCardProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   
   // Formato de fecha
@@ -76,7 +77,10 @@ const WasteCard = ({ waste, onCommit }: WasteCardProps) => {
   };
 
   return (
-    <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg">
+    <Card 
+      className={`overflow-hidden transition-all duration-300 hover:shadow-lg ${onClick ? 'cursor-pointer' : ''}`}
+      onClick={onClick}
+    >
       {/* Imagen si existe */}
       {waste.imageUrl && (
         <div className="relative h-48 overflow-hidden">
@@ -153,14 +157,20 @@ const WasteCard = ({ waste, onCommit }: WasteCardProps) => {
         <Button 
           variant="ghost" 
           size="sm"
-          onClick={() => setIsExpanded(!isExpanded)}
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsExpanded(!isExpanded);
+          }}
         >
           {isExpanded ? 'Ver menos' : 'Ver más'}
         </Button>
         
         {waste.status === 'pending' && onCommit && (
           <Button 
-            onClick={() => onCommit(waste)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onCommit(waste);
+            }}
             size="sm"
             className="gap-1"
           >

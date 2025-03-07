@@ -1,13 +1,13 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import UserProfile from "@/components/UserProfile";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, Waste } from "@/types";
 import { ArrowLeft } from "lucide-react";
 import { getUserById, getWastesByUserId } from "@/services/mockData";
 import WasteCard from "@/components/WasteCard";
+import UserProfile from "@/components/UserProfile";
 
 const Profile = () => {
   const { id } = useParams<{ id: string }>();
@@ -30,6 +30,10 @@ const Profile = () => {
     }
     setLoading(false);
   }, [id]);
+  
+  const handleNavigateToWaste = (wasteId: string) => {
+    navigate(`/waste/${wasteId}`);
+  };
   
   if (loading) {
     return (
@@ -67,42 +71,6 @@ const Profile = () => {
       </Button>
       
       <UserProfile user={user} />
-      
-      <div className="mt-8">
-        <Tabs defaultValue="published">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="published">Publicaciones</TabsTrigger>
-            <TabsTrigger value="collected">Recolecciones</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="published" className="mt-4">
-            {wastes.length > 0 ? (
-              <div className="space-y-4">
-                {wastes.map(waste => (
-                  <Card key={waste.id}>
-                    <CardContent className="p-4">
-                      <WasteCard 
-                        waste={waste} 
-                        onClick={() => navigate(`/waste/${waste.id}`)} 
-                      />
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <p className="text-center py-8 text-muted-foreground">
-                No hay publicaciones para mostrar
-              </p>
-            )}
-          </TabsContent>
-          
-          <TabsContent value="collected" className="mt-4">
-            <p className="text-center py-8 text-muted-foreground">
-              No hay recolecciones para mostrar
-            </p>
-          </TabsContent>
-        </Tabs>
-      </div>
     </div>
   );
 };

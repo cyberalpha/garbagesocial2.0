@@ -1,18 +1,16 @@
 
 import { useState, useEffect } from 'react';
+import { GeoLocation } from '@/types';
 
 interface GeolocationState {
-  coordinates: {
-    latitude: number;
-    longitude: number;
-  } | null;
+  location: GeoLocation | null;
   error: string | null;
   loading: boolean;
 }
 
 const useGeolocation = () => {
   const [state, setState] = useState<GeolocationState>({
-    coordinates: null,
+    location: null,
     error: null,
     loading: true
   });
@@ -30,9 +28,9 @@ const useGeolocation = () => {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         setState({
-          coordinates: {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude
+          location: {
+            type: 'Point',
+            coordinates: [position.coords.longitude, position.coords.latitude]
           },
           error: null,
           loading: false

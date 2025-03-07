@@ -1,13 +1,13 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import WasteForm from "@/components/WasteForm"; // Corregido: importar como default
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Waste, WasteType } from "@/types";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { getCurrentUser } from "@/services/mockData";
+import WasteForm from "@/components/WasteForm";
 
 const PublishWaste = () => {
   const navigate = useNavigate();
@@ -36,7 +36,7 @@ const PublishWaste = () => {
           type: "Point",
           coordinates: [data.location.lng, data.location.lat]
         },
-        publicationDate: new Date(), // Corregido: usando publicationDate en lugar de createdAt
+        publicationDate: new Date(),
         status: "pending"
       };
       
