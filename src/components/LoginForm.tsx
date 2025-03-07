@@ -51,8 +51,26 @@ const LoginForm = () => {
           variant: "destructive"
         });
         setIsSubmitting(false);
+        return; // Añadido return para evitar continuar con el código
       }
-      // Si no hay error y hay datos de usuario, se manejará por el useEffect que observa currentUser
+      
+      // Si no hay usuario después de iniciar sesión, también mostrar error
+      if (!response.data || !response.data.user) {
+        toast({
+          title: t('general.error'),
+          description: "No se pudo obtener la información del usuario. Por favor intenta nuevamente.",
+          variant: "destructive"
+        });
+        setIsSubmitting(false);
+        return; // Añadido return para evitar continuar con el código
+      }
+      
+      // El useEffect que observa currentUser manejará la redirección
+      toast({
+        title: t('general.success'),
+        description: "Has iniciado sesión correctamente.",
+      });
+      
     } catch (error: any) {
       console.error('Error durante el inicio de sesión:', error);
       toast({
