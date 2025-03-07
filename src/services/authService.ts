@@ -1,18 +1,23 @@
-
 import { User } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 
 // Función para iniciar sesión
 export const loginUser = async (email: string, password: string) => {
-  return await supabase.auth.signInWithPassword({
+  console.log('Attempting login with:', email);
+  const response = await supabase.auth.signInWithPassword({
     email,
     password
   });
+  
+  // Log the response for debugging
+  console.log('Login response:', response);
+  return response;
 };
 
 // Función para registrar un usuario
 export const registerUser = async (userData: Partial<User> & { password?: string }) => {
-  return await supabase.auth.signUp({
+  console.log('Registering user with email:', userData.email);
+  const response = await supabase.auth.signUp({
     email: userData.email || '',
     password: userData.password || '',
     options: {
@@ -23,6 +28,10 @@ export const registerUser = async (userData: Partial<User> & { password?: string
       }
     }
   });
+  
+  // Log the response for debugging
+  console.log('Registration response:', response);
+  return response;
 };
 
 // Función para cerrar sesión

@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Mail, Lock, LogIn, UserPlus, Loader2 } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
 
 const LoginForm = () => {
   const [email, setEmail] = useState('');
@@ -16,16 +17,32 @@ const LoginForm = () => {
   const { login } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!email || !password) {
+      toast({
+        title: t('general.error'),
+        description: "Por favor, ingresa tu email y contraseña",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setIsSubmitting(true);
     
     try {
       await login(email, password);
-      // La redirección se maneja automáticamente por el AuthProvider
-    } catch (error) {
+      // Successful login is handled by AuthProvider through the session change
+    } catch (error: any) {
       console.error('Error during login:', error);
+      toast({
+        title: t('general.error'),
+        description: error.message || "Error al iniciar sesión. Por favor verifica tus credenciales.",
+        variant: "destructive"
+      });
     } finally {
       setIsSubmitting(false);
     }

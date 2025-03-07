@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { User, Mail, Lock, LogIn, Building, Loader2 } from 'lucide-react';
 import { User as UserType } from '@/types';
+import { useToast } from '@/components/ui/use-toast';
 
 const RegisterForm = () => {
   const [userData, setUserData] = useState<Partial<UserType> & { password?: string }>({
@@ -18,21 +19,54 @@ const RegisterForm = () => {
     isOrganization: false,
     password: ''
   });
-  const { register, isLoading } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { register } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validar datos
     if (!userData.name || !userData.email || !userData.password) {
+      toast({
+        title: t('general.error'),
+        description: "Por favor completa todos los campos requeridos",
+        variant: "destructive"
+      });
       return;
     }
     
-    const user = await register(userData);
-    if (user) {
-      navigate('/');
+    if (userData.password && userData.password.length < 6) {
+      toast({
+        title: t('general.error'),
+        description: "La contraseña debe tener al menos 6 caracteres",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      const user = await register(userData);
+      if (user) {
+        toast({
+          title: t('general.success'),
+          description: "Registro exitoso. ¡Bienvenido!",
+        });
+        navigate('/');
+      }
+    } catch (error: any) {
+      console.error('Error en registro:', error);
+      toast({
+        title: t('general.error'),
+        description: error.message || "Error al registrar usuario",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -67,6 +101,7 @@ const RegisterForm = () => {
                 value={userData.name || ''}
                 onChange={handleChange}
                 required
+                disabled={isSubmitting}
               />
             </div>
           </div>
@@ -84,6 +119,7 @@ const RegisterForm = () => {
                 value={userData.email || ''}
                 onChange={handleChange}
                 required
+                disabled={isSubmitting}
               />
             </div>
           </div>
@@ -102,6 +138,7 @@ const RegisterForm = () => {
                 onChange={handleChange}
                 required
                 minLength={6}
+                disabled={isSubmitting}
               />
             </div>
           </div>
@@ -114,6 +151,7 @@ const RegisterForm = () => {
               onCheckedChange={(checked) => 
                 setUserData(prev => ({...prev, isOrganization: checked === true}))
               }
+              disabled={isSubmitting}
             />
             <label 
               htmlFor="isOrganization" 
@@ -126,14 +164,14 @@ const RegisterForm = () => {
           <Button 
             type="submit" 
             className="w-full" 
-            disabled={isLoading}
+            disabled={isSubmitting}
           >
-            {isLoading ? (
+            {isSubmitting ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
               <LogIn className="mr-2 h-4 w-4" />
             )}
-            {isLoading ? t('general.loading') : t('auth.register')}
+            {isSubmitting ? t('general.loading') : t('auth.register')}
           </Button>
         </CardContent>
         <CardFooter className="flex flex-col space-y-2">
