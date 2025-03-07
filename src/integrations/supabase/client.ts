@@ -45,3 +45,8 @@ export const supabase = createClient<Database>(
     }
   }
 );
+
+// Exportamos las constantes de configuración para que puedan ser usadas en otros componentes
+export const SUPABASE_CONFIG = {
+  url: SUPABASE_URL
+};

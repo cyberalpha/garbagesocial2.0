@@ -40,7 +40,7 @@ const SupabaseConnectionTest = () => {
     try {
       // Probar primero con una consulta sencilla para verificar la conexión
       console.log("Intentando conectar a Supabase...");
-      console.log("URL de Supabase:", supabase.supabaseUrl);
+      // En lugar de acceder a supabaseUrl directamente, usamos las constantes de configuración
       
       const { data, error } = await supabase.from('profiles').select('count').limit(1);
       
