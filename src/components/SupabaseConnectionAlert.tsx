@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useSupabaseConnection } from '@/hooks/useSupabaseConnection';
-import { Database, DatabaseOff, CloudOff, RefreshCw } from 'lucide-react';
+import { Database, CloudOff, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
@@ -40,7 +40,7 @@ const SupabaseConnectionAlert = ({ className }: SupabaseConnectionAlertProps) =>
       case 'connected':
         return <Database className="h-5 w-5 text-white" />;
       case 'disconnected':
-        return <DatabaseOff className="h-5 w-5 text-white" />;
+        return <CloudOff className="h-5 w-5 text-white" />;
       case 'connecting':
         return <RefreshCw className="h-5 w-5 text-white animate-spin" />;
       default:
