@@ -1,5 +1,5 @@
 import React, { useState, useEffect, ReactNode } from 'react';
-import { getCurrentUser, getAllUsers } from '@/services/mockData';
+import { getAllUsers } from '@/services/mockData';
 import { User, UserRole } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
 import { useLanguage } from './LanguageContext';
@@ -20,36 +20,23 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [pendingVerification, setPendingVerification] = useState(false);
   const { toast } = useToast();
   const { t, language } = useLanguage();
 
   useEffect(() => {
-    const loadUser = async () => {
-      try {
-        const user = getCurrentUser();
-        setCurrentUser(user);
-      } catch (error) {
-        console.error('Error al cargar usuario:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadUser();
-  }, []);
-
-  useEffect(() => {
     const pendingUserData = localStorage.getItem('pendingVerification');
     if (pendingUserData) {
       setPendingVerification(true);
+      console.log('Hay una verificación de correo pendiente');
     }
   }, []);
 
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
+      console.log(`Intentando iniciar sesión con: ${email}`);
       const users = getAllUsers();
       const user = users.find(u => u.email === email);
       
@@ -92,6 +79,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const register = async (name: string, email: string, password: string) => {
     setIsLoading(true);
     try {
+      console.log(`Registrando nuevo usuario: ${name} (${email})`);
       const users = getAllUsers();
       const existingUser = users.find(u => u.email === email);
       
@@ -128,7 +116,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const verificationUrl = generateVerificationUrl(verificationToken);
       
       console.log("Enviando correo de verificación a:", email);
-      console.log("URL de verificación:", verificationUrl);
       
       await sendVerificationEmail(
         email, 
@@ -159,11 +146,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const verifyEmail = async (token: string): Promise<boolean> => {
     try {
+      console.log('Verificando token de correo:', token);
       const pendingUser = localStorage.getItem('pendingVerification');
       
       if (pendingUser) {
         const user = JSON.parse(pendingUser);
         user.emailVerified = true;
+        
+        console.log('Usuario verificado:', user);
         
         setCurrentUser(user);
         localStorage.removeItem('pendingVerification');
@@ -177,6 +167,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return true;
       }
       
+      console.log('No se encontró ninguna verificación pendiente');
       return false;
     } catch (error) {
       console.error('Error al verificar correo:', error);

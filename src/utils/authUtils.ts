@@ -3,13 +3,19 @@ import { User } from '@/types';
 
 // Utilitaria para simular el envío de correo
 export const sendVerificationEmail = (to: string, emailContent: any, userLanguage: string) => {
-  console.log(`Simulando envío de correo a ${to} en idioma: ${userLanguage}`);
+  console.log(`--------------------------------`);
+  console.log(`📧 SIMULACIÓN DE ENVÍO DE CORREO`);
+  console.log(`--------------------------------`);
+  console.log(`Destinatario: ${to}`);
+  console.log(`Idioma: ${userLanguage}`);
   console.log(`Asunto: ${emailContent.subject}`);
+  console.log(`Título: ${emailContent.title || ''}`);
   console.log(`Contenido: ${emailContent.text}`);
+  console.log(`Texto del botón: ${emailContent.buttonText || ''}`);
   console.log(`URL de verificación: ${emailContent.verificationUrl}`);
+  console.log(`--------------------------------`);
   
   // En un entorno real, aquí llamaríamos a un servicio de correo
-  // Para simular que el correo fue enviado correctamente, mostramos un mensaje en la consola
   console.log('✅ Correo enviado exitosamente (simulación)');
   
   return new Promise<void>((resolve) => {

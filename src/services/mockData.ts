@@ -1,20 +1,8 @@
+
 import { User, Waste, WasteType, WasteStatus, UserRole } from "@/types";
 
 // Mock users data
 export const users: User[] = [
-  {
-    id: "1",
-    name: "Juan Pérez",
-    email: "juan@example.com",
-    role: "publisher",
-    isOrganization: false,
-    averageRating: 4.5,
-    profileImage: "https://randomuser.me/api/portraits/men/1.jpg",
-    location: {
-      type: "Point",
-      coordinates: [-58.3816, -34.6037]
-    }
-  },
   {
     id: "2",
     name: "María López",
@@ -57,22 +45,10 @@ const wasteTypeImages: Record<WasteType, string> = {
 
 // Mock waste data
 export const wastes: Waste[] = [
-  {
-    id: "1",
-    userId: "1",
-    type: "plastic",
-    description: "Botellas de plástico para reciclar",
-    imageUrl: wasteTypeImages.plastic,
-    location: {
-      type: "Point",
-      coordinates: [-58.3816, -34.6037]
-    },
-    publicationDate: new Date("2024-06-10T10:00:00Z"),
-    status: "pending"
-  },
+  // Modificamos los wastes para asignarlos a usuarios existentes
   {
     id: "2",
-    userId: "1",
+    userId: "2",  // Ahora pertenece a María López
     type: "paper",
     description: "Cajas de cartón y periódicos",
     imageUrl: wasteTypeImages.paper,
@@ -83,7 +59,7 @@ export const wastes: Waste[] = [
     publicationDate: new Date("2024-06-09T15:30:00Z"),
     status: "in_progress",
     pickupCommitment: {
-      recyclerId: "2",
+      recyclerId: "3",  // Ahora EcoRecycle
       commitmentDate: new Date("2024-06-09T16:30:00Z")
     }
   },
@@ -115,7 +91,7 @@ export const wastes: Waste[] = [
   },
   {
     id: "5",
-    userId: "1",
+    userId: "2",
     type: "metal",
     description: "Latas de aluminio",
     imageUrl: wasteTypeImages.metal,
@@ -163,14 +139,13 @@ export const getUserById = (id: string): User | undefined => {
   return users.find(user => user.id === id);
 };
 
-// Get current user (mock)
-export const getCurrentUser = (): User => {
-  return users[0];
+// Get current user (mock) - ahora devuelve null para simular que no hay usuario autenticado
+export const getCurrentUser = (): User | null => {
+  return null;
 };
 
 // Add the missing commitToCollect function
-export const commitToCollect = (wasteId: string): Waste => {
-  const currentUser = getCurrentUser();
+export const commitToCollect = (wasteId: string, recyclerId: string): Waste => {
   const wasteIndex = wastes.findIndex(waste => waste.id === wasteId);
   
   if (wasteIndex === -1) {
@@ -182,7 +157,7 @@ export const commitToCollect = (wasteId: string): Waste => {
     ...wastes[wasteIndex],
     status: 'in_progress',
     pickupCommitment: {
-      recyclerId: currentUser.id,
+      recyclerId: recyclerId,
       commitmentDate: new Date()
     }
   };
