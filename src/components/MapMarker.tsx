@@ -17,14 +17,14 @@ const MapMarker = ({ waste, onClick, isSelected, routeOrder }: MapMarkerProps) =
   // Determina el color según el tipo de residuo
   const getMarkerColor = () => {
     switch(waste.type) {
-      case 'organic': return 'bg-waste-organic';
-      case 'paper': return 'bg-waste-paper';
-      case 'glass': return 'bg-waste-glass';
-      case 'plastic': return 'bg-waste-plastic';
-      case 'metal': return 'bg-waste-metal';
-      case 'sanitary': return 'bg-waste-sanitary';
-      case 'dump': return 'bg-waste-dump';
-      default: return 'bg-waste-various';
+      case 'organic': return 'bg-green-500'; // Verde
+      case 'paper': return 'bg-yellow-500'; // Amarillo
+      case 'glass': return 'bg-amber-100'; // Marfil
+      case 'plastic': return 'bg-blue-500'; // Azul
+      case 'metal': return 'bg-gray-400'; // Gris
+      case 'sanitary': return 'bg-red-500'; // Rojo
+      case 'dump': return 'bg-purple-500'; // Púrpura
+      default: return 'bg-gray-800'; // Negro para varios
     }
   };
 
@@ -85,6 +85,11 @@ const MapMarker = ({ waste, onClick, isSelected, routeOrder }: MapMarkerProps) =
               )}
             </div>
             <div className="text-xs text-gray-500 truncate">{waste.description}</div>
+            <div className="text-xs text-slate-400 mt-1">
+              {waste.status === 'pending' ? 'Pendiente' : 
+               waste.status === 'in_progress' ? 'En proceso' : 
+               waste.status === 'collected' ? 'Recolectado' : 'Cancelado'}
+            </div>
           </CardContent>
         </Card>
       )}

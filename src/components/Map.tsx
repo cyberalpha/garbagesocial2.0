@@ -9,6 +9,7 @@ import RouteDisplay from './RouteDisplay';
 import { Locate, Layers, ZoomIn, ZoomOut, X, MapPin, Route as RouteIcon } from 'lucide-react';
 import useGeolocation from '../hooks/useGeolocation';
 import useRouteOptimization from '../hooks/useRouteOptimization';
+import { toast } from '@/components/ui/use-toast';
 
 // Tipos de mapa
 interface MapProps {
@@ -24,6 +25,7 @@ const Map = ({ initialOptions, onMarkerClick, showRouteTools = false }: MapProps
   const [selectedWaste, setSelectedWaste] = useState<Waste | null>(null);
   const [mapInitialized, setMapInitialized] = useState(false);
   const [isRoutingMode, setIsRoutingMode] = useState(false);
+  const [mapUrl, setMapUrl] = useState<string>('');
   
   const {
     selectedWastes,
@@ -39,6 +41,21 @@ const Map = ({ initialOptions, onMarkerClick, showRouteTools = false }: MapProps
     center: initialOptions?.center || [-58.3816, -34.6037],
     zoom: initialOptions?.zoom || 13
   });
+
+  // Función para actualizar la URL del mapa
+  useEffect(() => {
+    // Construye una URL de mapa estático con los marcadores
+    const generateMapUrl = () => {
+      const baseUrl = 'https://api.mapbox.com/styles/v1/mapbox/light-v10/static';
+      const center = `${mapOptions.center[0]},${mapOptions.center[1]},${mapOptions.zoom},0`;
+      const dimensions = '1200x800';
+      const token = 'pk.eyJ1IjoibG92YWJsZXRlc3QiLCJhIjoiY2xzaGx3NTQ3MDkycjJsbm9nNTR5b2ZiNCJ9.QANl9BQ-yV5sjQ6-hpYxXQ';
+      
+      return `${baseUrl}/${center}/${dimensions}?access_token=${token}`;
+    };
+
+    setMapUrl(generateMapUrl());
+  }, [mapOptions]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -99,6 +116,10 @@ const Map = ({ initialOptions, onMarkerClick, showRouteTools = false }: MapProps
         center: location.coordinates
       }));
       setMapInitialized(true);
+      toast({
+        title: "Ubicación encontrada",
+        description: `Posición actual: ${location.coordinates[1].toFixed(4)}, ${location.coordinates[0].toFixed(4)}`,
+      });
     }
   }, [location, mapInitialized]);
 
@@ -122,12 +143,26 @@ const Map = ({ initialOptions, onMarkerClick, showRouteTools = false }: MapProps
         ...prev,
         center: location.coordinates
       }));
+      toast({
+        title: "Centrado en tu ubicación",
+        description: "El mapa se ha centrado en tu posición actual.",
+      });
+    } else {
+      toast({
+        title: "Ubicación no disponible",
+        description: "No se pudo encontrar tu ubicación.",
+        variant: "destructive"
+      });
     }
   };
 
   const handleMarkerClick = (waste: Waste) => {
     if (isRoutingMode) {
       selectWaste(waste);
+      toast({
+        title: "Punto agregado a la ruta",
+        description: `${waste.type} - ${waste.description}`,
+      });
     } else {
       setSelectedWaste(waste);
       if (onMarkerClick) {
@@ -139,6 +174,16 @@ const Map = ({ initialOptions, onMarkerClick, showRouteTools = false }: MapProps
   const handleOptimizeRoute = () => {
     if (location) {
       optimizeRoute(location);
+      toast({
+        title: "Ruta optimizada",
+        description: `Se ha calculado la ruta óptima para ${selectedWastes.length} puntos.`,
+      });
+    } else {
+      toast({
+        title: "No se pudo optimizar",
+        description: "Se necesita tu ubicación para calcular la ruta óptima.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -147,6 +192,15 @@ const Map = ({ initialOptions, onMarkerClick, showRouteTools = false }: MapProps
     if (selectedWaste) setSelectedWaste(null);
     if (!isRoutingMode) {
       clearRoute();
+      toast({
+        title: "Modo ruta activado",
+        description: "Selecciona puntos para crear tu ruta de recolección.",
+      });
+    } else {
+      toast({
+        title: "Modo ruta desactivado",
+        description: "Has salido del modo de planificación de ruta.",
+      });
     }
   };
 
@@ -210,13 +264,16 @@ const Map = ({ initialOptions, onMarkerClick, showRouteTools = false }: MapProps
     return Math.sqrt(x * x + y * y) * 100;
   };
 
+  // Verificar si hay problemas con la renderización del mapa
+  console.log("Map state:", { wastes, location, mapUrl });
+
   return (
     <div className="relative w-full h-full min-h-[400px] bg-gray-100 rounded-lg overflow-hidden">
       <div 
         ref={mapRef} 
         className="w-full h-full bg-[#CCDAE6] relative"
         style={{
-          backgroundImage: 'url("https://api.mapbox.com/styles/v1/mapbox/light-v10/static/-58.3816,-34.6037,12,0/1200x800?access_token=pk.eyJ1IjoibG92YWJsZXRlc3QiLCJhIjoiY2xzaGx3NTQ3MDkycjJsbm9nNTR5b2ZiNCJ9.QANl9BQ-yV5sjQ6-hpYxXQ")',
+          backgroundImage: `url("${mapUrl}")`,
           backgroundSize: 'cover',
           backgroundPosition: 'center'
         }}
