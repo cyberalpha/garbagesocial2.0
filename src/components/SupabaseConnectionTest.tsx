@@ -62,7 +62,7 @@ const SupabaseConnectionTest = () => {
         toast({
           title: "Partial Connection",
           description: "Authentication is working but data access is limited. Check permissions.",
-          variant: "warning"
+          variant: "default" // Changed from "warning" to "default" since "warning" is not a valid variant
         });
       } else {
         console.log("Supabase connection successful! Data:", data);
