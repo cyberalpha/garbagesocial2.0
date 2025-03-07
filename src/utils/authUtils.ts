@@ -1,0 +1,36 @@
+
+import { User } from '@/types';
+
+// Utilitaria para simular el envío de correo
+export const sendVerificationEmail = (to: string, emailContent: any, userLanguage: string) => {
+  console.log(`Simulando envío de correo a ${to} en idioma: ${userLanguage}`);
+  console.log(`Asunto: ${emailContent.subject}`);
+  console.log(`Contenido: ${emailContent.text}`);
+  
+  // En un entorno real, aquí llamaríamos a un servicio de correo
+  return new Promise<void>((resolve) => {
+    setTimeout(() => resolve(), 500); // Simular el tiempo de envío
+  });
+};
+
+// Función para generar un token de verificación
+export const generateVerificationToken = (email: string): string => {
+  return `verify-${Date.now()}-${btoa(email)}`;
+};
+
+// Función para generar una URL de verificación
+export const generateVerificationUrl = (token: string): string => {
+  return `${window.location.origin}/verify-email?token=${token}`;
+};
+
+// Función para preparar el contenido del correo de verificación
+export const prepareVerificationEmail = (t: Function, language: string) => {
+  return {
+    subject: t('email.welcome.subject'),
+    title: t('email.welcome.title'),
+    text: t('email.welcome.text'),
+    buttonText: t('email.welcome.button'),
+    footer: t('email.welcome.footer'),
+    language: language
+  };
+};

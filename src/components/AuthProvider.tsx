@@ -1,48 +1,23 @@
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { useState, useEffect, ReactNode } from 'react';
 import { getCurrentUser, getAllUsers } from '@/services/mockData';
 import { User, UserRole } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
 import { useLanguage } from './LanguageContext';
+import { AuthContext } from '@/contexts/AuthContext';
+import { 
+  sendVerificationEmail, 
+  generateVerificationToken, 
+  generateVerificationUrl,
+  prepareVerificationEmail 
+} from '@/utils/authUtils';
 
-interface AuthContextType {
-  currentUser: User | null;
-  isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
-  logout: () => void;
-  switchRole: () => void;
-  verifyEmail: (token: string) => Promise<boolean>;
-  loginWithSocialMedia: (provider: string) => Promise<void>;
-  pendingVerification: boolean;
-  resendVerificationEmail: (email: string) => Promise<void>;
-}
-
-const AuthContext = createContext<AuthContextType | null>(null);
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth debe ser usado dentro de un AuthProvider');
-  }
-  return context;
-};
+// Re-export useAuth for backwards compatibility
+export { useAuth } from '@/hooks/useAuth';
 
 interface AuthProviderProps {
   children: ReactNode;
 }
-
-// Utilitaria privada para simular el envío de correo
-const sendVerificationEmail = (to: string, emailContent: any, userLanguage: string) => {
-  console.log(`Simulando envío de correo a ${to} en idioma: ${userLanguage}`);
-  console.log(`Asunto: ${emailContent.subject}`);
-  console.log(`Contenido: ${emailContent.text}`);
-  
-  // En un entorno real, aquí llamaríamos a un servicio de correo
-  return new Promise<void>((resolve) => {
-    setTimeout(() => resolve(), 500); // Simular el tiempo de envío
-  });
-};
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -143,15 +118,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       };
       
       const userPreferredLanguage = language;
-      
-      const emailContent = {
-        subject: t('email.welcome.subject'),
-        title: t('email.welcome.title'),
-        text: t('email.welcome.text'),
-        buttonText: t('email.welcome.button'),
-        footer: t('email.welcome.footer'),
-        language: userPreferredLanguage
-      };
+      const emailContent = prepareVerificationEmail(t, userPreferredLanguage);
       
       // Guardar los datos del usuario pendiente en localStorage
       localStorage.setItem('pendingVerification', JSON.stringify({
@@ -160,9 +127,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         emailContent
       }));
       
-      // Generar un token de verificación y añadirlo a una URL
-      const verificationToken = `verify-${Date.now()}-${btoa(email)}`;
-      const verificationUrl = `${window.location.origin}/verify-email?token=${verificationToken}`;
+      // Generar un token de verificación y URL
+      const verificationToken = generateVerificationToken(email);
+      const verificationUrl = generateVerificationUrl(verificationToken);
       
       // Enviar el correo de verificación
       await sendVerificationEmail(
@@ -239,19 +206,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       const pendingUser = JSON.parse(pendingUserData);
       const userLanguage = pendingUser.language || language;
+      const emailContent = prepareVerificationEmail(t, userLanguage);
       
-      const emailContent = {
-        subject: t('email.welcome.subject'),
-        title: t('email.welcome.title'),
-        text: t('email.welcome.text'),
-        buttonText: t('email.welcome.button'),
-        footer: t('email.welcome.footer'),
-        language: userLanguage
-      };
-      
-      // Generar un nuevo token de verificación
-      const verificationToken = `verify-${Date.now()}-${btoa(email)}`;
-      const verificationUrl = `${window.location.origin}/verify-email?token=${verificationToken}`;
+      // Generar nuevo token y URL
+      const verificationToken = generateVerificationToken(email);
+      const verificationUrl = generateVerificationUrl(verificationToken);
       
       // Enviar el correo de verificación
       await sendVerificationEmail(
