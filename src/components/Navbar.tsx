@@ -45,6 +45,16 @@ const Navbar = () => {
       navigate('/login');
     }
   };
+  
+  const handleNavLinkClick = (path: string) => {
+    // Si el usuario no está autenticado y la ruta requiere autenticación,
+    // redirigir a la página de inicio de sesión
+    if (!currentUser && (path === '/map' || path === '/publish' || path === '/profile')) {
+      navigate('/login');
+    } else {
+      navigate(path);
+    }
+  };
 
   // Navigation links
   const navLinks = [
@@ -76,9 +86,10 @@ const Navbar = () => {
           {!isMobile && (
             <nav className="hidden md:flex items-center space-x-1">
               {navLinks.map((link) => (
-                <Link 
+                <Button 
                   key={link.path} 
-                  to={link.path}
+                  variant="ghost"
+                  onClick={() => handleNavLinkClick(link.path)}
                   className={`px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 flex items-center ${
                     location.pathname === link.path 
                       ? 'text-primary bg-primary/10' 
@@ -87,7 +98,7 @@ const Navbar = () => {
                 >
                   {link.icon}
                   {link.name}
-                </Link>
+                </Button>
               ))}
             </nav>
           )}
@@ -134,10 +145,11 @@ const Navbar = () => {
           <div className="bg-white/95 backdrop-blur-sm shadow-lg border-t">
             <div className="px-2 pt-2 pb-3 space-y-1">
               {navLinks.map((link) => (
-                <Link
+                <Button
                   key={link.path}
-                  to={link.path}
-                  className={`block px-3 py-2 rounded-md text-base font-medium flex items-center ${
+                  variant="ghost"
+                  onClick={() => handleNavLinkClick(link.path)}
+                  className={`w-full justify-start px-3 py-2 rounded-md text-base font-medium flex items-center ${
                     location.pathname === link.path 
                       ? 'text-primary bg-primary/10' 
                       : 'text-gray-700 hover:text-primary hover:bg-primary/5'
@@ -145,7 +157,7 @@ const Navbar = () => {
                 >
                   {link.icon}
                   {link.name}
-                </Link>
+                </Button>
               ))}
 
               {/* Auth Button - Mobile */}

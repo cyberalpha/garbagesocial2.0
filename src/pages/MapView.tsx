@@ -10,6 +10,7 @@ import useGeolocation from "@/hooks/useGeolocation";
 import WasteCard from "@/components/WasteCard";
 import Map from "@/components/Map";
 import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/components/AuthProvider";
 
 const MapView = () => {
   const [wastes, setWastes] = useState<Waste[]>([]);
@@ -19,11 +20,18 @@ const MapView = () => {
   const { location, loading, error } = useGeolocation();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { currentUser } = useAuth();
 
+  // Verificar autenticación
   useEffect(() => {
+    if (!currentUser) {
+      navigate('/login');
+      return;
+    }
+    
     const allWastes = getAllWastes();
     setWastes(allWastes);
-  }, []);
+  }, [currentUser, navigate]);
 
   const handleWasteClick = (waste: Waste) => {
     setSelectedWaste(waste);

@@ -31,8 +31,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     }
   }, [isLoading]);
 
-  // Mostrar pantalla de carga solo durante la verificación inicial
-  if (isLoading && !authChecked) {
+  // Si aún estamos verificando la autenticación, mostrar pantalla de carga
+  if (!authChecked) {
     return (
       <div className="pt-20 container mx-auto text-center">
         <div className="flex flex-col items-center justify-center min-h-[50vh]">

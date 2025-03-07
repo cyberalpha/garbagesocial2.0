@@ -19,6 +19,12 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   
   useEffect(() => {
+    // Verificar si el usuario está autenticado
+    if (!currentUser && !id) {
+      navigate('/login');
+      return;
+    }
+    
     setLoading(true);
     
     // Si no hay ID, usar el usuario actual (si está autenticado)
@@ -43,18 +49,7 @@ const Profile = () => {
     }
     
     setLoading(false);
-  }, [id, currentUser]);
-  
-  // Redireccionar a login si no hay usuario autenticado y no se proporciona ID
-  useEffect(() => {
-    if (!loading && !id && !currentUser) {
-      navigate('/login');
-    }
-  }, [loading, id, currentUser, navigate]);
-  
-  const handleNavigateToWaste = (wasteId: string) => {
-    navigate(`/waste/${wasteId}`);
-  };
+  }, [id, currentUser, navigate]);
   
   if (loading) {
     return (
