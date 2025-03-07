@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Waste, WasteType } from "@/types";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { useAuth } from "@/components/AuthProvider";
+import { useAuth } from "@/hooks/useAuth";
 import WasteForm from "@/components/WasteForm";
 
 const PublishWaste = () => {
