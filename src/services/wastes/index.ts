@@ -1,5 +1,5 @@
 
-import { Waste } from "@/types";
+import { Waste, WasteType } from "@/types";
 import { WASTES_STORAGE_KEY, initialWastes } from "./constants";
 import { getFromStorage, saveToStorage } from "../localStorage";
 
@@ -10,12 +10,32 @@ export const getWastes = (): Waste[] => {
   return getFromStorage<Waste[]>(WASTES_STORAGE_KEY, initialWastes);
 };
 
+// Alias para mantener compatibilidad con el código que usa la función anterior
+export const getAllWastes = getWastes;
+
+/**
+ * Get wastes by type
+ */
+export const getWastesByType = (type: WasteType): Waste[] => {
+  const wastes = getWastes();
+  return wastes.filter(waste => waste.type === type);
+};
+
 /**
  * Get waste by ID
  */
 export const getWasteById = (id: string): Waste | null => {
   const wastes = getWastes();
   return wastes.find(waste => waste.id === id) || null;
+};
+
+/**
+ * Add new waste to localStorage
+ */
+export const addWaste = (waste: Waste): void => {
+  const wastes = getWastes();
+  wastes.push(waste);
+  saveToStorage(WASTES_STORAGE_KEY, wastes);
 };
 
 /**
@@ -56,6 +76,29 @@ export const updateWasteStatus = (id: string, status: string): Waste | null => {
   const updatedWaste = {
     ...waste,
     status: status as any
+  };
+  
+  saveWaste(updatedWaste);
+  return updatedWaste;
+};
+
+/**
+ * Commit to collect a waste
+ */
+export const commitToCollect = (wasteId: string, recyclerId: string): Waste | null => {
+  const waste = getWasteById(wasteId);
+  
+  if (!waste) {
+    return null;
+  }
+  
+  const updatedWaste = {
+    ...waste,
+    status: 'in_progress',
+    pickupCommitment: {
+      recyclerId,
+      commitmentDate: new Date()
+    }
   };
   
   saveWaste(updatedWaste);
