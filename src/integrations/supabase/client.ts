@@ -24,7 +24,6 @@ export const supabase = createClient<Database>(
         'x-application-name': 'garbage-social-app'
       }
     }
-    // Removed the realtime configuration as it was causing errors
   }
 );
 
