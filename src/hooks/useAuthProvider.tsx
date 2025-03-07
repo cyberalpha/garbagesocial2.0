@@ -25,6 +25,7 @@ export const useAuthProvider = () => {
 
   const handleSessionChange = async (session: any) => {
     try {
+      console.log("Session change detected:", session);
       if (session?.user) {
         const { data: profile, error } = await getUserProfile(session.user.id);
 
@@ -57,15 +58,18 @@ export const useAuthProvider = () => {
           description: error.message || "Error al iniciar sesión",
           variant: "destructive"
         });
-        throw error;
+        return { error };
       }
 
       if (data.user) {
         toast({
           title: t('general.success'),
-          description: `${t('auth.login')} ${data.user.email}`,
+          description: `${t('auth.login')} exitoso`,
         });
+        return { data };
       }
+      
+      return { data };
     } catch (error: any) {
       console.error('Error inesperado al iniciar sesión:', error);
       toast({
@@ -73,7 +77,7 @@ export const useAuthProvider = () => {
         description: error.message || "Ocurrió un error durante el inicio de sesión",
         variant: "destructive"
       });
-      throw error;
+      return { error };
     }
   };
 

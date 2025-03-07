@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthProvider';
 import { useLanguage } from './LanguageContext';
@@ -14,10 +14,17 @@ const LoginForm = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { login } = useAuth();
+  const { login, currentUser } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Redirect if user is already logged in
+  useEffect(() => {
+    if (currentUser) {
+      navigate('/');
+    }
+  }, [currentUser, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,8 +41,16 @@ const LoginForm = () => {
     setIsSubmitting(true);
     
     try {
-      await login(email, password);
-      // Successful login is handled by AuthProvider through the session change
+      const result = await login(email, password);
+      console.log("Login result:", result);
+      
+      // If login was successful
+      if (result && !result.error) {
+        toast({
+          title: t('general.success'),
+          description: "Inicio de sesión exitoso",
+        });
+      }
     } catch (error: any) {
       console.error('Error during login:', error);
       toast({

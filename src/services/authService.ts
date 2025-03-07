@@ -4,34 +4,54 @@ import { supabase } from '@/integrations/supabase/client';
 // Función para iniciar sesión
 export const loginUser = async (email: string, password: string) => {
   console.log('Attempting login with:', email);
-  const response = await supabase.auth.signInWithPassword({
-    email,
-    password
-  });
-  
-  // Log the response for debugging
-  console.log('Login response:', response);
-  return response;
+  try {
+    const response = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+    
+    // Log the response for debugging
+    console.log('Login response:', response);
+    
+    if (response.error) {
+      throw response.error;
+    }
+    
+    return response;
+  } catch (error) {
+    console.error('Authentication error:', error);
+    throw error;
+  }
 };
 
 // Función para registrar un usuario
 export const registerUser = async (userData: Partial<User> & { password?: string }) => {
   console.log('Registering user with email:', userData.email);
-  const response = await supabase.auth.signUp({
-    email: userData.email || '',
-    password: userData.password || '',
-    options: {
-      data: {
-        name: userData.name,
-        isOrganization: userData.isOrganization,
-        profileImage: `https://api.dicebear.com/7.x/initials/svg?seed=${userData.name}`
+  try {
+    const response = await supabase.auth.signUp({
+      email: userData.email || '',
+      password: userData.password || '',
+      options: {
+        data: {
+          name: userData.name,
+          isOrganization: userData.isOrganization,
+          profileImage: `https://api.dicebear.com/7.x/initials/svg?seed=${userData.name}`
+        }
       }
+    });
+    
+    // Log the response for debugging
+    console.log('Registration response:', response);
+    
+    if (response.error) {
+      throw response.error;
     }
-  });
-  
-  // Log the response for debugging
-  console.log('Registration response:', response);
-  return response;
+    
+    return response;
+  } catch (error) {
+    console.error('Registration error:', error);
+    throw error;
+  }
 };
 
 // Función para cerrar sesión

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthProvider';
 import { useLanguage } from './LanguageContext';
@@ -20,10 +20,17 @@ const RegisterForm = () => {
     password: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { register } = useAuth();
+  const { register, currentUser } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Redirect if user is already logged in
+  useEffect(() => {
+    if (currentUser) {
+      navigate('/');
+    }
+  }, [currentUser, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,12 +58,14 @@ const RegisterForm = () => {
     
     try {
       const user = await register(userData);
+      console.log("Registration result:", user);
+      
       if (user) {
         toast({
           title: t('general.success'),
           description: "Registro exitoso. ¡Bienvenido!",
         });
-        navigate('/');
+        // No need to navigate here, the AuthProvider will handle redirection
       }
     } catch (error: any) {
       console.error('Error en registro:', error);
