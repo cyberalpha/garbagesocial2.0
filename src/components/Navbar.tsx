@@ -77,6 +77,11 @@ const Navbar = () => {
             to="/" 
             className="flex items-center space-x-2 transition-transform duration-300 hover:scale-105"
           >
+            <img 
+              src="/lovable-uploads/7989feae-08a4-4881-a7f9-239a82906dd2.png" 
+              alt="GarbageSocial Logo" 
+              className="h-6 w-6 mr-1" 
+            />
             <span className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
               GarbageSocial
             </span>
