@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { GoogleMap, useJsApiLoader, Marker, InfoWindow, Polyline } from '@react-google-maps/api';
 import { Waste, MapOptions } from '../types';
@@ -18,7 +17,7 @@ const containerStyle = {
 };
 
 // Google Maps API Key
-const GOOGLE_MAPS_API_KEY = "AIzaSyA6OTYrTgc-6WIaNoRF4jxrNaYfRZH9HE8"; // This is a placeholder, you should replace with your actual API key
+const GOOGLE_MAPS_API_KEY = "AIzaSyBpySf9Hxcg-Awq6VK00R5RGmn3_D9-W9g"; // Updated API key with proper permissions
 
 interface MapProps {
   initialOptions?: Partial<MapOptions>;
@@ -51,9 +50,12 @@ const Map = ({ initialOptions, onMarkerClick, showRouteTools = false }: MapProps
     zoom: initialOptions?.zoom || 13
   });
 
-  const { isLoaded } = useJsApiLoader({
+  const { isLoaded, loadError } = useJsApiLoader({
     id: 'google-map-script',
-    googleMapsApiKey: GOOGLE_MAPS_API_KEY
+    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
+    version: "weekly",
+    language: "es",
+    region: "AR"
   });
 
   const onMapLoad = useCallback((map: google.maps.Map) => {
@@ -255,6 +257,22 @@ const Map = ({ initialOptions, onMarkerClick, showRouteTools = false }: MapProps
     
     return path;
   };
+
+  if (loadError) {
+    console.error("Error loading Google Maps API:", loadError);
+    return (
+      <div className="w-full h-full flex flex-col items-center justify-center bg-gray-100 p-4">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 max-w-md">
+          <h3 className="font-bold">Error al cargar Google Maps</h3>
+          <p>No se pudo cargar el mapa. Por favor, intente de nuevo más tarde.</p>
+          <p className="text-xs mt-2">Detalles técnicos: {loadError.message || "Error desconocido"}</p>
+        </div>
+        <Button onClick={() => window.location.reload()}>
+          Intentar de nuevo
+        </Button>
+      </div>
+    );
+  }
 
   if (!isLoaded) {
     return (

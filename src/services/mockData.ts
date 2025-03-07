@@ -1,3 +1,4 @@
+
 import { User, Waste, WasteType, WasteStatus } from "@/types";
 
 // Mock users data
@@ -33,7 +34,33 @@ export const users: User[] = [
 ];
 
 // For simplicity we'll maintain a local "database" of users
-let localUsers = [...users];
+// Add persistence by checking localStorage first
+const USERS_STORAGE_KEY = 'garbage_social_users';
+
+// Initialize localUsers from localStorage or default to users array
+const getInitialUsers = (): User[] => {
+  try {
+    const storedUsers = localStorage.getItem(USERS_STORAGE_KEY);
+    if (storedUsers) {
+      const parsedUsers = JSON.parse(storedUsers);
+      return Array.isArray(parsedUsers) ? parsedUsers : [...users];
+    }
+  } catch (error) {
+    console.error('Error loading users from localStorage:', error);
+  }
+  return [...users];
+};
+
+let localUsers = getInitialUsers();
+
+// Function to save users to localStorage
+const saveUsersToStorage = () => {
+  try {
+    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(localUsers));
+  } catch (error) {
+    console.error('Error saving users to localStorage:', error);
+  }
+};
 
 // Images for each waste type
 const wasteTypeImages: Record<WasteType, string> = {
@@ -185,6 +212,7 @@ export const addUser = (user: User): User => {
       active: true 
     };
     console.log('Reactivated user:', localUsers[existingUserIndex]);
+    saveUsersToStorage(); // Save to localStorage
     return localUsers[existingUserIndex];
   }
   
@@ -193,6 +221,7 @@ export const addUser = (user: User): User => {
   localUsers.push(newUser);
   console.log('Added new user:', newUser);
   console.log('Updated users list:', localUsers);
+  saveUsersToStorage(); // Save to localStorage
   return newUser;
 };
 
@@ -202,6 +231,7 @@ export const updateUser = (userId: string, userData: Partial<User>): User | null
   if (index === -1) return null;
   
   localUsers[index] = { ...localUsers[index], ...userData };
+  saveUsersToStorage(); // Save to localStorage
   return localUsers[index];
 };
 
@@ -213,6 +243,7 @@ export const deleteUser = (userId: string): boolean => {
   
   // Mark user as inactive instead of removing
   localUsers[index] = { ...localUsers[index], active: false };
+  saveUsersToStorage(); // Save to localStorage
   return true;
 };
 
