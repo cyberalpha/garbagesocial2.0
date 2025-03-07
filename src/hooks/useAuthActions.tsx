@@ -51,27 +51,23 @@ export const useAuthActions = (
 
   const login = async (email: string, password: string) => {
     try {
-      const { data, error } = await loginUser(email, password);
-
-      if (error) {
-        console.error('Error al iniciar sesión:', error);
+      const response = await loginUser(email, password);
+      
+      if (response.error) {
+        console.error('Error al iniciar sesión:', response.error);
         toast({
           title: t('general.error'),
-          description: error.message || "Error al iniciar sesión",
+          description: response.error.message || "Error al iniciar sesión",
           variant: "destructive"
         });
-        return { error };
-      }
-
-      if (data.user) {
+      } else {
         toast({
           title: t('general.success'),
           description: `${t('auth.login')} exitoso`,
         });
-        return { data };
       }
       
-      return { data };
+      return response;
     } catch (error: any) {
       console.error('Error inesperado al iniciar sesión:', error);
       toast({
@@ -79,7 +75,7 @@ export const useAuthActions = (
         description: error.message || "Ocurrió un error durante el inicio de sesión",
         variant: "destructive"
       });
-      return { error };
+      throw error;
     }
   };
 

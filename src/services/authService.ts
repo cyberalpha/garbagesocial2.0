@@ -13,10 +13,6 @@ export const loginUser = async (email: string, password: string) => {
     // Log the response for debugging
     console.log('Login response:', response);
     
-    if (response.error) {
-      throw response.error;
-    }
-    
     return response;
   } catch (error) {
     console.error('Authentication error:', error);

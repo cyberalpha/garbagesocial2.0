@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthProvider';
@@ -39,10 +40,10 @@ const LoginForm = () => {
     setIsSubmitting(true);
     
     try {
-      const result = await login(email, password);
-      console.log("Login result:", result);
+      const { data, error } = await login(email, password);
+      console.log("Login result:", { data, error });
       
-      if (result && !result.error) {
+      if (!error && data?.user) {
         toast({
           title: t('general.success'),
           description: "Inicio de sesión exitoso",
