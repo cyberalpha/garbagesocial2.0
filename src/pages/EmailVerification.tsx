@@ -10,6 +10,7 @@ import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
 const EmailVerification = () => {
   const [verifying, setVerifying] = useState(true);
   const [verified, setVerified] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { verifyEmail } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
@@ -22,15 +23,28 @@ const EmailVerification = () => {
         const queryParams = new URLSearchParams(location.search);
         const token = queryParams.get('token');
         
-        if (token) {
-          // Verificar el token con el servidor
-          const success = await verifyEmail(token);
-          setVerified(success);
-        } else {
+        if (!token) {
+          console.error('No se proporcionó un token de verificación');
+          setError('No se proporcionó un token de verificación');
           setVerified(false);
+          setVerifying(false);
+          return;
+        }
+        
+        console.log('Procesando token de verificación:', token);
+        
+        // Verificar el token con el servidor
+        const success = await verifyEmail(token);
+        console.log('Resultado de verificación:', success ? 'Exitoso' : 'Fallido');
+        
+        setVerified(success);
+        
+        if (!success) {
+          setError('No pudimos verificar tu cuenta. El enlace puede haber expirado o ser inválido.');
         }
       } catch (error) {
         console.error('Error al verificar cuenta:', error);
+        setError('Ocurrió un error al verificar tu cuenta.');
         setVerified(false);
       } finally {
         setVerifying(false);
@@ -71,7 +85,7 @@ const EmailVerification = () => {
               <div className="flex flex-col items-center justify-center py-8">
                 <XCircle className="h-16 w-16 text-red-500 mb-4" />
                 <h3 className="text-xl font-semibold mb-2">{t('email.verification.failed')}</h3>
-                <p>{t('email.verification.failedText')}</p>
+                <p>{error || t('email.verification.failedText')}</p>
               </div>
             )}
           </CardContent>

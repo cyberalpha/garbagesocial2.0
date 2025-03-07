@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, ReactNode } from 'react';
 import { getAllUsers } from '@/services/mockData';
 import { User, UserRole } from '@/types';
@@ -26,6 +27,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const { t, language } = useLanguage();
 
   useEffect(() => {
+    // Comprobar si hay una verificación pendiente al cargar
     const pendingUserData = localStorage.getItem('pendingVerification');
     if (pendingUserData) {
       setPendingVerification(true);
@@ -92,6 +94,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return;
       }
       
+      // Crear nuevo usuario sin verificar
       const newUser: User = {
         id: `user-${Date.now()}`,
         name,
@@ -103,20 +106,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         profileImage: `https://api.dicebear.com/7.x/initials/svg?seed=${name}`
       };
       
+      // Preparar el contenido del correo según el idioma del usuario
       const userPreferredLanguage = language;
       const emailContent = prepareVerificationEmail(t, userPreferredLanguage);
       
-      localStorage.setItem('pendingVerification', JSON.stringify({
-        ...newUser,
-        language: userPreferredLanguage,
-        emailContent
-      }));
-      
+      // Generar token y URL de verificación
       const verificationToken = generateVerificationToken(email);
       const verificationUrl = generateVerificationUrl(verificationToken);
       
       console.log("Enviando correo de verificación a:", email);
       
+      // Simular envío de correo
       await sendVerificationEmail(
         email, 
         {
@@ -125,6 +125,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         },
         userPreferredLanguage
       );
+      
+      // Guardar los datos del usuario pendiente en localStorage
+      localStorage.setItem('pendingVerification', JSON.stringify({
+        ...newUser,
+        verificationToken, // Guardar el token para verificarlo después
+        language: userPreferredLanguage,
+        emailContent
+      }));
       
       setPendingVerification(true);
       
@@ -147,27 +155,39 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const verifyEmail = async (token: string): Promise<boolean> => {
     try {
       console.log('Verificando token de correo:', token);
-      const pendingUser = localStorage.getItem('pendingVerification');
+      const pendingUserData = localStorage.getItem('pendingVerification');
       
-      if (pendingUser) {
-        const user = JSON.parse(pendingUser);
-        user.emailVerified = true;
+      if (pendingUserData) {
+        const pendingUser = JSON.parse(pendingUserData);
         
-        console.log('Usuario verificado:', user);
-        
-        setCurrentUser(user);
-        localStorage.removeItem('pendingVerification');
-        setPendingVerification(false);
-        
-        toast({
-          title: t('email.verification.success'),
-          description: t('email.verification.successText')
-        });
-        
-        return true;
+        // Verificar que el token sea válido (en un sistema real se verificaría con el backend)
+        // En este caso simulado, simplemente aceptamos el token
+        if (token) {
+          console.log('Token válido, usuario verificado');
+          
+          // Actualizar el usuario como verificado
+          const user = {
+            ...pendingUser,
+            emailVerified: true
+          };
+          
+          console.log('Usuario verificado:', user);
+          
+          // Establecer el usuario actual y eliminar la verificación pendiente
+          setCurrentUser(user);
+          localStorage.removeItem('pendingVerification');
+          setPendingVerification(false);
+          
+          toast({
+            title: t('email.verification.success'),
+            description: t('email.verification.successText')
+          });
+          
+          return true;
+        }
       }
       
-      console.log('No se encontró ninguna verificación pendiente');
+      console.log('No se encontró ninguna verificación pendiente o token inválido');
       return false;
     } catch (error) {
       console.error('Error al verificar correo:', error);
@@ -182,9 +202,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const resendVerificationEmail = async (email: string) => {
     try {
       setIsLoading(true);
+      console.log("Intentando reenviar correo de verificación a:", email);
+      
       const pendingUserData = localStorage.getItem('pendingVerification');
       
       if (!pendingUserData) {
+        console.error("No hay datos de usuario pendiente");
         toast({
           title: t('general.error'),
           description: "No hay ninguna verificación pendiente",
@@ -195,15 +218,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       const pendingUser = JSON.parse(pendingUserData);
       
-      const userLanguage = pendingUser.language || language;
-      const emailContent = prepareVerificationEmail(t, userLanguage);
-      
+      // Preparar nuevo token y URL de verificación
       const verificationToken = generateVerificationToken(email);
       const verificationUrl = generateVerificationUrl(verificationToken);
+      
+      const userLanguage = pendingUser.language || language;
+      const emailContent = prepareVerificationEmail(t, userLanguage);
       
       console.log("Reenviando correo de verificación a:", email);
       console.log("URL de verificación:", verificationUrl);
       
+      // Simular reenvío de correo
       await sendVerificationEmail(
         email, 
         {
@@ -213,15 +238,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         userLanguage
       );
       
+      // Actualizar los datos del usuario pendiente con el nuevo token
       localStorage.setItem('pendingVerification', JSON.stringify({
         ...pendingUser,
+        verificationToken,
         language: userLanguage,
         emailContent
       }));
       
       toast({
         title: t('general.success'),
-        description: t('auth.verificationSent')
+        description: t('auth.verificationResent')
       });
     } catch (error) {
       console.error('Error al reenviar correo:', error);
