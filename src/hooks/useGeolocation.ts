@@ -19,16 +19,22 @@ const useGeolocation = () => {
     if (!navigator.geolocation) {
       setState(prev => ({
         ...prev,
-        error: 'Geolocalización no soportada por su navegador',
-        loading: false
+        error: 'La geolocalización no está soportada por tu navegador',
+        loading: false,
+        // Proveer ubicación por defecto
+        location: {
+          type: 'Point',
+          coordinates: [-58.3816, -34.6037] // Buenos Aires por defecto
+        }
       }));
       return;
     }
 
-    // Add timeout for geolocation request
+    // Agregar timeout para la solicitud de geolocalización
     const timeoutId = setTimeout(() => {
       setState(prev => {
         if (prev.loading) {
+          console.log("Geolocation request timed out, using default location");
           return {
             ...prev,
             error: 'La solicitud de ubicación ha tardado demasiado. Usando ubicación predeterminada.',
@@ -41,37 +47,57 @@ const useGeolocation = () => {
         }
         return prev;
       });
-    }, 10000); // 10 second timeout
+    }, 8000); // 8 segundos de timeout (reducido de 10s para una respuesta más rápida)
+
+    const geoSuccess = (position: GeolocationPosition) => {
+      clearTimeout(timeoutId);
+      console.log("Geolocation obtained successfully:", position.coords.latitude, position.coords.longitude);
+      setState({
+        location: {
+          type: 'Point',
+          coordinates: [position.coords.longitude, position.coords.latitude]
+        },
+        error: null,
+        loading: false
+      });
+    };
+
+    const geoError = (error: GeolocationPositionError) => {
+      clearTimeout(timeoutId);
+      console.error('Geolocation error:', error);
+      
+      // Mensajes de error más descriptivos según el código de error
+      let errorMessage = 'Error al obtener tu ubicación';
+      
+      switch(error.code) {
+        case error.PERMISSION_DENIED:
+          errorMessage = 'Permiso para geolocalización denegado. Por favor, permita el acceso a su ubicación.';
+          break;
+        case error.POSITION_UNAVAILABLE:
+          errorMessage = 'La información de ubicación no está disponible.';
+          break;
+        case error.TIMEOUT:
+          errorMessage = 'La solicitud para obtener la ubicación expiró.';
+          break;
+      }
+      
+      setState({
+        error: errorMessage,
+        loading: false,
+        // Proveer ubicación por defecto
+        location: {
+          type: 'Point',
+          coordinates: [-58.3816, -34.6037] // Buenos Aires por defecto
+        }
+      });
+    };
 
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        clearTimeout(timeoutId);
-        setState({
-          location: {
-            type: 'Point',
-            coordinates: [position.coords.longitude, position.coords.latitude]
-          },
-          error: null,
-          loading: false
-        });
-      },
-      (error) => {
-        clearTimeout(timeoutId);
-        console.error('Geolocation error:', error);
-        setState(prev => ({
-          ...prev,
-          error: `Error de geolocalización: ${error.message}`,
-          loading: false,
-          // Provide default location on error
-          location: {
-            type: 'Point',
-            coordinates: [-58.3816, -34.6037] // Default to Buenos Aires
-          }
-        }));
-      },
+      geoSuccess,
+      geoError,
       {
         enableHighAccuracy: true,
-        timeout: 8000,
+        timeout: 7000,
         maximumAge: 0
       }
     );

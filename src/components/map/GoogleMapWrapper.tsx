@@ -10,8 +10,11 @@ const containerStyle = {
   height: '100%'
 };
 
+// Definimos las bibliotecas que necesitamos para Google Maps
 const libraries = ['places', 'geometry'] as any;
-const GOOGLE_MAPS_API_KEY = "AIzaSyBpySf9Hxcg-Awq6VK00R5RGmn3_D9-W9g";
+
+// Usamos la variable de entorno o un valor por defecto (para desarrollo)
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "AIzaSyBpySf9Hxcg-Awq6VK00R5RGmn3_D9-W9g";
 
 interface GoogleMapWrapperProps {
   children: React.ReactNode;
