@@ -2,6 +2,7 @@
 import { Waste } from '@/types';
 import { Button } from "@/components/ui/button";
 import { AlertCircle, Check, X } from 'lucide-react';
+import { useLanguage } from '@/components/LanguageContext';
 
 interface ActionButtonsProps {
   waste: Waste;
@@ -10,6 +11,8 @@ interface ActionButtonsProps {
 }
 
 const ActionButtons = ({ waste, committing, onCommit }: ActionButtonsProps) => {
+  const { t } = useLanguage();
+  
   return (
     <>
       {waste.status === 'pending' && (
@@ -21,12 +24,12 @@ const ActionButtons = ({ waste, committing, onCommit }: ActionButtonsProps) => {
           {committing ? (
             <>
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-              Registrando compromiso...
+              {t('waste.committing')}
             </>
           ) : (
             <>
               <AlertCircle className="mr-2 h-4 w-4" />
-              Comprometerme a Retirar
+              {t('waste.commit')}
             </>
           )}
         </Button>
@@ -39,11 +42,11 @@ const ActionButtons = ({ waste, committing, onCommit }: ActionButtonsProps) => {
             className="flex-1 border-red-200 text-red-700 hover:bg-red-50"
           >
             <X className="mr-2 h-4 w-4" />
-            Cancelar Compromiso
+            {t('waste.cancelCommitment')}
           </Button>
           <Button className="flex-1">
             <Check className="mr-2 h-4 w-4" />
-            Confirmar Recolección
+            {t('waste.confirmCollection')}
           </Button>
         </div>
       )}

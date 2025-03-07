@@ -1,6 +1,7 @@
 
 import { WasteType } from '@/types';
 import { Label } from "@/components/ui/label";
+import { useLanguage } from '@/components/LanguageContext';
 import {
   Select,
   SelectContent,
@@ -16,19 +17,6 @@ interface WasteTypeSelectorProps {
   onChange: (value: WasteType) => void;
 }
 
-export const getWasteTypeText = (type: WasteType) => {
-  switch(type) {
-    case 'organic': return 'Orgánico';
-    case 'paper': return 'Papel';
-    case 'glass': return 'Vidrio';
-    case 'plastic': return 'Plástico';
-    case 'metal': return 'Metal';
-    case 'sanitary': return 'Control Sanitario';
-    case 'dump': return 'Basural';
-    default: return 'Varios';
-  }
-};
-
 export const getWasteTypeColor = (type: WasteType) => {
   switch(type) {
     case 'organic': return 'bg-waste-organic';
@@ -43,19 +31,34 @@ export const getWasteTypeColor = (type: WasteType) => {
 };
 
 const WasteTypeSelector = ({ value, onChange }: WasteTypeSelectorProps) => {
+  const { t } = useLanguage();
+  
+  const getWasteTypeText = (type: WasteType) => {
+    switch(type) {
+      case 'organic': return t('waste.types.organic');
+      case 'paper': return t('waste.types.paper');
+      case 'glass': return t('waste.types.glass');
+      case 'plastic': return t('waste.types.plastic');
+      case 'metal': return t('waste.types.metal');
+      case 'sanitary': return t('waste.types.sanitary');
+      case 'dump': return t('waste.types.dump');
+      default: return t('waste.types.various');
+    }
+  };
+
   return (
     <div className="space-y-2">
-      <Label htmlFor="waste-type">Tipo de Residuo</Label>
+      <Label htmlFor="waste-type">{t('waste.type')}</Label>
       <Select 
         value={value} 
         onValueChange={(value) => onChange(value as WasteType)}
       >
         <SelectTrigger id="waste-type" className="w-full">
-          <SelectValue placeholder="Selecciona un tipo" />
+          <SelectValue placeholder={t('waste.selectType')} />
         </SelectTrigger>
         <SelectContent>
           <SelectGroup>
-            <SelectLabel>Tipos de Residuos</SelectLabel>
+            <SelectLabel>{t('waste.typeGroups')}</SelectLabel>
             {(['organic', 'paper', 'glass', 'plastic', 'metal', 'sanitary', 'dump', 'various'] as WasteType[]).map((type) => (
               <SelectItem 
                 key={type} 

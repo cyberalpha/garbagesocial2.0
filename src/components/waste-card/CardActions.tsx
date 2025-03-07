@@ -2,6 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { AlertCircle } from "lucide-react";
 import { Waste } from "@/types";
+import { useLanguage } from '@/components/LanguageContext';
 
 interface CardActionsProps {
   waste: Waste;
@@ -11,6 +12,8 @@ interface CardActionsProps {
 }
 
 const CardActions = ({ waste, isExpanded, onToggleExpand, onCommit }: CardActionsProps) => {
+  const { t } = useLanguage();
+  
   return (
     <div className="flex justify-between">
       <Button 
@@ -18,7 +21,7 @@ const CardActions = ({ waste, isExpanded, onToggleExpand, onCommit }: CardAction
         size="sm"
         onClick={onToggleExpand}
       >
-        {isExpanded ? 'Ver menos' : 'Ver más'}
+        {isExpanded ? t('waste.seeLess') : t('waste.seeMore')}
       </Button>
       
       {waste.status === 'pending' && onCommit && (
@@ -31,7 +34,7 @@ const CardActions = ({ waste, isExpanded, onToggleExpand, onCommit }: CardAction
           className="gap-1"
         >
           <AlertCircle className="h-4 w-4" />
-          Comprometerme
+          {t('waste.commit')}
         </Button>
       )}
     </div>
