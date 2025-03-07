@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthProvider';
@@ -19,7 +18,6 @@ const LoginForm = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Redirect if user is already logged in
   useEffect(() => {
     if (currentUser) {
       navigate('/');
@@ -44,7 +42,6 @@ const LoginForm = () => {
       const result = await login(email, password);
       console.log("Login result:", result);
       
-      // If login was successful
       if (result && !result.error) {
         toast({
           title: t('general.success'),
