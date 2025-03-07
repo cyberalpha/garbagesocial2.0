@@ -13,9 +13,6 @@ const containerStyle = {
 // Definimos las bibliotecas que necesitamos para Google Maps
 const libraries = ['places', 'geometry'] as any;
 
-// Usamos la variable de entorno o un valor por defecto (para desarrollo)
-const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "AIzaSyBpySf9Hxcg-Awq6VK00R5RGmn3_D9-W9g";
-
 interface GoogleMapWrapperProps {
   children: React.ReactNode;
   mapOptions: MapOptions;
@@ -23,6 +20,11 @@ interface GoogleMapWrapperProps {
 }
 
 const GoogleMapWrapper = ({ children, mapOptions, onMapLoad }: GoogleMapWrapperProps) => {
+  // Usamos la variable de entorno, sin valor por defecto para mayor seguridad
+  const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+
+  console.log("Using Google Maps API Key:", GOOGLE_MAPS_API_KEY ? "Key is present" : "No key found");
+
   const { isLoaded, loadError } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
@@ -34,7 +36,7 @@ const GoogleMapWrapper = ({ children, mapOptions, onMapLoad }: GoogleMapWrapperP
   console.log("GoogleMapWrapper:", isLoaded ? "API loaded" : "Loading API", loadError ? `Error: ${loadError.message}` : "No errors");
 
   if (loadError) {
-    return <ErrorMessage message={loadError.message || "Error al cargar Google Maps"} />;
+    return <ErrorMessage message={`Error al cargar Google Maps: ${loadError.message || "Comprueba que has configurado la API Key correctamente"}`} />;
   }
 
   if (!isLoaded) {
