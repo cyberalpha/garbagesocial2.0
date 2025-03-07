@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, ReactNode } from 'react';
 import { 
   getAllUsers, 
@@ -5,7 +6,8 @@ import {
   getActiveUserByEmail, 
   updateUser, 
   deleteUser, 
-  getUserByEmail 
+  getUserByEmail,
+  getUserById
 } from '@/services/mockData';
 import { User } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
@@ -14,16 +16,55 @@ import { AuthContext } from '@/contexts/AuthContext';
 
 export { useAuth } from '@/hooks/useAuth';
 
+// LocalStorage key
+const CURRENT_USER_KEY = 'current_user';
+
 interface AuthProviderProps {
   children: ReactNode;
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [pendingVerification, setPendingVerification] = useState(false);
   const { toast } = useToast();
   const { t } = useLanguage();
+
+  // Load user from localStorage on mount
+  useEffect(() => {
+    const loadUser = () => {
+      try {
+        const savedUserJson = localStorage.getItem(CURRENT_USER_KEY);
+        if (savedUserJson) {
+          const savedUser = JSON.parse(savedUserJson);
+          // Verify the user still exists and is active in our database
+          const existingUser = getUserById(savedUser.id);
+          if (existingUser && existingUser.active !== false) {
+            setCurrentUser(existingUser);
+          } else {
+            // Clear invalid user data
+            localStorage.removeItem(CURRENT_USER_KEY);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading user from localStorage:', error);
+        localStorage.removeItem(CURRENT_USER_KEY);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadUser();
+  }, []);
+
+  // Save user to localStorage whenever it changes
+  useEffect(() => {
+    if (currentUser) {
+      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(currentUser));
+    } else {
+      localStorage.removeItem(CURRENT_USER_KEY);
+    }
+  }, [currentUser]);
 
   const login = async (email: string, password: string) => {
     setIsLoading(true);
