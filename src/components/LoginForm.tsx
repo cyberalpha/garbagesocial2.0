@@ -40,23 +40,26 @@ const LoginForm = () => {
     setIsSubmitting(true);
     
     try {
-      const { data, error } = await login(email, password);
-      console.log("Login result:", { data, error });
+      const response = await login(email, password);
+      console.log("Login result:", response);
       
-      if (!error && data?.user) {
+      // Si hay un error en la respuesta, mostrar toast de error
+      if (response.error) {
         toast({
-          title: t('general.success'),
-          description: "Inicio de sesión exitoso",
+          title: t('general.error'),
+          description: response.error.message || "Error al iniciar sesión. Por favor verifica tus credenciales.",
+          variant: "destructive"
         });
+        setIsSubmitting(false);
       }
+      // Si no hay error y hay datos de usuario, se manejará por el useEffect que observa currentUser
     } catch (error: any) {
-      console.error('Error during login:', error);
+      console.error('Error durante el inicio de sesión:', error);
       toast({
         title: t('general.error'),
         description: error.message || "Error al iniciar sesión. Por favor verifica tus credenciales.",
         variant: "destructive"
       });
-    } finally {
       setIsSubmitting(false);
     }
   };
