@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -17,6 +18,7 @@ import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
 import SupabaseDiagnostic from "./pages/SupabaseDiagnostic";
 import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 import { useEffect, useState } from "react";
 
 const queryClient = new QueryClient();
@@ -97,9 +99,10 @@ const App = () => (
           <SupabaseConnectionAlert />
           <BrowserRouter>
             <Navbar />
-            <main className="pt-16">
+            <main className="pt-16 min-h-[calc(100vh-64px)]">
               <AppRoutes />
             </main>
+            <Footer />
           </BrowserRouter>
         </AuthProvider>
       </LanguageProvider>
