@@ -32,11 +32,6 @@ const RegisterForm = () => {
     }
   };
 
-  // Función comentada para uso futuro
-  // const handleSocialLogin = (provider: string) => {
-  //   loginWithSocialMedia(provider);
-  // };
-
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
@@ -50,7 +45,7 @@ const RegisterForm = () => {
           <div className="bg-amber-50 border border-amber-200 rounded-md p-4 text-amber-800">
             <h3 className="font-semibold mb-2">{t('auth.verificationPending')}</h3>
             <p className="text-sm mb-3">
-              {t('auth.verificationSent')}
+              {t('auth.verificationSent')} <strong>{email}</strong>
             </p>
             <Button 
               variant="outline" 

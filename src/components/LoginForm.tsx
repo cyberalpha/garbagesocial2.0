@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthProvider';
 import { useLanguage } from './LanguageContext';
@@ -8,25 +8,44 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Mail, Lock, LogIn, Facebook, Instagram, UserPlus } from 'lucide-react';
-// import GoogleSignInButton from './GoogleSignInButton';
+import { Mail, Lock, LogIn, Facebook, Instagram, UserPlus, Loader2 } from 'lucide-react';
 
 const LoginForm = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [resending, setResending] = useState(false);
   const { login, isLoading, pendingVerification, resendVerificationEmail, loginWithSocialMedia } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
+
+  // Recuperar el correo electrónico pendiente de verificación
+  useEffect(() => {
+    if (pendingVerification) {
+      const pendingData = localStorage.getItem('pendingVerification');
+      if (pendingData) {
+        try {
+          const { email } = JSON.parse(pendingData);
+          if (email) setEmail(email);
+        } catch (error) {
+          console.error('Error al recuperar datos pendientes:', error);
+        }
+      }
+    }
+  }, [pendingVerification]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await login(email, password);
   };
 
-  // Función comentada para uso futuro
-  // const handleSocialLogin = (provider: string) => {
-  //   loginWithSocialMedia(provider);
-  // };
+  const handleResendVerification = async () => {
+    setResending(true);
+    try {
+      await resendVerificationEmail(email);
+    } finally {
+      setResending(false);
+    }
+  };
 
   const goToRegister = () => {
     navigate('/register');
@@ -45,14 +64,22 @@ const LoginForm = () => {
           <div className="bg-amber-50 border border-amber-200 rounded-md p-4 text-amber-800">
             <h3 className="font-semibold mb-2">{t('auth.verificationPending')}</h3>
             <p className="text-sm mb-3">
-              {t('auth.verificationSent')}
+              {t('auth.verificationSent')} <strong>{email}</strong>
             </p>
             <Button 
               variant="outline" 
               className="w-full" 
-              onClick={() => resendVerificationEmail(email)}
+              onClick={handleResendVerification}
+              disabled={resending}
             >
-              {t('auth.resendVerification')}
+              {resending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {t('general.loading')}
+                </>
+              ) : (
+                t('auth.resendVerification')
+              )}
             </Button>
           </div>
         </CardContent>
@@ -96,7 +123,7 @@ const LoginForm = () => {
               disabled={isLoading}
             >
               {isLoading ? (
-                <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full mr-2" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
                 <LogIn className="mr-2 h-4 w-4" />
               )}

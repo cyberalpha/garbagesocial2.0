@@ -5,13 +5,14 @@ import { useAuth } from '@/components/AuthProvider';
 import { useLanguage } from '@/components/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2, RefreshCcw } from 'lucide-react';
 
 const EmailVerification = () => {
   const [verifying, setVerifying] = useState(true);
   const [verified, setVerified] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { verifyEmail } = useAuth();
+  const [token, setToken] = useState<string | null>(null);
+  const { verifyEmail, resendVerificationEmail } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
@@ -21,9 +22,10 @@ const EmailVerification = () => {
       try {
         // Obtener el token de verificación de los parámetros de la URL
         const queryParams = new URLSearchParams(location.search);
-        const token = queryParams.get('token');
+        const tokenFromUrl = queryParams.get('token');
+        setToken(tokenFromUrl);
         
-        if (!token) {
+        if (!tokenFromUrl) {
           console.error('No se proporcionó un token de verificación');
           setError('No se proporcionó un token de verificación');
           setVerified(false);
@@ -31,10 +33,10 @@ const EmailVerification = () => {
           return;
         }
         
-        console.log('Procesando token de verificación:', token);
+        console.log('Procesando token de verificación:', tokenFromUrl);
         
         // Verificar el token con el servidor
-        const success = await verifyEmail(token);
+        const success = await verifyEmail(tokenFromUrl);
         console.log('Resultado de verificación:', success ? 'Exitoso' : 'Fallido');
         
         setVerified(success);
@@ -61,6 +63,31 @@ const EmailVerification = () => {
   const goToLogin = () => {
     navigate('/login');
   };
+
+  const handleRetryVerification = async () => {
+    // Intenta nuevamente la verificación del token actual
+    setVerifying(true);
+    setError(null);
+    
+    try {
+      if (token) {
+        const success = await verifyEmail(token);
+        setVerified(success);
+        
+        if (!success) {
+          setError('No pudimos verificar tu cuenta. El enlace puede haber expirado o ser inválido.');
+        }
+      } else {
+        setError('No hay token de verificación disponible para reintentar.');
+      }
+    } catch (error) {
+      console.error('Error al reintentar verificación:', error);
+      setError('Ocurrió un error al verificar tu cuenta.');
+      setVerified(false);
+    } finally {
+      setVerifying(false);
+    }
+  };
   
   return (
     <div className="container mx-auto px-4 py-12">
@@ -86,6 +113,15 @@ const EmailVerification = () => {
                 <XCircle className="h-16 w-16 text-red-500 mb-4" />
                 <h3 className="text-xl font-semibold mb-2">{t('email.verification.failed')}</h3>
                 <p>{error || t('email.verification.failedText')}</p>
+                
+                <Button 
+                  variant="outline" 
+                  className="mt-4" 
+                  onClick={handleRetryVerification}
+                >
+                  <RefreshCcw className="mr-2 h-4 w-4" />
+                  {t('email.verification.retry')}
+                </Button>
               </div>
             )}
           </CardContent>
