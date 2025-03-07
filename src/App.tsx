@@ -15,14 +15,24 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
 import Navbar from "@/components/Navbar";
+import { useEffect, useState } from "react";
 
 const queryClient = new QueryClient();
 
 // Componente para rutas protegidas
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { currentUser, isLoading } = useAuth();
+  const [authChecked, setAuthChecked] = useState(false);
+  
+  useEffect(() => {
+    // Cuando isLoading cambia a false, sabemos que la verificación de autenticación ha terminado
+    if (!isLoading) {
+      setAuthChecked(true);
+    }
+  }, [isLoading]);
 
-  if (isLoading) {
+  // Mostrar pantalla de carga solo durante la verificación inicial
+  if (isLoading && !authChecked) {
     return (
       <div className="pt-20 container mx-auto text-center">
         <div className="flex flex-col items-center justify-center min-h-[50vh]">
@@ -33,10 +43,12 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
+  // Si no hay usuario autenticado, redirigir a login
   if (!currentUser) {
     return <Navigate to="/login" replace />;
   }
 
+  // Si hay usuario autenticado, mostrar el contenido protegido
   return <>{children}</>;
 };
 

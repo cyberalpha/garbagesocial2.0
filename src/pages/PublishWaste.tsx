@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,18 +22,20 @@ const PublishWaste = () => {
   }) => {
     setIsSubmitting(true);
     
+    // Verificar que el usuario esté autenticado
+    if (!currentUser) {
+      toast({
+        title: "Error",
+        description: "Debes iniciar sesión para publicar un residuo",
+        variant: "destructive"
+      });
+      setIsSubmitting(false);
+      navigate('/login');
+      return;
+    }
+    
     // Simulating API call
     setTimeout(() => {
-      if (!currentUser) {
-        toast({
-          title: "Error",
-          description: "Debes iniciar sesión para publicar un residuo",
-          variant: "destructive"
-        });
-        setIsSubmitting(false);
-        return;
-      }
-      
       // Create new waste object
       const newWaste: Partial<Waste> = {
         userId: currentUser.id,
