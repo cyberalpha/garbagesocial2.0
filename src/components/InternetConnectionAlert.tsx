@@ -1,32 +1,46 @@
 
 import React from 'react';
 import { useInternetConnection } from '@/hooks/useInternetConnection';
-import { AlertCircle, WifiOff } from 'lucide-react';
+import { Wifi, WifiOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface InternetConnectionAlertProps {
   className?: string;
 }
 
 /**
- * Componente que muestra una alerta cuando no hay conexión a internet
+ * Componente que muestra un indicador del estado de conexión a internet
  */
 const InternetConnectionAlert = ({ className }: InternetConnectionAlertProps) => {
   const { isOnline } = useInternetConnection();
 
-  if (isOnline) {
-    return null;
-  }
-
   return (
     <div 
       className={cn(
-        "fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-auto z-50 bg-destructive text-destructive-foreground px-4 py-3 rounded-md shadow-lg flex items-center gap-2",
+        "fixed bottom-4 right-4 z-50 transition-all duration-300",
         className
       )}
     >
-      <WifiOff className="h-5 w-5" />
-      <span>Sin conexión a internet</span>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className={cn(
+            "p-2 rounded-full shadow-md flex items-center justify-center transition-colors",
+            isOnline 
+              ? "bg-green-500/80 hover:bg-green-500" 
+              : "bg-destructive/80 hover:bg-destructive animate-pulse"
+          )}>
+            {isOnline ? (
+              <Wifi className="h-5 w-5 text-white" />
+            ) : (
+              <WifiOff className="h-5 w-5 text-white" />
+            )}
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="left">
+          <p>{isOnline ? "Conectado a internet" : "Sin conexión a internet"}</p>
+        </TooltipContent>
+      </Tooltip>
     </div>
   );
 };

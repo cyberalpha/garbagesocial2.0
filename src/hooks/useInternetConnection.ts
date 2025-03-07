@@ -22,7 +22,7 @@ export const useInternetConnection = (): UseInternetConnectionResult => {
       console.log('La conexión a internet está disponible');
       setIsOnline(true);
       
-      // Si estuvo offline, mostrar notificación de reconexión
+      // Solo mostramos toast si estuvo offline anteriormente
       if (wasOffline) {
         toast({
           title: "Conexión restablecida",
@@ -37,6 +37,7 @@ export const useInternetConnection = (): UseInternetConnectionResult => {
       setIsOnline(false);
       setWasOffline(true);
       
+      // Mostramos toast al perder la conexión
       toast({
         title: "Sin conexión",
         description: "Tu dispositivo no está conectado a internet. Algunas funciones pueden no estar disponibles.",
