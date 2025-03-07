@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { getCurrentUser, getAllUsers } from '@/services/mockData';
 import { User, UserRole } from '@/types';
@@ -31,6 +32,18 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+// Utilitaria privada para simular el envío de correo
+const sendVerificationEmail = (to: string, emailContent: any, userLanguage: string) => {
+  console.log(`Simulando envío de correo a ${to} en idioma: ${userLanguage}`);
+  console.log(`Asunto: ${emailContent.subject}`);
+  console.log(`Contenido: ${emailContent.text}`);
+  
+  // En un entorno real, aquí llamaríamos a un servicio de correo
+  return new Promise<void>((resolve) => {
+    setTimeout(() => resolve(), 500); // Simular el tiempo de envío
+  });
+};
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -51,6 +64,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
 
     loadUser();
+  }, []);
+
+  // Verificar si hay un usuario pendiente de verificación
+  useEffect(() => {
+    const pendingUserData = localStorage.getItem('pendingVerification');
+    if (pendingUserData) {
+      setPendingVerification(true);
+    }
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -123,10 +144,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       const userPreferredLanguage = language;
       
-      console.log(`Enviando correo de verificación a ${email} en idioma: ${userPreferredLanguage}`);
-      console.log(`Asunto: ${t('email.welcome.subject')}`);
-      console.log(`Contenido: ${t('email.welcome.text')}`);
-      
       const emailContent = {
         subject: t('email.welcome.subject'),
         title: t('email.welcome.title'),
@@ -136,11 +153,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         language: userPreferredLanguage
       };
       
+      // Guardar los datos del usuario pendiente en localStorage
       localStorage.setItem('pendingVerification', JSON.stringify({
         ...newUser,
         language: userPreferredLanguage,
         emailContent
       }));
+      
+      // Generar un token de verificación y añadirlo a una URL
+      const verificationToken = `verify-${Date.now()}-${btoa(email)}`;
+      const verificationUrl = `${window.location.origin}/verify-email?token=${verificationToken}`;
+      
+      // Enviar el correo de verificación
+      await sendVerificationEmail(
+        email, 
+        {
+          ...emailContent,
+          verificationUrl
+        },
+        userPreferredLanguage
+      );
       
       setPendingVerification(true);
       
@@ -193,31 +225,50 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const resendVerificationEmail = async (email: string) => {
     try {
-      const pendingUser = localStorage.getItem('pendingVerification');
-      let userLanguage = language;
+      setIsLoading(true);
+      const pendingUserData = localStorage.getItem('pendingVerification');
       
-      if (pendingUser) {
-        const user = JSON.parse(pendingUser);
-        
-        const emailContent = {
-          subject: t('email.welcome.subject'),
-          title: t('email.welcome.title'),
-          text: t('email.welcome.text'),
-          buttonText: t('email.welcome.button'),
-          footer: t('email.welcome.footer'),
-          language: userLanguage
-        };
-        
-        localStorage.setItem('pendingVerification', JSON.stringify({
-          ...user,
-          language: userLanguage,
-          emailContent
-        }));
+      if (!pendingUserData) {
+        toast({
+          title: t('general.error'),
+          description: "No hay ninguna verificación pendiente",
+          variant: "destructive"
+        });
+        return;
       }
       
-      console.log(`Reenviando correo de verificación a ${email} en idioma: ${userLanguage}`);
-      console.log(`Asunto: ${t('email.welcome.subject')}`);
-      console.log(`Contenido: ${t('email.welcome.text')}`);
+      const pendingUser = JSON.parse(pendingUserData);
+      const userLanguage = pendingUser.language || language;
+      
+      const emailContent = {
+        subject: t('email.welcome.subject'),
+        title: t('email.welcome.title'),
+        text: t('email.welcome.text'),
+        buttonText: t('email.welcome.button'),
+        footer: t('email.welcome.footer'),
+        language: userLanguage
+      };
+      
+      // Generar un nuevo token de verificación
+      const verificationToken = `verify-${Date.now()}-${btoa(email)}`;
+      const verificationUrl = `${window.location.origin}/verify-email?token=${verificationToken}`;
+      
+      // Enviar el correo de verificación
+      await sendVerificationEmail(
+        email, 
+        {
+          ...emailContent,
+          verificationUrl
+        },
+        userLanguage
+      );
+      
+      // Actualizar el objeto de usuario pendiente con el nuevo contenido del correo
+      localStorage.setItem('pendingVerification', JSON.stringify({
+        ...pendingUser,
+        language: userLanguage,
+        emailContent
+      }));
       
       toast({
         title: t('general.success'),
@@ -229,6 +280,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         title: t('general.error'),
         description: "No pudimos reenviar el correo. Intenta nuevamente más tarde."
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
