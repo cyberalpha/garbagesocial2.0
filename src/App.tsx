@@ -3,8 +3,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/components/AuthProvider";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "@/components/AuthProvider";
 import Home from "./pages/Home";
 import MapView from "./pages/MapView";
 import PublishWaste from "./pages/PublishWaste";
@@ -17,6 +17,57 @@ import Navbar from "@/components/Navbar";
 
 const queryClient = new QueryClient();
 
+// Componente para rutas protegidas
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { currentUser, isLoading } = useAuth();
+
+  if (isLoading) {
+    return <div className="pt-20 container mx-auto text-center">Cargando...</div>;
+  }
+
+  if (!currentUser) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+const AppRoutes = () => {
+  return (
+    <Routes>
+      <Route path="/" element={<Home />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/map" element={
+        <ProtectedRoute>
+          <MapView />
+        </ProtectedRoute>
+      } />
+      <Route path="/publish" element={
+        <ProtectedRoute>
+          <PublishWaste />
+        </ProtectedRoute>
+      } />
+      <Route path="/waste/:id" element={
+        <ProtectedRoute>
+          <WasteDetail />
+        </ProtectedRoute>
+      } />
+      <Route path="/profile/:id" element={
+        <ProtectedRoute>
+          <Profile />
+        </ProtectedRoute>
+      } />
+      <Route path="/profile" element={
+        <ProtectedRoute>
+          <Profile />
+        </ProtectedRoute>
+      } />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -26,17 +77,7 @@ const App = () => (
         <BrowserRouter>
           <Navbar />
           <main className="pt-16"> {/* Adjust for navbar height */}
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/map" element={<MapView />} />
-              <Route path="/publish" element={<PublishWaste />} />
-              <Route path="/waste/:id" element={<WasteDetail />} />
-              <Route path="/profile/:id" element={<Profile />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <AppRoutes />
           </main>
         </BrowserRouter>
       </AuthProvider>

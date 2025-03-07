@@ -1,18 +1,19 @@
 
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthProvider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Mail, Lock, LogIn, Facebook, Instagram } from 'lucide-react';
+import { Mail, Lock, LogIn, Facebook, Instagram, UserPlus } from 'lucide-react';
 
 const LoginForm = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { login, isLoading } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,6 +23,10 @@ const LoginForm = () => {
   const handleSocialLogin = (provider: string) => {
     // En una implementación real, esto conectaría con el proveedor de autenticación
     console.log(`Iniciando sesión con ${provider}`);
+  };
+
+  const goToRegister = () => {
+    navigate('/register');
   };
 
   return (
@@ -76,6 +81,16 @@ const LoginForm = () => {
               <LogIn className="mr-2 h-4 w-4" />
             )}
             {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+          </Button>
+          
+          <Button 
+            type="button" 
+            variant="outline" 
+            className="w-full bg-primary/5" 
+            onClick={goToRegister}
+          >
+            <UserPlus className="mr-2 h-4 w-4" />
+            ¿No tienes cuenta? Regístrate
           </Button>
           
           <div className="relative my-4">
@@ -151,12 +166,6 @@ const LoginForm = () => {
             <p>Para probar, usa:</p>
             <p className="text-muted-foreground">Usuario: juan@example.com</p>
             <p className="text-muted-foreground">Contraseña: cualquier valor</p>
-          </div>
-          <div className="text-sm text-center mt-4">
-            ¿No tienes una cuenta?{" "}
-            <Link to="/register" className="text-primary hover:underline">
-              Regístrate
-            </Link>
           </div>
         </CardFooter>
       </form>

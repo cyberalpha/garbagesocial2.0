@@ -1,8 +1,9 @@
 
 import { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAuth } from "@/components/AuthProvider";
 import { 
   Menu, X, Map, User, Upload, Home, 
   LogIn, LogOut 
@@ -12,10 +13,9 @@ const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
-  
-  // Mock authentication state - replace with actual authentication
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { currentUser, logout } = useAuth();
 
   // Handle scrolling effect
   useEffect(() => {
@@ -38,8 +38,13 @@ const Navbar = () => {
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
   
-  // For demo purposes, toggle authentication
-  const toggleAuth = () => setIsAuthenticated(!isAuthenticated);
+  const handleAuthAction = () => {
+    if (currentUser) {
+      logout();
+    } else {
+      navigate('/login');
+    }
+  };
 
   // Navigation links
   const navLinks = [
@@ -90,12 +95,12 @@ const Navbar = () => {
           {/* Auth Button - Desktop */}
           <div className="hidden md:block">
             <Button 
-              variant={isAuthenticated ? "outline" : "default"} 
+              variant={currentUser ? "outline" : "default"} 
               size="sm"
               className="flex items-center"
-              onClick={toggleAuth}
+              onClick={handleAuthAction}
             >
-              {isAuthenticated ? (
+              {currentUser ? (
                 <>
                   <LogOut className="mr-2 h-4 w-4" />
                   Salir
@@ -145,11 +150,11 @@ const Navbar = () => {
 
               {/* Auth Button - Mobile */}
               <Button 
-                variant={isAuthenticated ? "outline" : "default"} 
+                variant={currentUser ? "outline" : "default"} 
                 className="w-full justify-start mt-4 flex items-center"
-                onClick={toggleAuth}
+                onClick={handleAuthAction}
               >
-                {isAuthenticated ? (
+                {currentUser ? (
                   <>
                     <LogOut className="mr-2 h-4 w-4" />
                     Salir
