@@ -1,13 +1,15 @@
-import React, { useCallback, useRef, useState, useEffect } from 'react';
+import React, { useCallback, useRef, useEffect } from 'react';
 import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
 import { GeoLocation, MapOptions, Waste } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
-import { Button } from '@/components/ui/button';
 import MapControls from './MapControls';
 import MapMarkers from './MapMarkers';
 import MapRoutePolyline from './MapRoutePolyline';
 import SelectedWasteCard from './SelectedWasteCard';
-import RouteDisplay from '../RouteDisplay';
+import LoadingOverlay from './LoadingOverlay';
+import ErrorMessage from './ErrorMessage';
+import RoutePlanningPanel from './RoutePlanningPanel';
+import { useMapState } from '@/hooks/useMapState';
 
 const containerStyle = {
   width: '100%',
@@ -15,7 +17,6 @@ const containerStyle = {
 };
 
 const GOOGLE_MAPS_API_KEY = "AIzaSyBpySf9Hxcg-Awq6VK00R5RGmn3_D9-W9g";
-
 const libraries = ['places', 'geometry'] as any;
 
 interface MapContainerProps {
@@ -54,13 +55,22 @@ const MapContainer = ({
   }
 }: MapContainerProps) => {
   const mapRef = useRef<google.maps.Map | null>(null);
-  const [wastes, setWastes] = useState<Waste[]>([]);
-  const [selectedWaste, setSelectedWaste] = useState<Waste | null>(null);
-  const [showInfoWindow, setShowInfoWindow] = useState<boolean>(false);
-  const [mapInitialized, setMapInitialized] = useState(false);
-  const [isRoutingMode, setIsRoutingMode] = useState(false);
   const { toast } = useToast();
-  const [mapLoaded, setMapLoaded] = useState(false);
+  const {
+    wastes,
+    setWastes,
+    selectedWaste,
+    setSelectedWaste,
+    showInfoWindow,
+    setShowInfoWindow,
+    mapInitialized,
+    setMapInitialized,
+    isRoutingMode,
+    mapLoaded,
+    setMapLoaded,
+    handleMarkerClick,
+    toggleRoutingMode
+  } = useMapState();
 
   const [mapOptions, setMapOptions] = useState<MapOptions>({
     center: initialOptions?.center || [-58.3816, -34.6037],
@@ -79,7 +89,7 @@ const MapContainer = ({
     console.log("Mapa cargado correctamente");
     mapRef.current = map;
     setMapLoaded(true);
-  }, []);
+  }, [setMapLoaded]);
 
   useEffect(() => {
     return () => {
@@ -151,7 +161,7 @@ const MapContainer = ({
         description: `Posición actual: ${location.coordinates[1].toFixed(4)}, ${location.coordinates[0].toFixed(4)}`,
       });
     }
-  }, [location, mapLoaded, toast]);
+  }, [location, mapLoaded, toast, setMapInitialized]);
 
   const zoomIn = () => {
     if (mapRef.current) {
@@ -184,22 +194,6 @@ const MapContainer = ({
     }
   };
 
-  const handleMarkerClick = (waste: Waste) => {
-    if (isRoutingMode) {
-      selectWaste(waste);
-      toast({
-        title: "Punto agregado a la ruta",
-        description: `${waste.type} - ${waste.description}`,
-      });
-    } else {
-      setSelectedWaste(waste);
-      setShowInfoWindow(true);
-      if (onMarkerClick) {
-        onMarkerClick(waste);
-      }
-    }
-  };
-
   const handleOptimizeRoute = () => {
     if (location) {
       optimizeRoute(location);
@@ -216,95 +210,53 @@ const MapContainer = ({
     }
   };
 
-  const toggleRoutingMode = () => {
-    setIsRoutingMode(!isRoutingMode);
-    setSelectedWaste(null);
-    setShowInfoWindow(false);
-    if (!isRoutingMode) {
-      clearRoute();
-      toast({
-        title: "Modo ruta activado",
-        description: "Selecciona puntos para crear tu ruta de recolección.",
-      });
-    } else {
-      toast({
-        title: "Modo ruta desactivado",
-        description: "Has salido del modo de planificación de ruta.",
-      });
-    }
-  };
-
-  const handleWasteCommit = (waste: Waste) => {
-    console.log('Compromiso para retirar:', waste);
-    // Aquí iría la lógica para registrar el compromiso
-  };
-
   if (loadError) {
-    console.error("Error loading Google Maps API:", loadError);
-    return (
-      <div className="w-full h-full flex flex-col items-center justify-center bg-gray-100 p-4">
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 max-w-md">
-          <h3 className="font-bold">Error al cargar Google Maps</h3>
-          <p>No se pudo cargar el mapa. Por favor, intente de nuevo más tarde.</p>
-          <p className="text-xs mt-2">Detalles técnicos: {loadError.message || "Error desconocido"}</p>
-        </div>
-        <Button onClick={() => window.location.reload()}>
-          Intentar de nuevo
-        </Button>
-      </div>
-    );
+    return <ErrorMessage message={loadError.message || "Error desconocido"} />;
   }
 
   if (!isLoaded) {
-    return (
-      <div className="w-full h-full flex items-center justify-center bg-gray-100">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        <p className="ml-3 text-gray-600">Cargando mapa...</p>
-      </div>
-    );
+    return <LoadingOverlay />;
   }
 
   return (
     <div className="relative w-full h-full min-h-[400px] bg-gray-100 rounded-lg overflow-hidden">
-      {isLoaded && (
-        <GoogleMap
-          mapContainerStyle={containerStyle}
-          center={{
-            lat: mapOptions.center[1],
-            lng: mapOptions.center[0]
-          }}
-          zoom={mapOptions.zoom}
-          onLoad={onMapLoad}
-          options={{
-            fullscreenControl: false,
-            streetViewControl: false,
-            mapTypeControl: false,
-            zoomControl: false,
-          }}
-        >
-          {mapLoaded && (
-            <>
-              <MapMarkers 
-                wastes={wastes}
-                selectedWastes={selectedWastes}
-                optimizedRoute={optimizedRoute}
-                location={location}
-                selectedWaste={selectedWaste}
-                showInfoWindow={showInfoWindow}
-                isRoutingMode={isRoutingMode}
-                onMarkerClick={handleMarkerClick}
-                onInfoWindowClose={() => setShowInfoWindow(false)}
-              />
-              
-              <MapRoutePolyline 
-                isRoutingMode={isRoutingMode}
-                optimizedRoute={optimizedRoute}
-                location={location}
-              />
-            </>
-          )}
-        </GoogleMap>
-      )}
+      <GoogleMap
+        mapContainerStyle={containerStyle}
+        center={{
+          lat: mapOptions.center[1],
+          lng: mapOptions.center[0]
+        }}
+        zoom={mapOptions.zoom}
+        onLoad={onMapLoad}
+        options={{
+          fullscreenControl: false,
+          streetViewControl: false,
+          mapTypeControl: false,
+          zoomControl: false,
+        }}
+      >
+        {mapLoaded && (
+          <>
+            <MapMarkers 
+              wastes={wastes}
+              selectedWastes={selectedWastes}
+              optimizedRoute={optimizedRoute}
+              location={location}
+              selectedWaste={selectedWaste}
+              showInfoWindow={showInfoWindow}
+              isRoutingMode={isRoutingMode}
+              onMarkerClick={(waste) => handleMarkerClick(waste, selectWaste)}
+              onInfoWindowClose={() => setShowInfoWindow(false)}
+            />
+            
+            <MapRoutePolyline 
+              isRoutingMode={isRoutingMode}
+              optimizedRoute={optimizedRoute}
+              location={location}
+            />
+          </>
+        )}
+      </GoogleMap>
       
       <MapControls 
         onZoomIn={zoomIn}
@@ -319,36 +271,22 @@ const MapContainer = ({
         selectedWaste={selectedWaste}
         isRoutingMode={isRoutingMode}
         onClose={() => setSelectedWaste(null)}
-        onCommit={handleWasteCommit}
+        onCommit={() => {}}
       />
       
       {isRoutingMode && (
-        <div className="absolute bottom-4 left-4 right-4 md:w-96">
-          <RouteDisplay 
-            selectedWastes={selectedWastes}
-            optimizedRoute={optimizedRoute}
-            onRemove={deselectWaste}
-            onClearAll={clearRoute}
-            onOptimize={handleOptimizeRoute}
-            isOptimizing={isOptimizing}
-          />
-        </div>
+        <RoutePlanningPanel
+          selectedWastes={selectedWastes}
+          optimizedRoute={optimizedRoute}
+          onRemove={deselectWaste}
+          onClearAll={clearRoute}
+          onOptimize={handleOptimizeRoute}
+          isOptimizing={isOptimizing}
+        />
       )}
       
-      {error && (
-        <div className="absolute bottom-4 left-4 right-4 bg-red-100 border border-red-200 text-red-800 px-4 py-3 rounded-md">
-          {error}
-        </div>
-      )}
-      
-      {loading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm">
-          <div className="bg-white p-4 rounded-md shadow-lg">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-            <p className="mt-2 text-sm">Obteniendo ubicación...</p>
-          </div>
-        </div>
-      )}
+      {error && <ErrorMessage message={error} />}
+      {loading && <LoadingOverlay />}
     </div>
   );
 };
