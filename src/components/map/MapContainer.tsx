@@ -3,7 +3,6 @@ import React, { useCallback, useRef, useEffect, useState } from 'react';
 import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
 import { GeoLocation, MapOptions, Waste } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
-import { Button } from '@/components/ui/button';
 import MapControls from './MapControls';
 import MapMarkers from './MapMarkers';
 import MapRoutePolyline from './MapRoutePolyline';
@@ -12,6 +11,7 @@ import LoadingOverlay from './LoadingOverlay';
 import ErrorMessage from './ErrorMessage';
 import RoutePlanningPanel from './RoutePlanningPanel';
 import { useMapState } from '@/hooks/useMapState';
+import { getAllWastes } from '@/services/mockData';
 
 const containerStyle = {
   width: '100%',
@@ -41,14 +41,11 @@ interface MapContainerProps {
   };
 }
 
-// Ahora vamos a dividir este componente en partes más pequeñas
-// Primero extraemos la lógica de configuración del mapa en un nuevo componente
-
 const MapContainer = ({ 
   initialOptions, 
   onMarkerClick,
   showRouteTools = false,
-  useGeolocation: { location, error, loading },
+  useGeolocation: { location },
   useRouteOptimization: {
     selectedWastes,
     optimizedRoute,
@@ -68,17 +65,15 @@ const MapContainer = ({
     setSelectedWaste,
     showInfoWindow,
     setShowInfoWindow,
-    mapInitialized,
-    setMapInitialized,
     isRoutingMode,
-    mapLoaded,
     setMapLoaded,
     handleMarkerClick,
     toggleRoutingMode
   } = useMapState();
 
-  const [mapOptions, setMapOptions] = useState<MapOptions>({
-    center: initialOptions?.center || [-58.3816, -34.6037],
+  // Opciones del mapa predeterminadas centradas en Buenos Aires
+  const [mapOptions] = useState<MapOptions>({
+    center: initialOptions?.center || [-58.3816, -34.6037], // Buenos Aires por defecto
     zoom: initialOptions?.zoom || 13
   });
 
@@ -96,77 +91,42 @@ const MapContainer = ({
     setMapLoaded(true);
   }, [setMapLoaded]);
 
+  // Cargar los datos de residuos
   useEffect(() => {
-    return () => {
-      mapRef.current = null;
+    const loadWastes = async () => {
+      try {
+        const data = getAllWastes();
+        console.log("Residuos cargados:", data);
+        setWastes(data);
+      } catch (error) {
+        console.error("Error al cargar residuos:", error);
+        toast({
+          title: "Error",
+          description: "No se pudieron cargar los puntos de residuos",
+          variant: "destructive"
+        });
+      }
     };
-  }, []);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setWastes([
-        {
-          id: '1',
-          userId: 'user123456789',
-          type: 'plastic',
-          description: 'Botellas de plástico',
-          imageUrl: 'https://images.unsplash.com/photo-1605600659453-128bfdb3a5eb?w=600&auto=format&fit=crop',
-          location: {
-            type: 'Point',
-            coordinates: [-58.3816, -34.6037]
-          },
-          publicationDate: new Date('2023-05-15T10:30:00'),
-          status: 'pending'
-        },
-        {
-          id: '2',
-          userId: 'user987654321',
-          type: 'paper',
-          description: 'Cajas de cartón',
-          imageUrl: 'https://images.unsplash.com/photo-1607625004976-fe1049860b6b?w=600&auto=format&fit=crop',
-          location: {
-            type: 'Point',
-            coordinates: [-58.3712, -34.6083]
-          },
-          publicationDate: new Date('2023-05-14T14:45:00'),
-          status: 'pending'
-        },
-        {
-          id: '3',
-          userId: 'user246813579',
-          type: 'organic',
-          description: 'Restos de poda',
-          location: {
-            type: 'Point',
-            coordinates: [-58.3948, -34.6011]
-          },
-          publicationDate: new Date('2023-05-16T09:15:00'),
-          status: 'in_progress',
-          pickupCommitment: {
-            recyclerId: 'recycler123',
-            commitmentDate: new Date('2023-05-16T11:00:00')
-          }
-        }
-      ]);
-    }, 1000);
     
-    return () => clearTimeout(timer);
-  }, []);
+    if (isLoaded) {
+      loadWastes();
+    }
+  }, [isLoaded, setWastes, toast]);
 
+  // Centrar el mapa en la ubicación del usuario cuando esté disponible
   useEffect(() => {
-    if (location && mapLoaded && mapRef.current) {
+    if (location && mapRef.current) {
       console.log("Centrando mapa en ubicación del usuario:", location.coordinates);
       mapRef.current.panTo({ 
         lat: location.coordinates[1], 
         lng: location.coordinates[0] 
       });
-      setMapInitialized(true);
       toast({
         title: "Ubicación encontrada",
-        description: `Posición actual: ${location.coordinates[1].toFixed(4)}, ${location.coordinates[0].toFixed(4)}`,
+        description: "El mapa se ha centrado en tu ubicación",
       });
     }
-  }, [location, mapLoaded, toast, setMapInitialized]);
+  }, [location, toast]);
 
   const zoomIn = () => {
     if (mapRef.current) {
@@ -188,12 +148,12 @@ const MapContainer = ({
       });
       toast({
         title: "Centrado en tu ubicación",
-        description: "El mapa se ha centrado en tu posición actual.",
+        description: "El mapa se ha centrado en tu posición actual",
       });
     } else {
       toast({
         title: "Ubicación no disponible",
-        description: "No se pudo encontrar tu ubicación.",
+        description: "No se pudo encontrar tu ubicación",
         variant: "destructive"
       });
     }
@@ -204,23 +164,23 @@ const MapContainer = ({
       optimizeRoute(location);
       toast({
         title: "Ruta optimizada",
-        description: `Se ha calculado la ruta óptima para ${selectedWastes.length} puntos.`,
+        description: `Se ha calculado la ruta óptima para ${selectedWastes.length} puntos`,
       });
     } else {
       toast({
         title: "No se pudo optimizar",
-        description: "Se necesita tu ubicación para calcular la ruta óptima.",
+        description: "Se necesita tu ubicación para calcular la ruta óptima",
         variant: "destructive"
       });
     }
   };
 
   if (loadError) {
-    return <ErrorMessage message={loadError.message || "Error desconocido"} />;
+    return <ErrorMessage message={loadError.message || "Error al cargar Google Maps"} />;
   }
 
   if (!isLoaded) {
-    return <LoadingOverlay />;
+    return <LoadingOverlay message="Cargando mapa..." />;
   }
 
   return (
@@ -238,29 +198,32 @@ const MapContainer = ({
           streetViewControl: false,
           mapTypeControl: false,
           zoomControl: false,
+          styles: [
+            {
+              featureType: "poi",
+              elementType: "labels",
+              stylers: [{ visibility: "off" }]
+            }
+          ]
         }}
       >
-        {mapLoaded && (
-          <>
-            <MapMarkers 
-              wastes={wastes}
-              selectedWastes={selectedWastes}
-              optimizedRoute={optimizedRoute}
-              location={location}
-              selectedWaste={selectedWaste}
-              showInfoWindow={showInfoWindow}
-              isRoutingMode={isRoutingMode}
-              onMarkerClick={(waste) => handleMarkerClick(waste, selectWaste)}
-              onInfoWindowClose={() => setShowInfoWindow(false)}
-            />
-            
-            <MapRoutePolyline 
-              isRoutingMode={isRoutingMode}
-              optimizedRoute={optimizedRoute}
-              location={location}
-            />
-          </>
-        )}
+        <MapMarkers 
+          wastes={wastes}
+          selectedWastes={selectedWastes}
+          optimizedRoute={optimizedRoute}
+          location={location}
+          selectedWaste={selectedWaste}
+          showInfoWindow={showInfoWindow}
+          isRoutingMode={isRoutingMode}
+          onMarkerClick={(waste) => handleMarkerClick(waste, selectWaste)}
+          onInfoWindowClose={() => setShowInfoWindow(false)}
+        />
+        
+        <MapRoutePolyline 
+          isRoutingMode={isRoutingMode}
+          optimizedRoute={optimizedRoute}
+          location={location}
+        />
       </GoogleMap>
       
       <MapControls 
@@ -276,7 +239,12 @@ const MapContainer = ({
         selectedWaste={selectedWaste}
         isRoutingMode={isRoutingMode}
         onClose={() => setSelectedWaste(null)}
-        onCommit={() => {}}
+        onCommit={() => {
+          toast({
+            title: "Compromiso de recogida",
+            description: "Has decidido recoger este residuo. ¡Gracias por tu contribución!",
+          });
+        }}
       />
       
       {isRoutingMode && (
@@ -289,9 +257,6 @@ const MapContainer = ({
           isOptimizing={isOptimizing}
         />
       )}
-      
-      {error && <ErrorMessage message={error} />}
-      {loading && <LoadingOverlay />}
     </div>
   );
 };
