@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { WasteForm } from "@/components/WasteForm";
+import WasteForm from "@/components/WasteForm"; // Corregido: importar como default
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Waste, WasteType } from "@/types";
@@ -36,7 +36,7 @@ const PublishWaste = () => {
           type: "Point",
           coordinates: [data.location.lng, data.location.lat]
         },
-        createdAt: new Date(),
+        publicationDate: new Date(), // Corregido: usando publicationDate en lugar de createdAt
         status: "pending"
       };
       

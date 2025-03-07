@@ -1,6 +1,5 @@
-
 import { useState, useEffect, useRef } from 'react';
-import { useGeolocation } from '../hooks/useGeolocation';
+import useGeolocation from '../hooks/useGeolocation';
 import { Waste, MapOptions } from '../types';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -8,7 +7,6 @@ import MapMarker from './MapMarker';
 import WasteCard from './WasteCard';
 import { Locate, Layers, ZoomIn, ZoomOut, X } from 'lucide-react';
 
-// Datos de ejemplo (esto se reemplazaría con datos reales de una API)
 const sampleWastes: Waste[] = [
   {
     id: '1',
@@ -66,15 +64,12 @@ const Map = ({ initialOptions, onMarkerClick }: MapProps) => {
   const [selectedWaste, setSelectedWaste] = useState<Waste | null>(null);
   const [mapInitialized, setMapInitialized] = useState(false);
   
-  // Estado para simular el mapa
   const [mapOptions, setMapOptions] = useState<MapOptions>({
     center: initialOptions?.center || [-58.3816, -34.6037],
     zoom: initialOptions?.zoom || 13
   });
 
-  // Cargar datos de ejemplo
   useEffect(() => {
-    // Simular una carga de datos
     const timer = setTimeout(() => {
       setWastes(sampleWastes);
     }, 1000);
@@ -82,7 +77,6 @@ const Map = ({ initialOptions, onMarkerClick }: MapProps) => {
     return () => clearTimeout(timer);
   }, []);
 
-  // Inicializar el mapa cuando se reciba la ubicación del usuario
   useEffect(() => {
     if (location && !mapInitialized) {
       setMapOptions(prev => ({
@@ -93,7 +87,6 @@ const Map = ({ initialOptions, onMarkerClick }: MapProps) => {
     }
   }, [location, mapInitialized]);
 
-  // Acercar el mapa
   const zoomIn = () => {
     setMapOptions(prev => ({
       ...prev,
@@ -101,7 +94,6 @@ const Map = ({ initialOptions, onMarkerClick }: MapProps) => {
     }));
   };
 
-  // Alejar el mapa
   const zoomOut = () => {
     setMapOptions(prev => ({
       ...prev,
@@ -109,7 +101,6 @@ const Map = ({ initialOptions, onMarkerClick }: MapProps) => {
     }));
   };
 
-  // Centrar en la ubicación del usuario
   const centerOnUser = () => {
     if (location) {
       setMapOptions(prev => ({
@@ -119,7 +110,6 @@ const Map = ({ initialOptions, onMarkerClick }: MapProps) => {
     }
   };
 
-  // Manejar clic en marcador
   const handleMarkerClick = (waste: Waste) => {
     setSelectedWaste(waste);
     if (onMarkerClick) {
@@ -129,7 +119,6 @@ const Map = ({ initialOptions, onMarkerClick }: MapProps) => {
 
   return (
     <div className="relative w-full h-full min-h-[400px] bg-gray-100 rounded-lg overflow-hidden">
-      {/* Placeholder del mapa - En una implementación real, esto sería un mapa de Mapbox o Google Maps */}
       <div 
         ref={mapRef} 
         className="w-full h-full bg-[#CCDAE6] relative"
@@ -139,7 +128,6 @@ const Map = ({ initialOptions, onMarkerClick }: MapProps) => {
           backgroundPosition: 'center'
         }}
       >
-        {/* Marcadores de residuos */}
         {wastes.map(waste => (
           <div 
             key={waste.id}
@@ -156,7 +144,6 @@ const Map = ({ initialOptions, onMarkerClick }: MapProps) => {
           </div>
         ))}
         
-        {/* Marcador de posición del usuario */}
         {location && (
           <div 
             className="absolute transform -translate-x-1/2 -translate-y-1/2"
@@ -172,7 +159,6 @@ const Map = ({ initialOptions, onMarkerClick }: MapProps) => {
         )}
       </div>
       
-      {/* Controles del mapa */}
       <div className="absolute top-4 right-4 flex flex-col space-y-2">
         <Button variant="secondary" size="icon" onClick={zoomIn}>
           <ZoomIn className="h-4 w-4" />
@@ -188,7 +174,6 @@ const Map = ({ initialOptions, onMarkerClick }: MapProps) => {
         </Button>
       </div>
       
-      {/* Información del residuo seleccionado */}
       {selectedWaste && (
         <div className="absolute bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-80">
           <Card className="shadow-lg relative">
@@ -211,14 +196,12 @@ const Map = ({ initialOptions, onMarkerClick }: MapProps) => {
         </div>
       )}
       
-      {/* Mensaje de error de geolocalización */}
       {error && (
         <div className="absolute bottom-4 left-4 right-4 bg-red-100 border border-red-200 text-red-800 px-4 py-3 rounded-md">
           {error}
         </div>
       )}
       
-      {/* Indicador de carga */}
       {loading && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm">
           <div className="bg-white p-4 rounded-md shadow-lg">

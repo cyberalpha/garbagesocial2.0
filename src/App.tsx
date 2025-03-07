@@ -10,7 +10,7 @@ import PublishWaste from "./pages/PublishWaste";
 import WasteDetail from "./pages/WasteDetail";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
-import { Navbar } from "@/components/Navbar";
+import Navbar from "@/components/Navbar"; // Corregido: importar como default
 
 const queryClient = new QueryClient();
 

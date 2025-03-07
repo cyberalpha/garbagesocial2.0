@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useGeolocation } from '../hooks/useGeolocation';
+import useGeolocation from '../hooks/useGeolocation';
 import { WasteType, GeoLocation } from '../types';
 import { Camera, Trash2, MapPin, Upload, Loader } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";

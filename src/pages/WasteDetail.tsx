@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Waste, User, WasteStatus } from "@/types";
 import { ArrowLeft, MapPin, Clock, User as UserIcon, Check, X } from "lucide-react";
 import { getWasteById, getUserById, getCurrentUser } from "@/services/mockData";
-import { Map } from "@/components/Map";
+import Map from "@/components/Map";
 import { toast } from "@/hooks/use-toast";
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -50,8 +49,8 @@ const WasteDetail = () => {
         }
         
         // Get recycler data if exists
-        if (wasteData.collectionCommitment?.recyclerId) {
-          const recyclerData = getUserById(wasteData.collectionCommitment.recyclerId);
+        if (wasteData.pickupCommitment?.recyclerId) {
+          const recyclerData = getUserById(wasteData.pickupCommitment.recyclerId);
           if (recyclerData) {
             setRecycler(recyclerData);
           }
@@ -68,7 +67,7 @@ const WasteDetail = () => {
     const updatedWaste = {
       ...waste,
       status: 'in_progress' as WasteStatus,
-      collectionCommitment: {
+      pickupCommitment: {
         recyclerId: currentUser.id,
         commitmentDate: new Date()
       }
@@ -128,10 +127,10 @@ const WasteDetail = () => {
     );
   }
   
-  const isCurrentUserPublisher = currentUser.id === waste.userId;
-  const isCurrentUserRecycler = waste.collectionCommitment?.recyclerId === currentUser.id;
-  const canCommitToCollect = currentUser.role === 'recycler' && waste.status === 'pending';
-  const canMarkAsCollected = isCurrentUserRecycler && waste.status === 'in_progress';
+  const isCurrentUserPublisher = currentUser.id === waste?.userId;
+  const isCurrentUserRecycler = waste?.pickupCommitment?.recyclerId === currentUser.id;
+  const canCommitToCollect = currentUser.role === 'recycler' && waste?.status === 'pending';
+  const canMarkAsCollected = isCurrentUserRecycler && waste?.status === 'in_progress';
   
   return (
     <div className="container mx-auto max-w-2xl py-8 px-4">
@@ -184,7 +183,7 @@ const WasteDetail = () => {
               <h3 className="text-lg font-medium">Fecha de publicación</h3>
               <div className="flex items-center">
                 <Clock className="h-4 w-4 mr-2" />
-                {format(waste.createdAt, "dd 'de' MMMM 'de' yyyy, HH:mm", { locale: es })}
+                {format(waste.publicationDate, "dd 'de' MMMM 'de' yyyy, HH:mm", { locale: es })}
               </div>
             </div>
             
@@ -192,7 +191,7 @@ const WasteDetail = () => {
               <h3 className="text-lg font-medium">Publicado por</h3>
               <div className="flex items-center mt-2">
                 <Avatar className="h-8 w-8 mr-2">
-                  <AvatarImage src={publisher.profileImageUrl} />
+                  <AvatarImage src={publisher.profileImage} />
                   <AvatarFallback>{publisher.name.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div>
@@ -209,7 +208,7 @@ const WasteDetail = () => {
                 <h3 className="text-lg font-medium">Reciclador</h3>
                 <div className="flex items-center mt-2">
                   <Avatar className="h-8 w-8 mr-2">
-                    <AvatarImage src={recycler.profileImageUrl} />
+                    <AvatarImage src={recycler.profileImage} />
                     <AvatarFallback>{recycler.name.charAt(0)}</AvatarFallback>
                   </Avatar>
                   <div>

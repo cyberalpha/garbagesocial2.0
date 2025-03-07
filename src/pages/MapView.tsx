@@ -1,14 +1,13 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Map } from "@/components/Map";
+import Map from "@/components/Map";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Waste, WasteType } from "@/types";
 import { getAllWastes } from "@/services/mockData";
 import { MapPin, Filter, Plus } from "lucide-react";
 import useGeolocation from "@/hooks/useGeolocation";
-import { WasteCard } from "@/components/WasteCard";
+import WasteCard from "@/components/WasteCard";
 
 const MapView = () => {
   const [wastes, setWastes] = useState<Waste[]>([]);
@@ -18,7 +17,6 @@ const MapView = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Load all wastes
     const allWastes = getAllWastes();
     setWastes(allWastes);
   }, []);
@@ -43,14 +41,12 @@ const MapView = () => {
 
   return (
     <div className="relative h-screen w-full">
-      {/* Map Component */}
       <Map 
         wastes={wastes}
         userLocation={coordinates ? { lat: coordinates.latitude, lng: coordinates.longitude } : undefined}
         onWasteClick={handleWasteClick}
       />
       
-      {/* Filter Button */}
       <div className="absolute top-4 right-4 z-10">
         <Button 
           variant="secondary" 
@@ -63,7 +59,6 @@ const MapView = () => {
         </Button>
       </div>
       
-      {/* Publish Button */}
       <div className="absolute bottom-24 right-4 z-10">
         <Button 
           onClick={handlePublishClick}
@@ -74,7 +69,6 @@ const MapView = () => {
         </Button>
       </div>
       
-      {/* Selected Waste Detail */}
       {selectedWaste && (
         <div className="absolute bottom-4 left-4 right-4 z-10">
           <Card className="border-0 shadow-lg">
@@ -85,7 +79,6 @@ const MapView = () => {
         </div>
       )}
       
-      {/* User Location Indicator */}
       {coordinates && (
         <div className="absolute bottom-24 left-4 z-10">
           <Button variant="outline" size="sm" className="bg-white shadow-md">
@@ -95,7 +88,6 @@ const MapView = () => {
         </div>
       )}
       
-      {/* Loading or Error State */}
       {(loading || error) && (
         <div className="absolute top-16 left-0 right-0 mx-auto w-3/4 z-10 text-center">
           <Card className="border-0 shadow-lg">

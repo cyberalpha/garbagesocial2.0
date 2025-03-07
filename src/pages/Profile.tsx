@@ -1,14 +1,13 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { UserProfile } from "@/components/UserProfile";
+import UserProfile from "@/components/UserProfile";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, Waste } from "@/types";
 import { ArrowLeft } from "lucide-react";
 import { getUserById, getWastesByUserId } from "@/services/mockData";
-import { WasteCard } from "@/components/WasteCard";
+import WasteCard from "@/components/WasteCard";
 
 const Profile = () => {
   const { id } = useParams<{ id: string }>();

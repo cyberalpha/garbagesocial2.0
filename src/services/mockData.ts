@@ -10,7 +10,7 @@ export const users: User[] = [
     role: "publisher",
     isOrganization: false,
     averageRating: 4.5,
-    profileImageUrl: "https://randomuser.me/api/portraits/men/1.jpg",
+    profileImage: "https://randomuser.me/api/portraits/men/1.jpg", // Corregido: usando profileImage en lugar de profileImageUrl
     location: {
       type: "Point",
       coordinates: [-58.3816, -34.6037]
@@ -23,7 +23,7 @@ export const users: User[] = [
     role: "recycler",
     isOrganization: false,
     averageRating: 4.8,
-    profileImageUrl: "https://randomuser.me/api/portraits/women/2.jpg",
+    profileImage: "https://randomuser.me/api/portraits/women/2.jpg", // Corregido: usando profileImage en lugar de profileImageUrl
     location: {
       type: "Point",
       coordinates: [-58.3716, -34.6137]
@@ -36,7 +36,7 @@ export const users: User[] = [
     role: "recycler",
     isOrganization: true,
     averageRating: 4.7,
-    profileImageUrl: "https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?q=80&w=200&auto=format&fit=crop",
+    profileImage: "https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?q=80&w=200&auto=format&fit=crop", // Corregido: usando profileImage en lugar de profileImageUrl
     location: {
       type: "Point",
       coordinates: [-58.3916, -34.5937]
@@ -68,7 +68,7 @@ export const wastes: Waste[] = [
       type: "Point",
       coordinates: [-58.3816, -34.6037]
     },
-    createdAt: new Date("2024-06-10T10:00:00Z"),
+    publicationDate: new Date("2024-06-10T10:00:00Z"), // Corregido: usando publicationDate en lugar de createdAt
     status: "pending"
   },
   {
@@ -81,9 +81,9 @@ export const wastes: Waste[] = [
       type: "Point",
       coordinates: [-58.3788, -34.6012]
     },
-    createdAt: new Date("2024-06-09T15:30:00Z"),
+    publicationDate: new Date("2024-06-09T15:30:00Z"), // Corregido: usando publicationDate en lugar de createdAt
     status: "in_progress",
-    collectionCommitment: {
+    pickupCommitment: { // Asumiendo que este es el nombre correcto basado en el tipo
       recyclerId: "2",
       commitmentDate: new Date("2024-06-09T16:30:00Z")
     }
@@ -98,7 +98,7 @@ export const wastes: Waste[] = [
       type: "Point",
       coordinates: [-58.3850, -34.6050]
     },
-    createdAt: new Date("2024-06-08T09:15:00Z"),
+    publicationDate: new Date("2024-06-08T09:15:00Z"), // Corregido: usando publicationDate en lugar de createdAt
     status: "collected"
   },
   {
@@ -111,7 +111,7 @@ export const wastes: Waste[] = [
       type: "Point",
       coordinates: [-58.3900, -34.6100]
     },
-    createdAt: new Date("2024-06-07T14:45:00Z"),
+    publicationDate: new Date("2024-06-07T14:45:00Z"), // Corregido: usando publicationDate en lugar de createdAt
     status: "pending"
   },
   {
@@ -124,7 +124,7 @@ export const wastes: Waste[] = [
       type: "Point",
       coordinates: [-58.3950, -34.6150]
     },
-    createdAt: new Date("2024-06-06T11:20:00Z"),
+    publicationDate: new Date("2024-06-06T11:20:00Z"), // Corregido: usando publicationDate en lugar de createdAt
     status: "pending"
   }
 ];

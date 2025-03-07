@@ -1,13 +1,12 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Waste, WasteType } from "@/types";
-import { Hero } from "@/components/Hero";
-import { WasteCard } from "@/components/WasteCard";
-import { Footer } from "@/components/Footer";
+import Hero from "@/components/Hero";
+import WasteCard from "@/components/WasteCard";
+import Footer from "@/components/Footer";
 import { getAllWastes } from "@/services/mockData";
 import { MapPin, Plus, Filter } from "lucide-react";
 
