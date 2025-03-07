@@ -43,9 +43,15 @@ const Footer = () => {
                   <Facebook className="h-4 w-4" />
                 </Button>
               </a>
-              <Button variant="ghost" size="icon" className="rounded-full h-8 w-8">
-                <Instagram className="h-4 w-4" />
-              </Button>
+              <a 
+                href="https://www.instagram.com/garbagesocial" 
+                target="_blank" 
+                rel="noopener noreferrer"
+              >
+                <Button variant="ghost" size="icon" className="rounded-full h-8 w-8">
+                  <Instagram className="h-4 w-4" />
+                </Button>
+              </a>
             </div>
           </div>
           
