@@ -5,6 +5,7 @@ import { Separator } from "@/components/ui/separator";
 import { 
   Github, X, Facebook, Instagram, Mail, Heart 
 } from 'lucide-react';
+import ContactDialog from './ContactDialog';
 
 const Footer = () => {
   return (
@@ -136,9 +137,11 @@ const Footer = () => {
               <p className="text-gray-600">
                 Buenos Aires, Argentina
               </p>
-              <Button className="mt-2" variant="outline" size="sm">
-                Contáctanos
-              </Button>
+              <ContactDialog>
+                <Button className="mt-2" variant="outline" size="sm">
+                  Contáctanos
+                </Button>
+              </ContactDialog>
             </div>
           </div>
         </div>
