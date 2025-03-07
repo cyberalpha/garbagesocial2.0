@@ -1,99 +1,53 @@
 
-/**
- * User data service functions
- */
-import { User } from "@/types";
+import { User, Waste } from "@/types";
 import { USERS_STORAGE_KEY, initialUsers } from "./constants";
-import { saveToStorage, getFromStorage } from "../localStorage";
+import { getFromStorage, saveToStorage } from "../localStorage";
+import { getWastes } from "../wastes";
 
-// Get initial users from localStorage or default to initial data
-let localUsers = getFromStorage<User[]>(USERS_STORAGE_KEY, [...initialUsers]);
-
-// Save users to localStorage
-const saveUsersToStorage = () => {
-  saveToStorage(USERS_STORAGE_KEY, localUsers);
+/**
+ * Get all users from localStorage
+ */
+export const getUsers = (): User[] => {
+  return getFromStorage<User[]>(USERS_STORAGE_KEY, initialUsers);
 };
 
-// Get all users
-export const getAllUsers = (): User[] => {
-  return localUsers;
+/**
+ * Get user by ID
+ */
+export const getUserById = (id: string): User | null => {
+  const users = getUsers();
+  return users.find(user => user.id === id) || null;
 };
 
-// Get all active users
-export const getAllActiveUsers = (): User[] => {
-  return localUsers.filter(user => user.active !== false);
+/**
+ * Get wastes by user ID
+ */
+export const getWastesByUserId = (userId: string): Waste[] => {
+  const allWastes = getWastes();
+  return allWastes.filter(waste => waste.userId === userId);
 };
 
-// Get user by id
-export const getUserById = (id: string): User | undefined => {
-  console.log('Looking for user with ID:', id);
-  console.log('Available users:', localUsers);
-  const user = localUsers.find(user => user.id === id);
-  console.log('Found user:', user);
-  return user;
-};
-
-// Get active user by id
-export const getActiveUserById = (id: string): User | undefined => {
-  return localUsers.find(user => user.id === id && user.active !== false);
-};
-
-// Get user by email
-export const getUserByEmail = (email: string): User | undefined => {
-  return localUsers.find(user => user.email === email);
-};
-
-// Get active user by email
-export const getActiveUserByEmail = (email: string): User | undefined => {
-  return localUsers.find(user => user.email === email && user.active !== false);
-};
-
-// Add a new user
-export const addUser = (user: User): User => {
-  console.log('Adding user:', user);
+/**
+ * Save user to localStorage
+ */
+export const saveUser = (user: User): void => {
+  const users = getUsers();
+  const existingIndex = users.findIndex(u => u.id === user.id);
   
-  // Check if user with the same email exists but is deactivated
-  const existingUserIndex = localUsers.findIndex(u => u.email === user.email);
-  
-  if (existingUserIndex !== -1 && localUsers[existingUserIndex].active === false) {
-    // Reactivate and update existing user
-    localUsers[existingUserIndex] = { 
-      ...localUsers[existingUserIndex], 
-      ...user, 
-      active: true 
-    };
-    console.log('Reactivated user:', localUsers[existingUserIndex]);
-    saveUsersToStorage(); // Save to localStorage
-    return localUsers[existingUserIndex];
+  if (existingIndex >= 0) {
+    users[existingIndex] = user;
+  } else {
+    users.push(user);
   }
   
-  // Add as new user with active status
-  const newUser = { ...user, active: true };
-  localUsers.push(newUser);
-  console.log('Added new user:', newUser);
-  console.log('Updated users list:', localUsers);
-  saveUsersToStorage(); // Save to localStorage
-  return newUser;
+  saveToStorage(USERS_STORAGE_KEY, users);
 };
 
-// Update a user
-export const updateUser = (userId: string, userData: Partial<User>): User | null => {
-  const index = localUsers.findIndex(user => user.id === userId);
-  if (index === -1) return null;
-  
-  localUsers[index] = { ...localUsers[index], ...userData };
-  saveUsersToStorage(); // Save to localStorage
-  return localUsers[index];
-};
-
-// Deactivate a user (soft delete)
-export const deleteUser = (userId: string): boolean => {
-  const index = localUsers.findIndex(user => user.id === userId);
-  
-  if (index === -1) return false;
-  
-  // Mark user as inactive instead of removing
-  localUsers[index] = { ...localUsers[index], active: false };
-  saveUsersToStorage(); // Save to localStorage
-  return true;
+/**
+ * Delete user by ID
+ */
+export const deleteUser = (id: string): void => {
+  const users = getUsers();
+  const filteredUsers = users.filter(user => user.id !== id);
+  saveToStorage(USERS_STORAGE_KEY, filteredUsers);
 };
