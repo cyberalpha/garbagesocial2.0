@@ -20,8 +20,8 @@ interface GoogleMapWrapperProps {
 }
 
 const GoogleMapWrapper = ({ children, mapOptions, onMapLoad }: GoogleMapWrapperProps) => {
-  // Usamos la variable de entorno, sin valor por defecto para mayor seguridad
-  const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+  // Usamos la clave API encontrada en el repositorio anterior
+  const GOOGLE_MAPS_API_KEY = "AIzaSyDoOHTnpE8apO6OzsrAnbv-JMx3_K1xfNY";
 
   console.log("Using Google Maps API Key:", GOOGLE_MAPS_API_KEY ? "Key is present" : "No key found");
 
