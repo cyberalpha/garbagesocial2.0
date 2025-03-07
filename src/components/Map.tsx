@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { GoogleMap, useJsApiLoader, Marker, InfoWindow, Polyline } from '@react-google-maps/api';
 import { Waste, MapOptions } from '../types';
@@ -17,7 +18,10 @@ const containerStyle = {
 };
 
 // Google Maps API Key
-const GOOGLE_MAPS_API_KEY = "AIzaSyBpySf9Hxcg-Awq6VK00R5RGmn3_D9-W9g"; // Updated API key with proper permissions
+const GOOGLE_MAPS_API_KEY = "AIzaSyBpySf9Hxcg-Awq6VK00R5RGmn3_D9-W9g"; // API key con permisos adecuados
+
+// Map Libraries - definir explícitamente las bibliotecas que usamos
+const libraries = ['places', 'geometry'] as any;
 
 interface MapProps {
   initialOptions?: Partial<MapOptions>;
@@ -34,6 +38,7 @@ const Map = ({ initialOptions, onMarkerClick, showRouteTools = false }: MapProps
   const [mapInitialized, setMapInitialized] = useState(false);
   const [isRoutingMode, setIsRoutingMode] = useState(false);
   const { toast } = useToast();
+  const [mapLoaded, setMapLoaded] = useState(false);
   
   const {
     selectedWastes,
@@ -53,13 +58,22 @@ const Map = ({ initialOptions, onMarkerClick, showRouteTools = false }: MapProps
   const { isLoaded, loadError } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
-    version: "weekly",
+    libraries,
     language: "es",
     region: "AR"
   });
 
   const onMapLoad = useCallback((map: google.maps.Map) => {
+    console.log("Mapa cargado correctamente");
     mapRef.current = map;
+    setMapLoaded(true);
+  }, []);
+
+  // Evitar problemas de memoria si el componente se desmonta
+  useEffect(() => {
+    return () => {
+      mapRef.current = null;
+    };
   }, []);
 
   useEffect(() => {
@@ -115,7 +129,8 @@ const Map = ({ initialOptions, onMarkerClick, showRouteTools = false }: MapProps
   }, []);
 
   useEffect(() => {
-    if (location && !mapInitialized && mapRef.current) {
+    if (location && mapLoaded && mapRef.current) {
+      console.log("Centrando mapa en ubicación del usuario:", location.coordinates);
       mapRef.current.panTo({ 
         lat: location.coordinates[1], 
         lng: location.coordinates[0] 
@@ -126,7 +141,7 @@ const Map = ({ initialOptions, onMarkerClick, showRouteTools = false }: MapProps
         description: `Posición actual: ${location.coordinates[1].toFixed(4)}, ${location.coordinates[0].toFixed(4)}`,
       });
     }
-  }, [location, mapInitialized, toast]);
+  }, [location, mapLoaded, toast]);
 
   const zoomIn = () => {
     if (mapRef.current) {
@@ -285,91 +300,97 @@ const Map = ({ initialOptions, onMarkerClick, showRouteTools = false }: MapProps
 
   return (
     <div className="relative w-full h-full min-h-[400px] bg-gray-100 rounded-lg overflow-hidden">
-      <GoogleMap
-        mapContainerStyle={containerStyle}
-        center={{
-          lat: mapOptions.center[1],
-          lng: mapOptions.center[0]
-        }}
-        zoom={mapOptions.zoom}
-        onLoad={onMapLoad}
-        options={{
-          fullscreenControl: false,
-          streetViewControl: false,
-          mapTypeControl: false,
-          zoomControl: false,
-        }}
-      >
-        {/* Waste markers */}
-        {wastes.map(waste => {
-          const isSelected = selectedWastes.some(w => w.id === waste.id);
-          const routeIndex = optimizedRoute.findIndex(w => w.id === waste.id);
-          
-          return (
-            <Marker
-              key={waste.id}
-              position={{
-                lat: waste.location.coordinates[1],
-                lng: waste.location.coordinates[0]
-              }}
-              onClick={() => handleMarkerClick(waste)}
-              icon={getMarkerIcon(waste.type)}
-              label={routeIndex !== -1 ? (routeIndex + 1).toString() : undefined}
-              animation={isSelected ? google.maps.Animation.BOUNCE : undefined}
-              zIndex={isSelected ? 100 : undefined}
-            />
-          );
-        })}
-        
-        {/* User location marker */}
-        {location && (
-          <Marker
-            position={{
-              lat: location.coordinates[1],
-              lng: location.coordinates[0]
-            }}
-            icon={{
-              path: google.maps.SymbolPath.CIRCLE,
-              fillColor: "#3b82f6",
-              fillOpacity: 1,
-              strokeColor: "#ffffff",
-              strokeWeight: 2,
-              scale: 8
-            }}
-            zIndex={1000}
-          />
-        )}
-        
-        {/* Info window for selected waste */}
-        {selectedWaste && showInfoWindow && (
-          <InfoWindow
-            position={{
-              lat: selectedWaste.location.coordinates[1],
-              lng: selectedWaste.location.coordinates[0]
-            }}
-            onCloseClick={() => {
-              setShowInfoWindow(false);
-            }}
-          >
-            <div className="p-2">
-              <h3 className="font-medium">{selectedWaste.description}</h3>
-              <p className="text-sm capitalize">{selectedWaste.type}</p>
-            </div>
-          </InfoWindow>
-        )}
-        
-        {/* Route polyline */}
-        {isRoutingMode && optimizedRoute.length > 1 && (
-          <Polyline
-            path={getRoutePath()}
-            options={{
-              strokeColor: "#3b82f6",
-              strokeWeight: 3,
-              strokeOpacity: 0.8,
-            }}
-          />
-        )}
-      </GoogleMap>
+      {isLoaded && (
+        <GoogleMap
+          mapContainerStyle={containerStyle}
+          center={{
+            lat: mapOptions.center[1],
+            lng: mapOptions.center[0]
+          }}
+          zoom={mapOptions.zoom}
+          onLoad={onMapLoad}
+          options={{
+            fullscreenControl: false,
+            streetViewControl: false,
+            mapTypeControl: false,
+            zoomControl: false,
+          }}
+        >
+          {mapLoaded && (
+            <>
+              {/* Waste markers */}
+              {wastes.map(waste => {
+                const isSelected = selectedWastes.some(w => w.id === waste.id);
+                const routeIndex = optimizedRoute.findIndex(w => w.id === waste.id);
+                
+                return (
+                  <Marker
+                    key={waste.id}
+                    position={{
+                      lat: waste.location.coordinates[1],
+                      lng: waste.location.coordinates[0]
+                    }}
+                    onClick={() => handleMarkerClick(waste)}
+                    icon={getMarkerIcon(waste.type)}
+                    label={routeIndex !== -1 ? (routeIndex + 1).toString() : undefined}
+                    animation={isSelected ? google.maps.Animation.BOUNCE : undefined}
+                    zIndex={isSelected ? 100 : undefined}
+                  />
+                );
+              })}
+              
+              {/* User location marker */}
+              {location && (
+                <Marker
+                  position={{
+                    lat: location.coordinates[1],
+                    lng: location.coordinates[0]
+                  }}
+                  icon={{
+                    path: google.maps.SymbolPath.CIRCLE,
+                    fillColor: "#3b82f6",
+                    fillOpacity: 1,
+                    strokeColor: "#ffffff",
+                    strokeWeight: 2,
+                    scale: 8
+                  }}
+                  zIndex={1000}
+                />
+              )}
+              
+              {/* Info window for selected waste */}
+              {selectedWaste && showInfoWindow && (
+                <InfoWindow
+                  position={{
+                    lat: selectedWaste.location.coordinates[1],
+                    lng: selectedWaste.location.coordinates[0]
+                  }}
+                  onCloseClick={() => {
+                    setShowInfoWindow(false);
+                  }}
+                >
+                  <div className="p-2">
+                    <h3 className="font-medium">{selectedWaste.description}</h3>
+                    <p className="text-sm capitalize">{selectedWaste.type}</p>
+                  </div>
+                </InfoWindow>
+              )}
+              
+              {/* Route polyline */}
+              {isRoutingMode && optimizedRoute.length > 1 && (
+                <Polyline
+                  path={getRoutePath()}
+                  options={{
+                    strokeColor: "#3b82f6",
+                    strokeWeight: 3,
+                    strokeOpacity: 0.8,
+                  }}
+                />
+              )}
+            </>
+          )}
+        </GoogleMap>
+      )}
       
       {/* Map controls */}
       <div className="absolute top-4 right-4 flex flex-col space-y-2">
