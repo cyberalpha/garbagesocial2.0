@@ -9,24 +9,17 @@ import ProfileHeader from './profile/ProfileHeader';
 import ProfileStatistics from './profile/ProfileStatistics';
 import ProfileAchievements from './profile/ProfileAchievements';
 import WasteTabs from './profile/WasteTabs';
-import { getWastesByUserId } from '@/services/users';
 
 interface UserProfileProps {
   userId?: string;
   isEditable?: boolean;
   user: User;
+  wastes?: Waste[];
 }
 
-const UserProfile = ({ userId, isEditable = false, user }: UserProfileProps) => {
+const UserProfile = ({ userId, isEditable = false, user, wastes = [] }: UserProfileProps) => {
   const { deleteProfile } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
-  const [wastes] = useState<Waste[]>(() => {
-    // Get real wastes from the user if we have an ID
-    if (user.id) {
-      return getWastesByUserId(user.id);
-    }
-    return [];
-  });
 
   const handleEditClick = () => {
     setIsEditing(true);

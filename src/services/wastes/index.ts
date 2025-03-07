@@ -1,4 +1,3 @@
-
 import { Waste, WasteType, WasteStatus } from "@/types";
 import { WASTES_STORAGE_KEY, initialWastes } from "./constants";
 import { getFromStorage, saveToStorage } from "../localStorage";
@@ -31,10 +30,10 @@ const transformWasteForSupabase = (waste: Waste) => {
     type: waste.type,
     description: waste.description,
     image_url: waste.imageUrl,
-    location: waste.location as Json,
+    location: waste.location as unknown as Json,
     publication_date: waste.publicationDate instanceof Date ? waste.publicationDate.toISOString() : waste.publicationDate,
     status: waste.status,
-    pickup_commitment: waste.pickupCommitment as Json
+    pickup_commitment: waste.pickupCommitment as unknown as Json
   };
 };
 
@@ -68,9 +67,7 @@ export const getWastes = async (): Promise<Waste[]> => {
 };
 
 // Función para obtener residuos (alias para mantener compatibilidad con código existente)
-export const getAllWastes = async (): Promise<Waste[]> => {
-  return getWastes();
-};
+export const getAllWastes = getWastes;
 
 /**
  * Get wastes by type

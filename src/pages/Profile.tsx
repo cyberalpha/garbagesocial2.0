@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent } from "@/components/ui/card";
@@ -26,28 +27,32 @@ const Profile = () => {
     
     setLoading(true);
     
-    // Si no hay ID, usar el usuario actual (si está autenticado)
-    if (!id && currentUser) {
-      setUser(currentUser);
-      const userWastes = getWastesByUserId(currentUser.id);
-      setWastes(userWastes);
-      setLoading(false);
-      return;
-    }
-    
-    // Si hay ID, buscar el usuario
-    if (id) {
-      const userData = getUserById(id);
-      if (userData) {
-        setUser(userData);
-        
-        // Get user's wastes
-        const userWastes = getWastesByUserId(id);
+    const loadProfileData = async () => {
+      // Si no hay ID, usar el usuario actual (si está autenticado)
+      if (!id && currentUser) {
+        setUser(currentUser);
+        const userWastes = await getWastesByUserId(currentUser.id);
         setWastes(userWastes);
+        setLoading(false);
+        return;
       }
-    }
+      
+      // Si hay ID, buscar el usuario
+      if (id) {
+        const userData = getUserById(id);
+        if (userData) {
+          setUser(userData);
+          
+          // Get user's wastes
+          const userWastes = await getWastesByUserId(id);
+          setWastes(userWastes);
+        }
+      }
+      
+      setLoading(false);
+    };
     
-    setLoading(false);
+    loadProfileData();
   }, [id, currentUser, navigate]);
   
   if (loading) {
@@ -88,7 +93,7 @@ const Profile = () => {
         Volver
       </Button>
       
-      <UserProfile user={user} isEditable={isEditable} />
+      <UserProfile user={user} isEditable={isEditable} wastes={wastes} />
     </div>
   );
 };

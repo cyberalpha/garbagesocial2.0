@@ -1,100 +1,102 @@
 
-import React from 'react';
+import { useState } from 'react';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { RefreshCw, Check, CloudOff } from "lucide-react";
 import { useDataSynchronizer } from '@/hooks/useDataSynchronizer';
-import { useInternetConnection } from '@/hooks/useInternetConnection';
 import { useSupabaseConnection } from '@/hooks/useSupabaseConnection';
-import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { CloudSync, RefreshCw } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { formatDistanceToNow } from 'date-fns';
+import { es } from 'date-fns/locale';
 
-interface DataSyncStatusProps {
-  className?: string;
-}
-
-const DataSyncStatus: React.FC<DataSyncStatusProps> = ({ className }) => {
+/**
+ * Componente para mostrar el estado de sincronización de datos
+ * y permitir la sincronización manual
+ */
+const DataSyncStatus = () => {
   const { isSynchronizing, lastSyncTime, forceSynchronize } = useDataSynchronizer();
-  const { isOnline } = useInternetConnection();
   const { status: supabaseStatus } = useSupabaseConnection();
+  const [showDetails, setShowDetails] = useState(false);
 
-  const canSync = isOnline && supabaseStatus === 'connected' && !isSynchronizing;
-
-  const handleSyncClick = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (canSync) {
-      await forceSynchronize();
+  const getStatusText = () => {
+    if (supabaseStatus !== 'connected') {
+      return 'Sin conexión';
     }
+    if (isSynchronizing) {
+      return 'Sincronizando...';
+    }
+    if (lastSyncTime) {
+      return `Última sincronización: ${formatDistanceToNow(lastSyncTime, { addSuffix: true, locale: es })}`;
+    }
+    return 'No sincronizado';
   };
 
-  const getFormatTime = (date: Date | null) => {
-    if (!date) return 'Nunca';
-    return new Intl.DateTimeFormat('es', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    }).format(date);
+  const getStatusIcon = () => {
+    if (supabaseStatus !== 'connected') {
+      return <CloudOff className="h-4 w-4" />;
+    }
+    if (isSynchronizing) {
+      return <RefreshCw className="h-4 w-4 animate-spin" />;
+    }
+    if (lastSyncTime) {
+      return <Check className="h-4 w-4" />;
+    }
+    return <RefreshCw className="h-4 w-4" />;
+  };
+
+  const getStatusColor = () => {
+    if (supabaseStatus !== 'connected') {
+      return 'destructive';
+    }
+    if (isSynchronizing) {
+      return 'warning';
+    }
+    if (lastSyncTime) {
+      return 'success';
+    }
+    return 'secondary';
   };
 
   return (
-    <div 
-      className={cn(
-        "fixed bottom-28 right-4 z-40 transition-all duration-300",
-        className
-      )}
-    >
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            disabled={!canSync}
-            onClick={handleSyncClick}
-            className={cn(
-              "p-2 rounded-full shadow-md flex items-center justify-center transition-colors",
-              isSynchronizing 
-                ? "bg-amber-500/80 hover:bg-amber-500" 
-                : canSync
-                  ? "bg-primary/80 hover:bg-primary" 
-                  : "bg-slate-500/80"
-            )}
-          >
-            {isSynchronizing ? (
-              <RefreshCw className="h-5 w-5 text-white animate-spin" />
-            ) : (
-              <CloudSync className="h-5 w-5 text-white" />
-            )}
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent side="left" className="max-w-xs p-4">
-          <div className="space-y-2">
-            <p className="font-medium">
-              {isSynchronizing 
-                ? 'Sincronizando datos...' 
-                : canSync 
-                  ? 'Sincronización disponible' 
-                  : 'Sincronización no disponible'
-              }
-            </p>
-            {lastSyncTime && (
-              <p className="text-xs text-muted-foreground">
-                Última sincronización: {getFormatTime(lastSyncTime)}
-              </p>
-            )}
-            <p className="text-xs italic">
-              {canSync 
-                ? 'Haz clic para sincronizar manualmente' 
-                : !isOnline 
-                  ? 'Se requiere conexión a internet' 
-                  : supabaseStatus !== 'connected' 
-                    ? 'Se requiere conexión a Supabase' 
-                    : 'Sincronización en progreso...'
-              }
-            </p>
+    <Card className="mb-4">
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Badge variant={getStatusColor()}>
+              <span className="flex items-center">
+                {getStatusIcon()}
+                <span className="ml-1">
+                  {supabaseStatus === 'connected' ? 'Supabase' : 'Offline'}
+                </span>
+              </span>
+            </Badge>
+            <span className="text-sm text-muted-foreground">{getStatusText()}</span>
           </div>
-        </TooltipContent>
-      </Tooltip>
-    </div>
+          
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => forceSynchronize()}
+                disabled={isSynchronizing || supabaseStatus !== 'connected'}
+              >
+                <RefreshCw className="h-4 w-4" />
+                <span className="sr-only">Sincronizar ahora</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Sincronizar datos ahora</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

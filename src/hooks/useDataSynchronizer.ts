@@ -33,12 +33,12 @@ export const useDataSynchronizer = (): UseDataSynchronizerResult => {
       type: waste.type,
       description: waste.description,
       image_url: waste.imageUrl,
-      location: waste.location as Json,
+      location: waste.location as unknown as Json,
       publication_date: waste.publicationDate instanceof Date 
         ? waste.publicationDate.toISOString() 
         : waste.publicationDate,
       status: waste.status,
-      pickup_commitment: waste.pickupCommitment as Json
+      pickup_commitment: waste.pickupCommitment as unknown as Json
     };
   };
 
