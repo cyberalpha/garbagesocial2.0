@@ -1,8 +1,8 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Waste, User } from '../types';
-import { getWasteById, getUserById, commitToCollect } from '../services/mockData';
+import { getWasteById, commitToCollect } from '@/services/wastes';
+import { getUserById } from '@/services/users';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from 'lucide-react';

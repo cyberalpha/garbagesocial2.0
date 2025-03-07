@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Waste, WasteType } from "@/types";
-import { getAllWastes } from "@/services/mockData";
+import { getAllWastes, getWastesByType } from "@/services/wastes";
 import { Filter, Plus, Route, Trash } from "lucide-react";
 import Map from "@/components/Map";
 import { useToast } from "@/components/ui/use-toast";
@@ -33,7 +33,7 @@ const MapView = () => {
   const handleFilterClick = (type: WasteType | null) => {
     setSelectedType(type);
     if (type) {
-      const filtered = getAllWastes().filter(waste => waste.type === type);
+      const filtered = getWastesByType(type);
       setWastes(filtered);
       toast({
         title: "Filtro aplicado",

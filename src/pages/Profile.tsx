@@ -1,11 +1,10 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { User, Waste } from "@/types";
 import { ArrowLeft } from "lucide-react";
-import { getUserById, getWastesByUserId } from "@/services/mockData";
+import { getUserById, getWastesByUserId } from "@/services/users";
 import WasteCard from "@/components/WasteCard";
 import UserProfile from "@/components/UserProfile";
 import { useAuth } from "@/components/AuthProvider";

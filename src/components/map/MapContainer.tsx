@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Waste, MapOptions, GeoLocation } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
@@ -11,7 +10,7 @@ import MapMarkers from './MapMarkers';
 import MapRoutePolyline from './MapRoutePolyline';
 import SelectedWasteCard from './SelectedWasteCard';
 import RoutePlanningPanel from './RoutePlanningPanel';
-import { getAllWastes } from '@/services/mockData';
+import { getAllWastes } from '@/services/wastes';
 
 interface MapContainerProps {
   initialOptions?: Partial<MapOptions>;
@@ -64,13 +63,11 @@ const MapContainer = ({
 
   console.log("MapContainer rendering, wastes:", wastes.length);
 
-  // Opciones del mapa predeterminadas centradas en Buenos Aires
   const [mapOptions] = useState<MapOptions>({
-    center: initialOptions?.center || [-58.3816, -34.6037], // Buenos Aires por defecto
+    center: initialOptions?.center || [-58.3816, -34.6037],
     zoom: initialOptions?.zoom || 13
   });
 
-  // Usar nuestros hooks personalizados
   const { mapRef, onMapLoad: handleMapLoad, zoomIn, zoomOut, centerOnUser } = useMapControls({
     mapOptions,
     location
@@ -82,14 +79,12 @@ const MapContainer = ({
     clearRoute
   });
 
-  // Manejador personalizado para cargar el mapa
   const onMapLoad = (map: google.maps.Map) => {
     handleMapLoad(map);
     setMapLoaded(true);
     console.log("Map loaded successfully");
   };
 
-  // Cargar los datos de residuos
   useEffect(() => {
     const loadWastes = async () => {
       try {
@@ -109,7 +104,6 @@ const MapContainer = ({
     loadWastes();
   }, [setWastes, toast]);
 
-  // Centrar el mapa en la ubicación del usuario cuando esté disponible
   useEffect(() => {
     if (location && mapRef.current) {
       console.log("Centrando mapa en ubicación del usuario:", location.coordinates);

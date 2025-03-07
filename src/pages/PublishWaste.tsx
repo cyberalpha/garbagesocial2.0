@@ -8,7 +8,7 @@ import { ArrowLeft } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import WasteForm from "@/components/WasteForm";
-import { addWaste } from "@/services/mockData";
+import { addWaste } from "@/services/wastes";
 
 const PublishWaste = () => {
   const navigate = useNavigate();
