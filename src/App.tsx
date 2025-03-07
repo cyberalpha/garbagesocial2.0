@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/components/AuthProvider";
 import { LanguageProvider } from "@/components/LanguageContext";
 import InternetConnectionAlert from "@/components/InternetConnectionAlert";
+import SupabaseConnectionAlert from "@/components/SupabaseConnectionAlert";
 import Home from "./pages/Home";
 import MapView from "./pages/MapView";
 import PublishWaste from "./pages/PublishWaste";
@@ -20,19 +20,16 @@ import { useEffect, useState } from "react";
 
 const queryClient = new QueryClient();
 
-// Componente para rutas protegidas
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { currentUser, isLoading } = useAuth();
   const [authChecked, setAuthChecked] = useState(false);
   
   useEffect(() => {
-    // Cuando isLoading cambia a false, sabemos que la verificación de autenticación ha terminado
     if (!isLoading) {
       setAuthChecked(true);
     }
   }, [isLoading]);
 
-  // Si aún estamos verificando la autenticación, mostrar pantalla de carga
   if (!authChecked) {
     return (
       <div className="pt-20 container mx-auto text-center">
@@ -44,12 +41,10 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  // Si no hay usuario autenticado, redirigir a login
   if (!currentUser) {
     return <Navigate to="/login" replace />;
   }
 
-  // Si hay usuario autenticado, mostrar el contenido protegido
   return <>{children}</>;
 };
 
@@ -97,9 +92,10 @@ const App = () => (
           <Toaster />
           <Sonner />
           <InternetConnectionAlert />
+          <SupabaseConnectionAlert />
           <BrowserRouter>
             <Navbar />
-            <main className="pt-16"> {/* Adjust for navbar height */}
+            <main className="pt-16">
               <AppRoutes />
             </main>
           </BrowserRouter>
