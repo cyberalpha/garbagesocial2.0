@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, ReactNode } from 'react';
 import { 
   getAllUsers, 
@@ -86,6 +87,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const existingActiveUser = getActiveUserByEmail(userData.email || '');
       
       if (existingActiveUser) {
+        // If the user is already active but not verified, we should just resend the verification email
+        if (!existingActiveUser.emailVerified) {
+          await sendVerificationEmail(existingActiveUser.email);
+          setPendingVerification(true);
+          toast({
+            title: t('general.info'),
+            description: "Esta cuenta ya existe pero necesita verificación. Hemos enviado un nuevo correo de verificación."
+          });
+          return existingActiveUser;
+        }
+
         toast({
           title: t('general.error'),
           description: "Este correo electrónico ya está registrado",
@@ -295,7 +307,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     
     toast({
       title: t('general.success'),
-      description: "Se ha enviado un correo de verificación a tu dirección de correo electrónico"
+      description: `Se ha enviado un correo de verificación a ${email}`
     });
     
     return true;
