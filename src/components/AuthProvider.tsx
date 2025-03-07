@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, ReactNode } from 'react';
-import { getAllUsers } from '@/services/mockData';
+import { getAllUsers, addUser, getUserByEmail } from '@/services/mockData';
 import { User, UserRole } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
 import { useLanguage } from './LanguageContext';
@@ -54,8 +54,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsLoading(true);
     try {
       console.log(`Registrando usuario: ${userData.name} (${userData.email})`);
-      const users = getAllUsers();
-      const existingUser = users.find(u => u.email === userData.email);
+      // Check if user already exists
+      const existingUser = getUserByEmail(userData.email || '');
       
       if (existingUser) {
         toast({
@@ -66,7 +66,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return null;
       }
       
-      // Crear nuevo usuario
+      // Create new user
       const newUser: User = {
         id: `user-${Date.now()}`,
         name: userData.name || '',
@@ -78,17 +78,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         emailVerified: true // Simplificamos el proceso de verificación
       };
       
-      // En una aplicación real, aquí guardaríamos el usuario en la base de datos
-      // Simular la adición del usuario a la lista de usuarios
+      // Save user to our mock database
+      const savedUser = addUser(newUser);
       
       toast({
         title: t('general.success'),
         description: t('auth.registerSuccess')
       });
       
-      // Iniciar sesión automáticamente con el nuevo usuario
-      setCurrentUser(newUser);
-      return newUser;
+      // Auto-login with the new user
+      setCurrentUser(savedUser);
+      return savedUser;
     } catch (error) {
       console.error('Error al registrar usuario:', error);
       toast({
