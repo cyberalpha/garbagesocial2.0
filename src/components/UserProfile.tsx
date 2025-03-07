@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { User, Waste } from '../types';
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import ProfileEditForm from './ProfileEditForm';
+import ProfileEditForm from './profile/ProfileEditForm';
 import { useAuth } from '@/hooks/useAuth';
 import ProfileHeader from './profile/ProfileHeader';
 import ProfileStatistics from './profile/ProfileStatistics';

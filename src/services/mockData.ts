@@ -1,33 +1,35 @@
 
-/**
- * Re-export all data services for backward compatibility
- */
+// Re-export from the new modules for backward compatibility
+import { Waste, User } from '@/types';
+import { saveToStorage } from './localStorage';
 
-// Re-export User service functions for backward compatibility
-export {
-  getAllUsers,
-  getAllActiveUsers,
+// Re-export user functions from users module
+export { 
+  getUsers,
   getUserById,
-  getActiveUserById,
-  getUserByEmail, 
-  getActiveUserByEmail,
-  addUser,
-  updateUser,
+  getWastesByUserId,
+  saveUser,
   deleteUser
 } from './users';
 
-// Re-export Waste service functions for backward compatibility
+// Re-export waste functions from wastes module
 export {
-  getAllWastes,
+  getWastes,
   getWasteById,
-  getWastesByUserId,
-  getWastesByType,
-  getWastesByStatus,
-  addWaste,
-  commitToCollect
+  saveWaste,
+  deleteWaste,
+  updateWasteStatus
 } from './wastes';
 
-// Re-export constants for backward compatibility
-export { wasteTypeImages } from './wastes/constants';
-export { initialUsers as users } from './users/constants';
-export { initialWastes as wastes } from './wastes/constants';
+// Export function names that were in the original mockData.ts
+// but map them to the new implementations for backward compatibility
+export const getAllUsers = getUsers;
+export const getAllActiveUsers = getUsers; // Filter for active users if needed
+export const getActiveUserById = getUserById; // Filter for active user if needed
+export const getUserByEmail = (email: string): User | null => {
+  const users = getUsers();
+  return users.find(user => user.email === email) || null;
+};
+export const getActiveUserByEmail = getUserByEmail; // Filter for active user if needed
+export const addUser = saveUser;
+export const updateUser = saveUser;
