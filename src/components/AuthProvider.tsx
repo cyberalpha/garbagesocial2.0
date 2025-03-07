@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, ReactNode } from 'react';
 import { getCurrentUser, getAllUsers } from '@/services/mockData';
 import { User, UserRole } from '@/types';
@@ -8,7 +9,8 @@ import {
   sendVerificationEmail, 
   generateVerificationToken, 
   generateVerificationUrl,
-  prepareVerificationEmail 
+  prepareVerificationEmail,
+  decodeJwtResponse
 } from '@/utils/authUtils';
 
 // Re-export useAuth for backwards compatibility
