@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { User, Waste, UserRole } from '../types';
 import { Button } from "@/components/ui/button";
 import {
@@ -19,8 +19,10 @@ import {
 } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Edit, Star, Award, Recycle, Upload, BarChart3 } from 'lucide-react';
+import { Edit, Star, Award, Recycle, Upload, BarChart3, Pencil, Trash2 } from 'lucide-react';
 import WasteCard from './WasteCard';
+import ProfileEditForm from './ProfileEditForm';
+import { useAuth } from '@/hooks/useAuth';
 
 interface UserProfileProps {
   userId?: string;
@@ -29,6 +31,9 @@ interface UserProfileProps {
 }
 
 const UserProfile = ({ userId, isEditable = false, user }: UserProfileProps) => {
+  const { switchRole, deleteProfile } = useAuth();
+  const navigate = useNavigate();
+  const [isEditing, setIsEditing] = useState(false);
   const [wastes] = useState<Waste[]>([
     {
       id: '1',
@@ -104,6 +109,22 @@ const UserProfile = ({ userId, isEditable = false, user }: UserProfileProps) => 
     }
   });
 
+  const handleEditClick = () => {
+    setIsEditing(true);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+  };
+
+  const handleSwitchRole = () => {
+    switchRole();
+  };
+
+  if (isEditing && isEditable) {
+    return <ProfileEditForm user={user} onCancel={handleCancelEdit} />;
+  }
+
   return (
     <div className="space-y-6">
       {/* Card de perfil */}
@@ -125,6 +146,7 @@ const UserProfile = ({ userId, isEditable = false, user }: UserProfileProps) => 
                   size="icon" 
                   variant="secondary" 
                   className="absolute bottom-0 right-0"
+                  onClick={handleEditClick}
                 >
                   <Edit className="h-4 w-4" />
                 </Button>
@@ -152,10 +174,11 @@ const UserProfile = ({ userId, isEditable = false, user }: UserProfileProps) => 
             {/* Botones de acción */}
             {isEditable && (
               <div className="flex gap-2 mt-4 md:mt-0">
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" onClick={handleSwitchRole}>
                   Cambiar Rol
                 </Button>
-                <Button size="sm">
+                <Button size="sm" onClick={handleEditClick}>
+                  <Pencil className="h-4 w-4 mr-2" />
                   Editar Perfil
                 </Button>
               </div>

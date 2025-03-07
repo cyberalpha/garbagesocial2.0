@@ -8,6 +8,8 @@ export interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (userData: Partial<User>) => Promise<User | null>;
   logout: () => void;
+  updateProfile: (userData: Partial<User>) => Promise<User | null>;
+  deleteProfile: () => Promise<boolean>;
   switchRole: () => void;
   verifyEmail: (token: string) => Promise<boolean>;
   loginWithSocialMedia: (provider: string) => Promise<void>;

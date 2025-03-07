@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, ReactNode } from 'react';
-import { getAllUsers, addUser, getUserByEmail } from '@/services/mockData';
+import { getAllUsers, addUser, getUserByEmail, updateUser, deleteUser } from '@/services/mockData';
 import { User, UserRole } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
 import { useLanguage } from './LanguageContext';
@@ -110,6 +110,105 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     });
   };
 
+  const updateProfile = async (userData: Partial<User>) => {
+    setIsLoading(true);
+    try {
+      if (!currentUser) {
+        toast({
+          title: t('general.error'),
+          description: "Debes iniciar sesión para actualizar tu perfil",
+          variant: "destructive"
+        });
+        return null;
+      }
+
+      // If email is being changed, check that it's not already taken
+      if (userData.email && userData.email !== currentUser.email) {
+        const existingUser = getUserByEmail(userData.email);
+        if (existingUser && existingUser.id !== currentUser.id) {
+          toast({
+            title: t('general.error'),
+            description: "Este correo electrónico ya está registrado",
+            variant: "destructive"
+          });
+          return null;
+        }
+      }
+
+      // Update user in the database
+      const updatedUser = updateUser(currentUser.id, userData);
+      
+      if (updatedUser) {
+        setCurrentUser(updatedUser);
+        toast({
+          title: t('general.success'),
+          description: "Perfil actualizado correctamente"
+        });
+        return updatedUser;
+      } else {
+        toast({
+          title: t('general.error'),
+          description: "No se pudo actualizar el perfil",
+          variant: "destructive"
+        });
+        return null;
+      }
+    } catch (error) {
+      console.error('Error al actualizar perfil:', error);
+      toast({
+        title: t('general.error'),
+        description: "Ocurrió un error durante la actualización",
+        variant: "destructive"
+      });
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const deleteProfile = async () => {
+    setIsLoading(true);
+    try {
+      if (!currentUser) {
+        toast({
+          title: t('general.error'),
+          description: "Debes iniciar sesión para eliminar tu perfil",
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      // Delete user from the database
+      const success = deleteUser(currentUser.id);
+      
+      if (success) {
+        setCurrentUser(null);
+        toast({
+          title: t('general.success'),
+          description: "Perfil eliminado correctamente"
+        });
+        return true;
+      } else {
+        toast({
+          title: t('general.error'),
+          description: "No se pudo eliminar el perfil",
+          variant: "destructive"
+        });
+        return false;
+      }
+    } catch (error) {
+      console.error('Error al eliminar perfil:', error);
+      toast({
+        title: t('general.error'),
+        description: "Ocurrió un error durante la eliminación",
+        variant: "destructive"
+      });
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const switchRole = () => {
     if (!currentUser) return;
     
@@ -132,7 +231,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       isLoading, 
       login, 
       register, 
-      logout, 
+      logout,
+      updateProfile,
+      deleteProfile,
       switchRole,
       verifyEmail: async () => false, // Simplificado
       loginWithSocialMedia: async () => {}, // Simplificado
