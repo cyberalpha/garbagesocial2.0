@@ -16,18 +16,10 @@ const SupabaseConnectionTest = () => {
     setIsConnected(null);
     
     try {
-      // Un simple ping a Supabase
-      const { data, error } = await supabase.from('pg_stat_statements').select('*').limit(1);
+      // Use a simple getRoles() API call to check if Supabase is connected
+      const { error } = await supabase.auth.getSession();
       
-      // Si hay un error de permisos, eso significa que la conexión funcionó,
-      // pero el usuario no tiene permiso para ver esa tabla (lo cual es normal)
-      if (error && error.code === '42501') {
-        setIsConnected(true);
-        toast({
-          title: "Conexión exitosa",
-          description: "La aplicación está conectada a Supabase correctamente",
-        });
-      } else if (error) {
+      if (error) {
         console.error("Error de conexión:", error);
         setIsConnected(false);
         toast({
