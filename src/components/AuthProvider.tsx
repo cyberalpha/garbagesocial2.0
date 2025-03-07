@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, ReactNode } from 'react';
 import { User } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
@@ -34,10 +33,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Función para manejar el cambio de sesión
   const handleSessionChange = async (session: any) => {
-    setIsLoading(true);
-
-    if (session?.user) {
-      try {
+    try {
+      if (session?.user) {
         const { data: profile, error } = await getUserProfile(session.user.id);
 
         if (error) {
@@ -47,15 +44,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           const userProfile = mapProfileToUser(profile);
           setCurrentUser(userProfile);
         }
-      } catch (error) {
-        console.error('Error in session change:', error);
+      } else {
         setCurrentUser(null);
       }
-    } else {
+    } catch (error) {
+      console.error('Error in session change:', error);
       setCurrentUser(null);
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
 
   useEffect(() => {
@@ -70,6 +67,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Verificar la sesión actual al cargar
     const checkCurrentSession = async () => {
       try {
+        setIsLoading(true);
         const { data: { session } } = await supabase.auth.getSession();
         
         if (!session) {
