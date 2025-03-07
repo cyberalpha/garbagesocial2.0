@@ -1,25 +1,17 @@
 
-import React, { useCallback, useRef, useEffect, useState } from 'react';
-import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
-import { GeoLocation, MapOptions, Waste } from '@/types';
+import React, { useState, useEffect } from 'react';
+import { Waste, MapOptions, GeoLocation } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
+import { useMapState } from '@/hooks/useMapState';
+import { useMapControls } from '@/hooks/useMapControls';
+import { useMapRouteHandling } from '@/hooks/useMapRouteHandling';
+import GoogleMapWrapper from './GoogleMapWrapper';
 import MapControls from './MapControls';
 import MapMarkers from './MapMarkers';
 import MapRoutePolyline from './MapRoutePolyline';
 import SelectedWasteCard from './SelectedWasteCard';
-import LoadingOverlay from './LoadingOverlay';
-import ErrorMessage from './ErrorMessage';
 import RoutePlanningPanel from './RoutePlanningPanel';
-import { useMapState } from '@/hooks/useMapState';
 import { getAllWastes } from '@/services/mockData';
-
-const containerStyle = {
-  width: '100%',
-  height: '100%'
-};
-
-const GOOGLE_MAPS_API_KEY = "AIzaSyBpySf9Hxcg-Awq6VK00R5RGmn3_D9-W9g";
-const libraries = ['places', 'geometry'] as any;
 
 interface MapContainerProps {
   initialOptions?: Partial<MapOptions>;
@@ -56,7 +48,6 @@ const MapContainer = ({
     clearRoute
   }
 }: MapContainerProps) => {
-  const mapRef = useRef<google.maps.Map | null>(null);
   const { toast } = useToast();
   const {
     wastes,
@@ -77,19 +68,23 @@ const MapContainer = ({
     zoom: initialOptions?.zoom || 13
   });
 
-  const { isLoaded, loadError } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
-    libraries,
-    language: "es",
-    region: "AR"
+  // Usar nuestros hooks personalizados
+  const { mapRef, onMapLoad: handleMapLoad, zoomIn, zoomOut, centerOnUser } = useMapControls({
+    mapOptions,
+    location
   });
 
-  const onMapLoad = useCallback((map: google.maps.Map) => {
-    console.log("Mapa cargado correctamente");
-    mapRef.current = map;
+  const { handleOptimizeRoute } = useMapRouteHandling({
+    location,
+    optimizeRoute,
+    clearRoute
+  });
+
+  // Manejador personalizado para cargar el mapa
+  const onMapLoad = (map: google.maps.Map) => {
+    handleMapLoad(map);
     setMapLoaded(true);
-  }, [setMapLoaded]);
+  };
 
   // Cargar los datos de residuos
   useEffect(() => {
@@ -108,10 +103,8 @@ const MapContainer = ({
       }
     };
     
-    if (isLoaded) {
-      loadWastes();
-    }
-  }, [isLoaded, setWastes, toast]);
+    loadWastes();
+  }, [setWastes, toast]);
 
   // Centrar el mapa en la ubicación del usuario cuando esté disponible
   useEffect(() => {
@@ -126,86 +119,13 @@ const MapContainer = ({
         description: "El mapa se ha centrado en tu ubicación",
       });
     }
-  }, [location, toast]);
-
-  const zoomIn = () => {
-    if (mapRef.current) {
-      mapRef.current.setZoom((mapRef.current.getZoom() || mapOptions.zoom) + 1);
-    }
-  };
-
-  const zoomOut = () => {
-    if (mapRef.current) {
-      mapRef.current.setZoom((mapRef.current.getZoom() || mapOptions.zoom) - 1);
-    }
-  };
-
-  const centerOnUser = () => {
-    if (location && mapRef.current) {
-      mapRef.current.panTo({ 
-        lat: location.coordinates[1], 
-        lng: location.coordinates[0] 
-      });
-      toast({
-        title: "Centrado en tu ubicación",
-        description: "El mapa se ha centrado en tu posición actual",
-      });
-    } else {
-      toast({
-        title: "Ubicación no disponible",
-        description: "No se pudo encontrar tu ubicación",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleOptimizeRoute = () => {
-    if (location) {
-      optimizeRoute(location);
-      toast({
-        title: "Ruta optimizada",
-        description: `Se ha calculado la ruta óptima para ${selectedWastes.length} puntos`,
-      });
-    } else {
-      toast({
-        title: "No se pudo optimizar",
-        description: "Se necesita tu ubicación para calcular la ruta óptima",
-        variant: "destructive"
-      });
-    }
-  };
-
-  if (loadError) {
-    return <ErrorMessage message={loadError.message || "Error al cargar Google Maps"} />;
-  }
-
-  if (!isLoaded) {
-    return <LoadingOverlay message="Cargando mapa..." />;
-  }
+  }, [location, mapRef, toast]);
 
   return (
     <div className="relative w-full h-full min-h-[400px] bg-gray-100 rounded-lg overflow-hidden">
-      <GoogleMap
-        mapContainerStyle={containerStyle}
-        center={{
-          lat: mapOptions.center[1],
-          lng: mapOptions.center[0]
-        }}
-        zoom={mapOptions.zoom}
-        onLoad={onMapLoad}
-        options={{
-          fullscreenControl: false,
-          streetViewControl: false,
-          mapTypeControl: false,
-          zoomControl: false,
-          styles: [
-            {
-              featureType: "poi",
-              elementType: "labels",
-              stylers: [{ visibility: "off" }]
-            }
-          ]
-        }}
+      <GoogleMapWrapper
+        mapOptions={mapOptions}
+        onMapLoad={onMapLoad}
       >
         <MapMarkers 
           wastes={wastes}
@@ -224,7 +144,7 @@ const MapContainer = ({
           optimizedRoute={optimizedRoute}
           location={location}
         />
-      </GoogleMap>
+      </GoogleMapWrapper>
       
       <MapControls 
         onZoomIn={zoomIn}
