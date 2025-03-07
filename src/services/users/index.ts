@@ -23,8 +23,13 @@ export const getUserById = (id: string): User | null => {
  * Get wastes by user ID
  */
 export const getWastesByUserId = async (userId: string): Promise<Waste[]> => {
-  const allWastes = await getWastes();
-  return allWastes.filter(waste => waste.userId === userId);
+  try {
+    const allWastes = await getWastes();
+    return allWastes.filter(waste => waste.userId === userId);
+  } catch (error) {
+    console.error(`Error al obtener residuos para el usuario ${userId}:`, error);
+    return [];
+  }
 };
 
 /**

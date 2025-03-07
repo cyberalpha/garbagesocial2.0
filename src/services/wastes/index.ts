@@ -3,6 +3,7 @@ import { Waste, WasteType, WasteStatus } from "@/types";
 import { WASTES_STORAGE_KEY, initialWastes } from "./constants";
 import { getFromStorage, saveToStorage } from "../localStorage";
 import { supabase } from "@/integrations/supabase/client";
+import { Json } from "@/integrations/supabase/types";
 
 // Función para transformar datos de Supabase al formato de la aplicación
 const transformSupabaseWaste = (waste: any): Waste => {
@@ -30,10 +31,10 @@ const transformWasteForSupabase = (waste: Waste) => {
     type: waste.type,
     description: waste.description,
     image_url: waste.imageUrl,
-    location: waste.location,
+    location: waste.location as Json,
     publication_date: waste.publicationDate instanceof Date ? waste.publicationDate.toISOString() : waste.publicationDate,
     status: waste.status,
-    pickup_commitment: waste.pickupCommitment
+    pickup_commitment: waste.pickupCommitment as Json
   };
 };
 
