@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, SUPABASE_CONFIG } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
@@ -24,7 +24,7 @@ const SupabaseConnectionTest = () => {
     setIsConnected(null);
     setErrorMessage(null);
     
-    // Configurar un timeout más corto (5 segundos)
+    // Configurar un timeout de 10 segundos
     timeoutRef.current = setTimeout(() => {
       console.log("Conexión a Supabase timeout alcanzado");
       setIsLoading(false);
@@ -35,14 +35,21 @@ const SupabaseConnectionTest = () => {
         description: "La conexión a Supabase está tomando demasiado tiempo. Verifica tu conexión a internet o la configuración de Supabase.",
         variant: "destructive"
       });
-    }, 5000); // Reducido a 5 segundos
+    }, 10000);
     
     try {
-      // Probar primero con una consulta sencilla para verificar la conexión
+      // Probar con autenticación primero que es más ligera
       console.log("Intentando conectar a Supabase...");
-      // En lugar de acceder a supabaseUrl directamente, usamos las constantes de configuración
+      console.log("URL de Supabase:", SUPABASE_CONFIG.url);
       
-      const { data, error } = await supabase.from('profiles').select('count').limit(1);
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        throw sessionError;
+      }
+      
+      // Si getSession funciona, intentar una consulta a la base de datos
+      const { data, error } = await supabase.from('profiles').select('count').limit(1).single();
       
       // Limpiar el timeout ya que obtuvimos una respuesta
       if (timeoutRef.current) {
@@ -50,31 +57,16 @@ const SupabaseConnectionTest = () => {
         timeoutRef.current = null;
       }
       
-      if (error) {
-        console.error("Error de conexión a la tabla profiles:", error);
-        // Intentar con getSession como fallback
-        const sessionResponse = await supabase.auth.getSession();
-        
-        if (sessionResponse.error) {
-          console.error("Error de conexión con getSession:", sessionResponse.error);
-          setIsConnected(false);
-          setErrorMessage(sessionResponse.error.message || "No se pudo conectar a Supabase");
-          toast({
-            title: "Error de conexión",
-            description: sessionResponse.error.message || "No se pudo conectar a Supabase",
-            variant: "destructive"
-          });
-        } else {
-          // Si getSession funciona pero la tabla no, probablemente es un problema de permisos, no de conexión
-          console.log("Conexión a Supabase exitosa (auth funciona pero tabla no)");
-          setIsConnected(true);
-          toast({
-            title: "Conexión parcial",
-            description: "La autenticación funciona pero hay problemas con el acceso a las tablas: " + error.message,
-          });
-        }
+      if (error && error.code !== 'PGRST116') { // Ignora error de datos no encontrados
+        console.warn("Error de conexión a la tabla profiles:", error);
+        // Si hay error en la tabla pero la autenticación funciona, es un problema de permisos o tabla no existe
+        setIsConnected(true);
+        toast({
+          title: "Conexión parcial",
+          description: "La autenticación funciona pero hay problemas con el acceso a las tablas: " + error.message,
+        });
       } else {
-        console.log("Conexión exitosa a Supabase:", data);
+        console.log("Conexión exitosa a Supabase:", data || "No hay datos en la tabla profiles");
         setIsConnected(true);
         toast({
           title: "Conexión exitosa",
