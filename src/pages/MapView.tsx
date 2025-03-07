@@ -27,6 +27,7 @@ const MapView = () => {
     
     const allWastes = getAllWastes();
     setWastes(allWastes);
+    console.log("Wastes loaded:", allWastes.length);
   }, [currentUser, navigate]);
 
   const handleFilterClick = (type: WasteType | null) => {

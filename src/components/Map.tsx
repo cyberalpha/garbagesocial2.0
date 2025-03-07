@@ -17,6 +17,8 @@ const Map = ({ initialOptions, onMarkerClick, showRouteTools = false }: MapProps
   const geolocation = useGeolocation();
   const routeOptimization = useRouteOptimization();
   
+  console.log("Map rendering, geolocation:", geolocation.location ? "available" : "unavailable");
+  
   // Si hay error de geolocalización, mostramos el mensaje
   if (geolocation.error) {
     return <ErrorMessage message={geolocation.error} />;

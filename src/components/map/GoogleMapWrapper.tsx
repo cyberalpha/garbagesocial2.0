@@ -1,5 +1,5 @@
 
-import React, { useCallback, useRef } from 'react';
+import React from 'react';
 import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
 import { MapOptions } from '@/types';
 import LoadingOverlay from './LoadingOverlay';
@@ -27,6 +27,8 @@ const GoogleMapWrapper = ({ children, mapOptions, onMapLoad }: GoogleMapWrapperP
     language: "es",
     region: "AR"
   });
+
+  console.log("GoogleMapWrapper:", isLoaded ? "API loaded" : "Loading API", loadError ? `Error: ${loadError.message}` : "No errors");
 
   if (loadError) {
     return <ErrorMessage message={loadError.message || "Error al cargar Google Maps"} />;

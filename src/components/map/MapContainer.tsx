@@ -62,6 +62,8 @@ const MapContainer = ({
     toggleRoutingMode
   } = useMapState();
 
+  console.log("MapContainer rendering, wastes:", wastes.length);
+
   // Opciones del mapa predeterminadas centradas en Buenos Aires
   const [mapOptions] = useState<MapOptions>({
     center: initialOptions?.center || [-58.3816, -34.6037], // Buenos Aires por defecto
@@ -84,6 +86,7 @@ const MapContainer = ({
   const onMapLoad = (map: google.maps.Map) => {
     handleMapLoad(map);
     setMapLoaded(true);
+    console.log("Map loaded successfully");
   };
 
   // Cargar los datos de residuos
@@ -91,7 +94,7 @@ const MapContainer = ({
     const loadWastes = async () => {
       try {
         const data = getAllWastes();
-        console.log("Residuos cargados:", data);
+        console.log("Residuos cargados:", data.length);
         setWastes(data);
       } catch (error) {
         console.error("Error al cargar residuos:", error);
@@ -155,17 +158,19 @@ const MapContainer = ({
         isRoutingMode={isRoutingMode}
       />
       
-      <SelectedWasteCard 
-        selectedWaste={selectedWaste}
-        isRoutingMode={isRoutingMode}
-        onClose={() => setSelectedWaste(null)}
-        onCommit={() => {
-          toast({
-            title: "Compromiso de recogida",
-            description: "Has decidido recoger este residuo. ¡Gracias por tu contribución!",
-          });
-        }}
-      />
+      {selectedWaste && !isRoutingMode && (
+        <SelectedWasteCard 
+          selectedWaste={selectedWaste}
+          isRoutingMode={isRoutingMode}
+          onClose={() => setSelectedWaste(null)}
+          onCommit={() => {
+            toast({
+              title: "Compromiso de recogida",
+              description: "Has decidido recoger este residuo. ¡Gracias por tu contribución!",
+            });
+          }}
+        />
+      )}
       
       {isRoutingMode && (
         <RoutePlanningPanel
