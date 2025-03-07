@@ -45,6 +45,42 @@ export type Database = {
         }
         Relationships: []
       }
+      wastes: {
+        Row: {
+          description: string
+          id: string
+          image_url: string | null
+          location: Json
+          pickup_commitment: Json | null
+          publication_date: string | null
+          status: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          description: string
+          id?: string
+          image_url?: string | null
+          location: Json
+          pickup_commitment?: Json | null
+          publication_date?: string | null
+          status: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          description?: string
+          id?: string
+          image_url?: string | null
+          location?: Json
+          pickup_commitment?: Json | null
+          publication_date?: string | null
+          status?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

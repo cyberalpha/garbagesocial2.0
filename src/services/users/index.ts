@@ -22,8 +22,8 @@ export const getUserById = (id: string): User | null => {
 /**
  * Get wastes by user ID
  */
-export const getWastesByUserId = (userId: string): Waste[] => {
-  const allWastes = getWastes();
+export const getWastesByUserId = async (userId: string): Promise<Waste[]> => {
+  const allWastes = await getWastes();
   return allWastes.filter(waste => waste.userId === userId);
 };
 

@@ -9,7 +9,7 @@ const transformSupabaseWaste = (waste: any): Waste => {
   return {
     id: waste.id,
     userId: waste.user_id,
-    type: waste.type,
+    type: waste.type as WasteType,
     description: waste.description,
     imageUrl: waste.image_url,
     location: waste.location || {
@@ -17,7 +17,7 @@ const transformSupabaseWaste = (waste: any): Waste => {
       coordinates: [0, 0]
     },
     publicationDate: new Date(waste.publication_date),
-    status: waste.status,
+    status: waste.status as WasteStatus,
     pickupCommitment: waste.pickup_commitment
   };
 };
@@ -66,9 +66,9 @@ export const getWastes = async (): Promise<Waste[]> => {
   }
 };
 
-// Función sincrónica para mantener compatibilidad con el código existente
-export const getAllWastes = (): Waste[] => {
-  return getFromStorage<Waste[]>(WASTES_STORAGE_KEY, initialWastes);
+// Función para obtener residuos (alias para mantener compatibilidad con código existente)
+export const getAllWastes = async (): Promise<Waste[]> => {
+  return getWastes();
 };
 
 /**
@@ -161,10 +161,13 @@ export const addWaste = async (wasteData: Partial<Waste>): Promise<Waste> => {
   };
   
   try {
+    // Transformar para Supabase y guardar
+    const supabaseData = transformWasteForSupabase(newWaste);
+    
     // Intentar guardar en Supabase
     const { error } = await supabase
       .from('wastes')
-      .insert(transformWasteForSupabase(newWaste));
+      .insert(supabaseData);
     
     if (error) {
       console.error("Error al insertar residuo en Supabase:", error);
@@ -189,10 +192,13 @@ export const addWaste = async (wasteData: Partial<Waste>): Promise<Waste> => {
  */
 export const saveWaste = async (waste: Waste): Promise<void> => {
   try {
+    // Transformar para Supabase
+    const supabaseData = transformWasteForSupabase(waste);
+    
     // Intentar guardar en Supabase
     const { error } = await supabase
       .from('wastes')
-      .upsert(transformWasteForSupabase(waste));
+      .upsert(supabaseData);
     
     if (error) {
       console.error("Error al actualizar residuo en Supabase:", error);

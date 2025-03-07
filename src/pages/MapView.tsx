@@ -25,25 +25,49 @@ const MapView = () => {
       return;
     }
     
-    const allWastes = getAllWastes();
-    setWastes(allWastes);
-    console.log("Wastes loaded:", allWastes.length);
-  }, [currentUser, navigate]);
+    // Cargar residuos de forma asíncrona
+    const loadWastes = async () => {
+      try {
+        const allWastes = await getAllWastes();
+        setWastes(allWastes);
+        console.log("Wastes loaded:", allWastes.length);
+      } catch (error) {
+        console.error("Error al cargar residuos:", error);
+        toast({
+          title: "Error",
+          description: "No se pudieron cargar los residuos. Intente de nuevo más tarde.",
+          variant: "destructive"
+        });
+      }
+    };
+    
+    loadWastes();
+  }, [currentUser, navigate, toast]);
 
-  const handleFilterClick = (type: WasteType | null) => {
+  const handleFilterClick = async (type: WasteType | null) => {
     setSelectedType(type);
-    if (type) {
-      const filtered = getWastesByType(type);
-      setWastes(filtered);
+    try {
+      if (type) {
+        const filtered = await getWastesByType(type);
+        setWastes(filtered);
+        toast({
+          title: "Filtro aplicado",
+          description: `Mostrando residuos de tipo: ${type}`,
+        });
+      } else {
+        const allWastes = await getAllWastes();
+        setWastes(allWastes);
+        toast({
+          title: "Filtros eliminados",
+          description: "Mostrando todos los residuos",
+        });
+      }
+    } catch (error) {
+      console.error("Error al filtrar residuos:", error);
       toast({
-        title: "Filtro aplicado",
-        description: `Mostrando residuos de tipo: ${type}`,
-      });
-    } else {
-      setWastes(getAllWastes());
-      toast({
-        title: "Filtros eliminados",
-        description: "Mostrando todos los residuos",
+        title: "Error",
+        description: "No se pudieron filtrar los residuos. Intente de nuevo más tarde.",
+        variant: "destructive"
       });
     }
   };

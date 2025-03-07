@@ -32,37 +32,51 @@ const WasteDetail = () => {
   useEffect(() => {
     if (!id) return;
     
-    const wasteData = getWasteById(id);
-    if (wasteData) {
-      setWaste(wasteData);
-      
-      // Get publisher data
-      const publisherData = getUserById(wasteData.userId);
-      if (publisherData) {
-        setPublisher(publisherData);
-      }
-      
-      // Get recycler data if available
-      if (wasteData.pickupCommitment?.recyclerId) {
-        const recyclerData = getUserById(wasteData.pickupCommitment.recyclerId);
-        if (recyclerData) {
-          setRecycler(recyclerData);
+    const fetchWasteData = async () => {
+      try {
+        const wasteData = await getWasteById(id);
+        if (wasteData) {
+          setWaste(wasteData);
+          
+          // Get publisher data
+          if (wasteData.userId) {
+            const publisherData = getUserById(wasteData.userId);
+            if (publisherData) {
+              setPublisher(publisherData);
+            }
+          }
+          
+          // Get recycler data if available
+          if (wasteData.pickupCommitment?.recyclerId) {
+            const recyclerData = getUserById(wasteData.pickupCommitment.recyclerId);
+            if (recyclerData) {
+              setRecycler(recyclerData);
+            }
+          }
         }
+      } catch (error) {
+        console.error("Error al cargar el residuo:", error);
+        toast({
+          title: "Error",
+          description: "No se pudo cargar la información del residuo",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
       }
-    }
+    };
     
-    setLoading(false);
+    fetchWasteData();
   }, [id]);
   
-  const handleCommitToCollect = () => {
+  const handleCommitToCollect = async () => {
     if (!waste) return;
     
     setCommitting(true);
     
-    // Simulating API call
-    setTimeout(() => {
-      try {
-        const updatedWaste = commitToCollect(waste.id, "current-user-id");
+    try {
+      const updatedWaste = await commitToCollect(waste.id, "current-user-id");
+      if (updatedWaste) {
         setWaste(updatedWaste);
         
         // Get recycler data
@@ -77,16 +91,17 @@ const WasteDetail = () => {
           title: "Compromiso registrado",
           description: "Te has comprometido a recoger este residuo",
         });
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: "No se pudo registrar el compromiso",
-          variant: "destructive"
-        });
-      } finally {
-        setCommitting(false);
       }
-    }, 1000);
+    } catch (error) {
+      console.error("Error al comprometerse:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo registrar el compromiso",
+        variant: "destructive"
+      });
+    } finally {
+      setCommitting(false);
+    }
   };
   
   if (loading) {

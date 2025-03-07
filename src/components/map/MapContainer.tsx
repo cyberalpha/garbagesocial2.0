@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Waste, MapOptions, GeoLocation } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
@@ -88,7 +89,7 @@ const MapContainer = ({
   useEffect(() => {
     const loadWastes = async () => {
       try {
-        const data = getAllWastes();
+        const data = await getAllWastes();
         console.log("Residuos cargados:", data.length);
         setWastes(data);
       } catch (error) {
