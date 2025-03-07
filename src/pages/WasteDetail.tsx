@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
@@ -295,12 +296,14 @@ const WasteDetail = () => {
               <CardTitle>Ubicación</CardTitle>
             </CardHeader>
             <CardContent className="p-0 h-64">
-              <Map
-                initialOptions={{
-                  center: waste.location.coordinates,
-                  zoom: 15
-                }}
-              />
+              {waste && (
+                <Map
+                  initialOptions={{
+                    center: waste.location.coordinates,
+                    zoom: 15
+                  }}
+                />
+              )}
             </CardContent>
           </Card>
         </div>

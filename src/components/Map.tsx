@@ -1,17 +1,25 @@
 
-import { useState, useEffect, useRef } from 'react';
-import { Waste, MapOptions, GeoLocation } from '../types';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { GoogleMap, useJsApiLoader, Marker, InfoWindow, Polyline } from '@react-google-maps/api';
+import { Waste, MapOptions } from '../types';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import MapMarker from './MapMarker';
 import WasteCard from './WasteCard';
 import RouteDisplay from './RouteDisplay';
 import { Locate, Layers, ZoomIn, ZoomOut, X, MapPin, Route as RouteIcon } from 'lucide-react';
 import useGeolocation from '../hooks/useGeolocation';
 import useRouteOptimization from '../hooks/useRouteOptimization';
-import { toast } from '@/components/ui/use-toast';
+import { useToast } from '@/components/ui/use-toast';
 
-// Tipos de mapa
+// Map container style
+const containerStyle = {
+  width: '100%',
+  height: '100%'
+};
+
+// Google Maps API Key
+const GOOGLE_MAPS_API_KEY = "AIzaSyA6OTYrTgc-6WIaNoRF4jxrNaYfRZH9HE8"; // This is a placeholder, you should replace with your actual API key
+
 interface MapProps {
   initialOptions?: Partial<MapOptions>;
   onMarkerClick?: (waste: Waste) => void;
@@ -19,13 +27,14 @@ interface MapProps {
 }
 
 const Map = ({ initialOptions, onMarkerClick, showRouteTools = false }: MapProps) => {
-  const mapRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<google.maps.Map | null>(null);
   const { location, error, loading } = useGeolocation();
   const [wastes, setWastes] = useState<Waste[]>([]);
   const [selectedWaste, setSelectedWaste] = useState<Waste | null>(null);
+  const [showInfoWindow, setShowInfoWindow] = useState<boolean>(false);
   const [mapInitialized, setMapInitialized] = useState(false);
   const [isRoutingMode, setIsRoutingMode] = useState(false);
-  const [mapUrl, setMapUrl] = useState<string>('');
+  const { toast } = useToast();
   
   const {
     selectedWastes,
@@ -42,20 +51,14 @@ const Map = ({ initialOptions, onMarkerClick, showRouteTools = false }: MapProps
     zoom: initialOptions?.zoom || 13
   });
 
-  // Función para actualizar la URL del mapa
-  useEffect(() => {
-    // Construye una URL de mapa estático con los marcadores
-    const generateMapUrl = () => {
-      const baseUrl = 'https://api.mapbox.com/styles/v1/mapbox/light-v10/static';
-      const center = `${mapOptions.center[0]},${mapOptions.center[1]},${mapOptions.zoom},0`;
-      const dimensions = '1200x800';
-      const token = 'pk.eyJ1IjoibG92YWJsZXRlc3QiLCJhIjoiY2xzaGx3NTQ3MDkycjJsbm9nNTR5b2ZiNCJ9.QANl9BQ-yV5sjQ6-hpYxXQ';
-      
-      return `${baseUrl}/${center}/${dimensions}?access_token=${token}`;
-    };
+  const { isLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: GOOGLE_MAPS_API_KEY
+  });
 
-    setMapUrl(generateMapUrl());
-  }, [mapOptions]);
+  const onMapLoad = useCallback((map: google.maps.Map) => {
+    mapRef.current = map;
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -110,39 +113,37 @@ const Map = ({ initialOptions, onMarkerClick, showRouteTools = false }: MapProps
   }, []);
 
   useEffect(() => {
-    if (location && !mapInitialized) {
-      setMapOptions(prev => ({
-        ...prev,
-        center: location.coordinates
-      }));
+    if (location && !mapInitialized && mapRef.current) {
+      mapRef.current.panTo({ 
+        lat: location.coordinates[1], 
+        lng: location.coordinates[0] 
+      });
       setMapInitialized(true);
       toast({
         title: "Ubicación encontrada",
         description: `Posición actual: ${location.coordinates[1].toFixed(4)}, ${location.coordinates[0].toFixed(4)}`,
       });
     }
-  }, [location, mapInitialized]);
+  }, [location, mapInitialized, toast]);
 
   const zoomIn = () => {
-    setMapOptions(prev => ({
-      ...prev,
-      zoom: Math.min(prev.zoom + 1, 18)
-    }));
+    if (mapRef.current) {
+      mapRef.current.setZoom((mapRef.current.getZoom() || mapOptions.zoom) + 1);
+    }
   };
 
   const zoomOut = () => {
-    setMapOptions(prev => ({
-      ...prev,
-      zoom: Math.max(prev.zoom - 1, 1)
-    }));
+    if (mapRef.current) {
+      mapRef.current.setZoom((mapRef.current.getZoom() || mapOptions.zoom) - 1);
+    }
   };
 
   const centerOnUser = () => {
-    if (location) {
-      setMapOptions(prev => ({
-        ...prev,
-        center: location.coordinates
-      }));
+    if (location && mapRef.current) {
+      mapRef.current.panTo({ 
+        lat: location.coordinates[1], 
+        lng: location.coordinates[0] 
+      });
       toast({
         title: "Centrado en tu ubicación",
         description: "El mapa se ha centrado en tu posición actual.",
@@ -165,6 +166,7 @@ const Map = ({ initialOptions, onMarkerClick, showRouteTools = false }: MapProps
       });
     } else {
       setSelectedWaste(waste);
+      setShowInfoWindow(true);
       if (onMarkerClick) {
         onMarkerClick(waste);
       }
@@ -189,7 +191,8 @@ const Map = ({ initialOptions, onMarkerClick, showRouteTools = false }: MapProps
 
   const toggleRoutingMode = () => {
     setIsRoutingMode(!isRoutingMode);
-    if (selectedWaste) setSelectedWaste(null);
+    setSelectedWaste(null);
+    setShowInfoWindow(false);
     if (!isRoutingMode) {
       clearRoute();
       toast({
@@ -204,124 +207,151 @@ const Map = ({ initialOptions, onMarkerClick, showRouteTools = false }: MapProps
     }
   };
 
-  // Renderizar líneas de ruta entre puntos
-  const renderRouteLines = () => {
-    if (optimizedRoute.length < 2) return null;
-    
-    const lines = [];
-    let startPoint = location?.coordinates || mapOptions.center;
-    
-    // Línea desde la ubicación actual al primer punto
-    lines.push(
-      <div 
-        key="start-line"
-        className="absolute bg-blue-500"
-        style={{
-          height: '2px',
-          transform: 'rotate(45deg)',
-          transformOrigin: '0 0',
-          width: calculateDistance(
-            startPoint, 
-            optimizedRoute[0].location.coordinates
-          ),
-          left: `${50 + (startPoint[0] - mapOptions.center[0]) * 5 * mapOptions.zoom}%`,
-          top: `${50 - (startPoint[1] - mapOptions.center[1]) * 5 * mapOptions.zoom}%`,
-        }}
-      />
-    );
-    
-    // Líneas entre puntos de la ruta
-    for (let i = 0; i < optimizedRoute.length - 1; i++) {
-      const from = optimizedRoute[i].location.coordinates;
-      const to = optimizedRoute[i + 1].location.coordinates;
-      
-      lines.push(
-        <div 
-          key={`line-${i}`}
-          className="absolute bg-blue-500"
-          style={{
-            height: '2px',
-            transform: 'rotate(45deg)',
-            transformOrigin: '0 0',
-            width: calculateDistance(from, to),
-            left: `${50 + (from[0] - mapOptions.center[0]) * 5 * mapOptions.zoom}%`,
-            top: `${50 - (from[1] - mapOptions.center[1]) * 5 * mapOptions.zoom}%`,
-          }}
-        />
-      );
+  // Get marker icon based on waste type
+  const getMarkerIcon = (type: string) => {
+    let pinColor = "";
+    switch(type) {
+      case 'organic': pinColor = "#22c55e"; break; // green-500
+      case 'paper': pinColor = "#eab308"; break; // yellow-500
+      case 'glass': pinColor = "#f59e0b"; break; // amber-500
+      case 'plastic': pinColor = "#3b82f6"; break; // blue-500
+      case 'metal': pinColor = "#9ca3af"; break; // gray-400
+      case 'sanitary': pinColor = "#ef4444"; break; // red-500
+      case 'dump': pinColor = "#a855f7"; break; // purple-500
+      default: pinColor = "#1e293b"; break; // slate-800
     }
     
-    return lines;
-  };
-  
-  const calculateDistance = (
-    from: [number, number], 
-    to: [number, number]
-  ) => {
-    // Cálculo simplificado para representación visual
-    const x = (to[0] - from[0]) * 5 * mapOptions.zoom;
-    const y = (from[1] - to[1]) * 5 * mapOptions.zoom;
-    return Math.sqrt(x * x + y * y) * 100;
+    return {
+      path: google.maps.SymbolPath.CIRCLE,
+      fillColor: pinColor,
+      fillOpacity: 1,
+      strokeColor: "#ffffff",
+      strokeWeight: 2,
+      scale: 10
+    };
   };
 
-  // Verificar si hay problemas con la renderización del mapa
-  console.log("Map state:", { wastes, location, mapUrl });
+  // Get route path for optimized route
+  const getRoutePath = () => {
+    if (optimizedRoute.length < 2) return [];
+
+    const path = [];
+    
+    // Add user location as starting point
+    if (location) {
+      path.push({
+        lat: location.coordinates[1],
+        lng: location.coordinates[0]
+      });
+    }
+    
+    // Add waste locations to path
+    for (const waste of optimizedRoute) {
+      path.push({
+        lat: waste.location.coordinates[1],
+        lng: waste.location.coordinates[0]
+      });
+    }
+    
+    return path;
+  };
+
+  if (!isLoaded) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-gray-100">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <p className="ml-3 text-gray-600">Cargando mapa...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="relative w-full h-full min-h-[400px] bg-gray-100 rounded-lg overflow-hidden">
-      <div 
-        ref={mapRef} 
-        className="w-full h-full bg-[#CCDAE6] relative"
-        style={{
-          backgroundImage: `url("${mapUrl}")`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center'
+      <GoogleMap
+        mapContainerStyle={containerStyle}
+        center={{
+          lat: mapOptions.center[1],
+          lng: mapOptions.center[0]
+        }}
+        zoom={mapOptions.zoom}
+        onLoad={onMapLoad}
+        options={{
+          fullscreenControl: false,
+          streetViewControl: false,
+          mapTypeControl: false,
+          zoomControl: false,
         }}
       >
-        {/* Rendering route lines */}
-        {isRoutingMode && renderRouteLines()}
-        
-        {/* Rendering waste markers */}
+        {/* Waste markers */}
         {wastes.map(waste => {
           const isSelected = selectedWastes.some(w => w.id === waste.id);
           const routeIndex = optimizedRoute.findIndex(w => w.id === waste.id);
           
           return (
-            <div 
+            <Marker
               key={waste.id}
-              className="absolute transform -translate-x-1/2 -translate-y-1/2"
-              style={{
-                left: `${50 + (waste.location.coordinates[0] - mapOptions.center[0]) * 5 * mapOptions.zoom}%`,
-                top: `${50 - (waste.location.coordinates[1] - mapOptions.center[1]) * 5 * mapOptions.zoom}%`,
-                zIndex: isSelected ? 30 : 20,
+              position={{
+                lat: waste.location.coordinates[1],
+                lng: waste.location.coordinates[0]
               }}
-            >
-              <MapMarker 
-                waste={waste} 
-                onClick={() => handleMarkerClick(waste)}
-                isSelected={isSelected}
-                routeOrder={routeIndex !== -1 ? routeIndex + 1 : undefined}
-              />
-            </div>
+              onClick={() => handleMarkerClick(waste)}
+              icon={getMarkerIcon(waste.type)}
+              label={routeIndex !== -1 ? (routeIndex + 1).toString() : undefined}
+              animation={isSelected ? google.maps.Animation.BOUNCE : undefined}
+              zIndex={isSelected ? 100 : undefined}
+            />
           );
         })}
         
         {/* User location marker */}
         {location && (
-          <div 
-            className="absolute transform -translate-x-1/2 -translate-y-1/2"
-            style={{
-              left: `${50 + (location.coordinates[0] - mapOptions.center[0]) * 5 * mapOptions.zoom}%`,
-              top: `${50 - (location.coordinates[1] - mapOptions.center[1]) * 5 * mapOptions.zoom}%`,
-              zIndex: 40,
+          <Marker
+            position={{
+              lat: location.coordinates[1],
+              lng: location.coordinates[0]
+            }}
+            icon={{
+              path: google.maps.SymbolPath.CIRCLE,
+              fillColor: "#3b82f6",
+              fillOpacity: 1,
+              strokeColor: "#ffffff",
+              strokeWeight: 2,
+              scale: 8
+            }}
+            zIndex={1000}
+          />
+        )}
+        
+        {/* Info window for selected waste */}
+        {selectedWaste && showInfoWindow && (
+          <InfoWindow
+            position={{
+              lat: selectedWaste.location.coordinates[1],
+              lng: selectedWaste.location.coordinates[0]
+            }}
+            onCloseClick={() => {
+              setShowInfoWindow(false);
             }}
           >
-            <div className="w-6 h-6 bg-blue-500 rounded-full border-2 border-white shadow-lg flex items-center justify-center">
-              <div className="w-3 h-3 bg-white rounded-full animate-pulse" />
+            <div className="p-2">
+              <h3 className="font-medium">{selectedWaste.description}</h3>
+              <p className="text-sm capitalize">{selectedWaste.type}</p>
             </div>
-          </div>
+          </InfoWindow>
         )}
-      </div>
+        
+        {/* Route polyline */}
+        {isRoutingMode && optimizedRoute.length > 1 && (
+          <Polyline
+            path={getRoutePath()}
+            options={{
+              strokeColor: "#3b82f6",
+              strokeWeight: 3,
+              strokeOpacity: 0.8,
+            }}
+          />
+        )}
+      </GoogleMap>
       
       {/* Map controls */}
       <div className="absolute top-4 right-4 flex flex-col space-y-2">

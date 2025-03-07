@@ -77,6 +77,7 @@ const MapView = () => {
         showRouteTools={showRouteTools}
       />
       
+      {/* Map controls */}
       <div className="absolute top-4 right-4 z-10 flex gap-2">
         <Button 
           variant="secondary" 
@@ -99,6 +100,7 @@ const MapView = () => {
         </Button>
       </div>
       
+      {/* Publish button */}
       <div className="absolute bottom-24 right-4 z-10">
         <Button 
           onClick={handlePublishClick}
@@ -109,6 +111,7 @@ const MapView = () => {
         </Button>
       </div>
       
+      {/* Selected waste card */}
       {selectedWaste && !showRouteTools && (
         <div className="absolute bottom-4 left-4 right-4 z-10">
           <Card className="border-0 shadow-lg">
@@ -122,6 +125,7 @@ const MapView = () => {
         </div>
       )}
       
+      {/* Location button */}
       {location && (
         <div className="absolute bottom-24 left-4 z-10">
           <Button variant="outline" size="sm" className="bg-white shadow-md">
@@ -131,6 +135,7 @@ const MapView = () => {
         </div>
       )}
       
+      {/* Loading or error message */}
       {(loading || error) && (
         <div className="absolute top-16 left-0 right-0 mx-auto w-3/4 z-10 text-center">
           <Card className="border-0 shadow-lg">
