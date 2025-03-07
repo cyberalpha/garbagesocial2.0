@@ -1,23 +1,13 @@
 
 import React, { useState, useEffect, ReactNode } from 'react';
-import { 
-  getAllUsers, 
-  addUser, 
-  getActiveUserByEmail, 
-  updateUser, 
-  deleteUser, 
-  getUserByEmail,
-  getUserById
-} from '@/services/mockData';
 import { User } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
 import { useLanguage } from './LanguageContext';
 import { AuthContext } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
 
 export { useAuth } from '@/hooks/useAuth';
-
-// LocalStorage key
-const CURRENT_USER_KEY = 'current_user';
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -30,82 +20,129 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const { toast } = useToast();
   const { t } = useLanguage();
 
-  // Load user from localStorage on mount
   useEffect(() => {
-    const loadUser = () => {
-      try {
-        const savedUserJson = localStorage.getItem(CURRENT_USER_KEY);
-        console.log('Loading user from localStorage:', savedUserJson);
+    // Configurar el listener de cambio de estado de autenticación
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth state changed:', event, session);
+        setIsLoading(true);
+
+        if (session?.user) {
+          try {
+            // Obtener el perfil del usuario desde la tabla profiles
+            const { data: profile, error } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
+
+            if (error) {
+              console.error('Error fetching profile:', error);
+              setCurrentUser(null);
+            } else if (profile) {
+              // Convertir el perfil de Supabase al formato User de la aplicación
+              const userProfile: User = {
+                id: profile.id,
+                name: profile.name,
+                email: profile.email,
+                isOrganization: profile.is_organization,
+                averageRating: profile.average_rating,
+                profileImage: profile.profile_image,
+                emailVerified: true,
+                active: profile.active
+              };
+              setCurrentUser(userProfile);
+            }
+          } catch (error) {
+            console.error('Error in auth state change:', error);
+            setCurrentUser(null);
+          }
+        } else {
+          setCurrentUser(null);
+        }
         
-        if (savedUserJson) {
-          const savedUser = JSON.parse(savedUserJson);
-          // Verify the user still exists and is active in our database
-          const existingUser = getUserById(savedUser.id);
-          console.log('Existing user from database:', existingUser);
-          
-          if (existingUser && existingUser.active !== false) {
-            console.log('Setting current user from localStorage');
-            setCurrentUser(existingUser);
-          } else {
-            console.log('User not found in database or inactive, clearing localStorage');
-            // Clear invalid user data
-            localStorage.removeItem(CURRENT_USER_KEY);
+        setIsLoading(false);
+      }
+    );
+
+    // Verificar la sesión actual al cargar
+    const checkCurrentSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session) {
+          setIsLoading(false);
+          return;
+        }
+
+        // Si hay una sesión, obtener el perfil del usuario
+        if (session?.user) {
+          const { data: profile, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+
+          if (error) {
+            console.error('Error fetching profile:', error);
+            setCurrentUser(null);
+          } else if (profile) {
+            // Convertir el perfil de Supabase al formato User de la aplicación
+            const userProfile: User = {
+              id: profile.id,
+              name: profile.name,
+              email: profile.email,
+              isOrganization: profile.is_organization,
+              averageRating: profile.average_rating,
+              profileImage: profile.profile_image,
+              emailVerified: true,
+              active: profile.active
+            };
+            setCurrentUser(userProfile);
           }
         }
       } catch (error) {
-        console.error('Error loading user from localStorage:', error);
-        localStorage.removeItem(CURRENT_USER_KEY);
+        console.error('Error checking current session:', error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadUser();
-  }, []);
+    checkCurrentSession();
 
-  // Save user to localStorage whenever it changes
-  useEffect(() => {
-    if (currentUser) {
-      console.log('Saving user to localStorage:', currentUser);
-      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(currentUser));
-    } else {
-      localStorage.removeItem(CURRENT_USER_KEY);
-    }
-  }, [currentUser]);
+    // Limpiar suscripción
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      console.log(`Iniciando sesión con: ${email}`);
-      const user = getActiveUserByEmail(email);
-      
-      if (user) {
-        setCurrentUser(user);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error) {
+        console.error('Error al iniciar sesión:', error);
         toast({
-          title: t('general.success'),
-          description: `${t('auth.login')} ${user.name}`,
+          title: t('general.error'),
+          description: error.message || "Error al iniciar sesión",
+          variant: "destructive"
         });
-      } else {
-        const inactiveUser = getUserByEmail(email);
-        if (inactiveUser && inactiveUser.active === false) {
-          toast({
-            title: t('general.error'),
-            description: "Tu cuenta está desactivada. Registrate nuevamente para reactivarla.",
-            variant: "destructive"
-          });
-        } else {
-          toast({
-            title: t('general.error'),
-            description: "Correo electrónico o contraseña incorrectos",
-            variant: "destructive"
-          });
-        }
+        return;
       }
-    } catch (error) {
-      console.error('Error al iniciar sesión:', error);
+
+      toast({
+        title: t('general.success'),
+        description: `${t('auth.login')} ${data.user?.email}`,
+      });
+    } catch (error: any) {
+      console.error('Error inesperado al iniciar sesión:', error);
       toast({
         title: t('general.error'),
-        description: "Ocurrió un error durante el inicio de sesión",
+        description: error.message || "Ocurrió un error durante el inicio de sesión",
         variant: "destructive"
       });
     } finally {
@@ -116,67 +153,57 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const register = async (userData: Partial<User>) => {
     setIsLoading(true);
     try {
-      console.log(`Registrando usuario: ${userData.name} (${userData.email})`);
-      const existingActiveUser = getActiveUserByEmail(userData.email || '');
-      
-      if (existingActiveUser) {
+      // Registrar usuario en Supabase Auth
+      const { data, error } = await supabase.auth.signUp({
+        email: userData.email || '',
+        password: (userData as any).password || '',
+        options: {
+          data: {
+            name: userData.name,
+            isOrganization: userData.isOrganization,
+            profileImage: `https://api.dicebear.com/7.x/initials/svg?seed=${userData.name}`
+          }
+        }
+      });
+
+      if (error) {
+        console.error('Error al registrar usuario:', error);
         toast({
           title: t('general.error'),
-          description: "Este correo electrónico ya está registrado",
+          description: error.message || "Error al registrar usuario",
           variant: "destructive"
         });
         return null;
       }
-      
-      const existingInactiveUser = getUserByEmail(userData.email || '');
-      if (existingInactiveUser && existingInactiveUser.active === false) {
-        console.log('Reactivando usuario:', existingInactiveUser.id);
-        
-        const updatedUserData = {
-          ...existingInactiveUser,
-          name: userData.name || existingInactiveUser.name,
-          isOrganization: userData.isOrganization !== undefined ? userData.isOrganization : existingInactiveUser.isOrganization,
-          active: true,
-          emailVerified: true
-        };
-        
-        const reactivatedUser = updateUser(existingInactiveUser.id, updatedUserData);
-        
-        if (reactivatedUser) {
-          toast({
-            title: t('general.success'),
-            description: "¡Bienvenido de vuelta! Tu cuenta ha sido reactivada."
-          });
-          setCurrentUser(reactivatedUser);
-          return reactivatedUser;
-        }
-      }
-      
-      const newUser: User = {
-        id: `user-${Date.now()}`,
-        name: userData.name || '',
-        email: userData.email || '',
-        isOrganization: userData.isOrganization || false,
-        averageRating: 0,
-        profileImage: `https://api.dicebear.com/7.x/initials/svg?seed=${userData.name}`,
-        emailVerified: true,
-        active: true
-      };
-      
-      const savedUser = addUser(newUser);
-      setCurrentUser(savedUser);
-      
+
+      // El perfil se crea automáticamente mediante el trigger en Supabase
       toast({
         title: t('general.success'),
-        description: "Registro exitoso. ¡Bienvenido!"
+        description: "Registro exitoso. ¡Bienvenido!",
       });
+
+      // Devolver el usuario recién creado
+      if (data.user) {
+        const newUser: User = {
+          id: data.user.id,
+          name: userData.name || '',
+          email: userData.email || '',
+          isOrganization: userData.isOrganization || false,
+          averageRating: 0,
+          profileImage: `https://api.dicebear.com/7.x/initials/svg?seed=${userData.name}`,
+          emailVerified: true,
+          active: true
+        };
+        
+        return newUser;
+      }
       
-      return savedUser;
-    } catch (error) {
-      console.error('Error al registrar usuario:', error);
+      return null;
+    } catch (error: any) {
+      console.error('Error inesperado al registrar usuario:', error);
       toast({
         title: t('general.error'),
-        description: "Ocurrió un error durante el registro",
+        description: error.message || "Ocurrió un error durante el registro",
         variant: "destructive"
       });
       return null;
@@ -185,13 +212,36 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const logout = () => {
-    setCurrentUser(null);
-    setPendingVerification(false);
-    toast({
-      title: "Sesión cerrada",
-      description: "Has cerrado sesión correctamente",
-    });
+  const logout = async () => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error('Error al cerrar sesión:', error);
+        toast({
+          title: t('general.error'),
+          description: error.message || "Error al cerrar sesión",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // El cambio de estado de autenticación actualizará currentUser a null
+      toast({
+        title: "Sesión cerrada",
+        description: "Has cerrado sesión correctamente",
+      });
+    } catch (error: any) {
+      console.error('Error inesperado al cerrar sesión:', error);
+      toast({
+        title: t('general.error'),
+        description: error.message || "Ocurrió un error al cerrar la sesión",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const updateProfile = async (userData: Partial<User>) => {
@@ -206,42 +256,72 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return null;
       }
 
-      if (userData.email && userData.email !== currentUser.email) {
-        const existingUser = getActiveUserByEmail(userData.email);
-        if (existingUser && existingUser.id !== currentUser.id) {
-          toast({
-            title: t('general.error'),
-            description: "Este correo electrónico ya está registrado",
-            variant: "destructive"
-          });
-          return null;
-        }
-        
-        userData.emailVerified = true;
-      }
+      // Actualizar el perfil en la tabla profiles
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({
+          name: userData.name,
+          email: userData.email,
+          is_organization: userData.isOrganization,
+          profile_image: userData.profileImage,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', currentUser.id)
+        .select()
+        .single();
 
-      const updatedUser = updateUser(currentUser.id, userData);
-      
-      if (updatedUser) {
-        setCurrentUser(updatedUser);
-        toast({
-          title: t('general.success'),
-          description: "Perfil actualizado correctamente"
-        });
-        return updatedUser;
-      } else {
+      if (error) {
+        console.error('Error al actualizar perfil:', error);
         toast({
           title: t('general.error'),
-          description: "No se pudo actualizar el perfil",
+          description: error.message || "No se pudo actualizar el perfil",
           variant: "destructive"
         });
         return null;
       }
-    } catch (error) {
-      console.error('Error al actualizar perfil:', error);
+
+      // Si se cambió el email, actualizar también en Auth
+      if (userData.email && userData.email !== currentUser.email) {
+        const { error: updateAuthError } = await supabase.auth.updateUser({
+          email: userData.email
+        });
+
+        if (updateAuthError) {
+          console.error('Error al actualizar email en Auth:', updateAuthError);
+          toast({
+            title: t('general.error'),
+            description: updateAuthError.message || "No se pudo actualizar el email",
+            variant: "destructive"
+          });
+          return null;
+        }
+      }
+
+      // Convertir el perfil actualizado al formato User
+      const updatedUser: User = {
+        id: data.id,
+        name: data.name,
+        email: data.email,
+        isOrganization: data.is_organization,
+        averageRating: data.average_rating,
+        profileImage: data.profile_image,
+        emailVerified: true,
+        active: data.active
+      };
+
+      setCurrentUser(updatedUser);
+      
+      toast({
+        title: t('general.success'),
+        description: "Perfil actualizado correctamente"
+      });
+      
+      return updatedUser;
+    } catch (error: any) {
+      console.error('Error inesperado al actualizar perfil:', error);
       toast({
         title: t('general.error'),
-        description: "Ocurrió un error durante la actualización",
+        description: error.message || "Ocurrió un error durante la actualización",
         variant: "destructive"
       });
       return null;
@@ -262,28 +342,39 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return false;
       }
 
-      const success = deleteUser(currentUser.id);
-      
-      if (success) {
-        setCurrentUser(null);
-        toast({
-          title: t('general.success'),
-          description: "Tu perfil ha sido desactivado. Puedes reactivarlo registrándote nuevamente con el mismo correo electrónico."
-        });
-        return true;
-      } else {
+      // Desactivar el perfil en la tabla profiles (soft delete)
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          active: false,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', currentUser.id);
+
+      if (error) {
+        console.error('Error al desactivar perfil:', error);
         toast({
           title: t('general.error'),
-          description: "No se pudo desactivar el perfil",
+          description: error.message || "No se pudo desactivar el perfil",
           variant: "destructive"
         });
         return false;
       }
-    } catch (error) {
-      console.error('Error al desactivar perfil:', error);
+
+      // Cerrar sesión después de desactivar el perfil
+      await logout();
+      
+      toast({
+        title: t('general.success'),
+        description: "Tu perfil ha sido desactivado. Puedes reactivarlo registrándote nuevamente con el mismo correo electrónico."
+      });
+      
+      return true;
+    } catch (error: any) {
+      console.error('Error inesperado al desactivar perfil:', error);
       toast({
         title: t('general.error'),
-        description: "Ocurrió un error durante la desactivación",
+        description: error.message || "Ocurrió un error durante la desactivación",
         variant: "destructive"
       });
       return false;
@@ -292,33 +383,74 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const sendVerificationEmail = async (email: string) => {
-    console.log(`Simulando envío de correo de verificación a ${email} (desactivado)`);
-    return true;
-  };
-  
   const resendVerificationEmail = async (email: string) => {
     setIsLoading(true);
     try {
-      await sendVerificationEmail(email);
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email
+      });
+      
+      if (error) {
+        console.error('Error al reenviar email de verificación:', error);
+        toast({
+          title: t('general.error'),
+          description: error.message || "Error al reenviar email de verificación",
+          variant: "destructive"
+        });
+        return;
+      }
+      
       toast({
         title: t('general.success'),
-        description: "Se ha simulado el reenvío del correo de verificación (verificación desactivada)"
+        description: "Se ha enviado un nuevo correo de verificación"
       });
-    } catch (error) {
-      console.error('Error al reenviar correo de verificación:', error);
+    } catch (error: any) {
+      console.error('Error inesperado al reenviar correo de verificación:', error);
       toast({
         title: t('general.error'),
-        description: "Error al reenviar el correo de verificación",
+        description: error.message || "Error al reenviar el correo de verificación",
         variant: "destructive"
       });
     } finally {
       setIsLoading(false);
     }
   };
-  
+
   const verifyEmail = async (token: string) => {
+    // Esta función no se utiliza directamente con Supabase
+    // ya que la verificación se maneja a través de URLs específicas
     return true;
+  };
+
+  const loginWithSocialMedia = async (provider: string) => {
+    setIsLoading(true);
+    try {
+      let { error } = await supabase.auth.signInWithOAuth({
+        provider: provider as any,
+        options: {
+          redirectTo: window.location.origin
+        }
+      });
+      
+      if (error) {
+        console.error(`Error al iniciar sesión con ${provider}:`, error);
+        toast({
+          title: t('general.error'),
+          description: error.message || `Error al iniciar sesión con ${provider}`,
+          variant: "destructive"
+        });
+      }
+    } catch (error: any) {
+      console.error(`Error inesperado al iniciar sesión con ${provider}:`, error);
+      toast({
+        title: t('general.error'),
+        description: error.message || `Ocurrió un error al iniciar sesión con ${provider}`,
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -331,8 +463,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       updateProfile,
       deleteProfile,
       verifyEmail,
-      loginWithSocialMedia: async () => {},
-      pendingVerification: false,
+      loginWithSocialMedia,
+      pendingVerification,
       resendVerificationEmail
     }}>
       {children}

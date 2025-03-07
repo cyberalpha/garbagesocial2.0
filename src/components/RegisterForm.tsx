@@ -12,18 +12,24 @@ import { User, Mail, Lock, LogIn, Building, Loader2 } from 'lucide-react';
 import { User as UserType } from '@/types';
 
 const RegisterForm = () => {
-  const [userData, setUserData] = useState<Partial<UserType>>({
+  const [userData, setUserData] = useState<Partial<UserType> & { password?: string }>({
     name: '',
     email: '',
-    isOrganization: false
+    isOrganization: false,
+    password: ''
   });
-  const [password, setPassword] = useState('');
   const { register, isLoading } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validar datos
+    if (!userData.name || !userData.email || !userData.password) {
+      return;
+    }
+    
     const user = await register(userData);
     if (user) {
       navigate('/');
@@ -92,9 +98,10 @@ const RegisterForm = () => {
                 type="password"
                 placeholder="********"
                 className="pl-10"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                value={userData.password || ''}
+                onChange={handleChange}
                 required
+                minLength={6}
               />
             </div>
           </div>
