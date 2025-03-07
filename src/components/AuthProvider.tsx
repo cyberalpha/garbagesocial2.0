@@ -5,8 +5,20 @@ import { useToast } from '@/components/ui/use-toast';
 import { useLanguage } from './LanguageContext';
 import { AuthContext } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
+import { 
+  loginUser, 
+  registerUser, 
+  logoutUser, 
+  updateUserProfile, 
+  updateUserEmail,
+  deactivateProfile,
+  resendVerificationEmail,
+  loginWithProvider,
+  getUserProfile
+} from '@/services/authService';
+import { mapProfileToUser } from '@/utils/userUtils';
 
+// Exportar el hook de autenticación
 export { useAuth } from '@/hooks/useAuth';
 
 interface AuthProviderProps {
@@ -20,48 +32,38 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const { toast } = useToast();
   const { t } = useLanguage();
 
+  // Función para manejar el cambio de sesión
+  const handleSessionChange = async (session: any) => {
+    setIsLoading(true);
+
+    if (session?.user) {
+      try {
+        const { data: profile, error } = await getUserProfile(session.user.id);
+
+        if (error) {
+          console.error('Error fetching profile:', error);
+          setCurrentUser(null);
+        } else if (profile) {
+          const userProfile = mapProfileToUser(profile);
+          setCurrentUser(userProfile);
+        }
+      } catch (error) {
+        console.error('Error in session change:', error);
+        setCurrentUser(null);
+      }
+    } else {
+      setCurrentUser(null);
+    }
+    
+    setIsLoading(false);
+  };
+
   useEffect(() => {
     // Configurar el listener de cambio de estado de autenticación
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event, session);
-        setIsLoading(true);
-
-        if (session?.user) {
-          try {
-            // Obtener el perfil del usuario desde la tabla profiles
-            const { data: profile, error } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .single();
-
-            if (error) {
-              console.error('Error fetching profile:', error);
-              setCurrentUser(null);
-            } else if (profile) {
-              // Convertir el perfil de Supabase al formato User de la aplicación
-              const userProfile: User = {
-                id: profile.id,
-                name: profile.name,
-                email: profile.email,
-                isOrganization: profile.is_organization,
-                averageRating: profile.average_rating,
-                profileImage: profile.profile_image,
-                emailVerified: true,
-                active: profile.active
-              };
-              setCurrentUser(userProfile);
-            }
-          } catch (error) {
-            console.error('Error in auth state change:', error);
-            setCurrentUser(null);
-          }
-        } else {
-          setCurrentUser(null);
-        }
-        
-        setIsLoading(false);
+        await handleSessionChange(session);
       }
     );
 
@@ -75,35 +77,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           return;
         }
 
-        // Si hay una sesión, obtener el perfil del usuario
-        if (session?.user) {
-          const { data: profile, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-
-          if (error) {
-            console.error('Error fetching profile:', error);
-            setCurrentUser(null);
-          } else if (profile) {
-            // Convertir el perfil de Supabase al formato User de la aplicación
-            const userProfile: User = {
-              id: profile.id,
-              name: profile.name,
-              email: profile.email,
-              isOrganization: profile.is_organization,
-              averageRating: profile.average_rating,
-              profileImage: profile.profile_image,
-              emailVerified: true,
-              active: profile.active
-            };
-            setCurrentUser(userProfile);
-          }
-        }
+        await handleSessionChange(session);
       } catch (error) {
         console.error('Error checking current session:', error);
-      } finally {
         setIsLoading(false);
       }
     };
@@ -116,13 +92,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
   }, []);
 
+  // Funciones de autenticación
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
+      const { data, error } = await loginUser(email, password);
 
       if (error) {
         console.error('Error al iniciar sesión:', error);
@@ -150,21 +124,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const register = async (userData: Partial<User>) => {
+  const register = async (userData: Partial<User> & { password?: string }) => {
     setIsLoading(true);
     try {
-      // Registrar usuario en Supabase Auth
-      const { data, error } = await supabase.auth.signUp({
-        email: userData.email || '',
-        password: (userData as any).password || '',
-        options: {
-          data: {
-            name: userData.name,
-            isOrganization: userData.isOrganization,
-            profileImage: `https://api.dicebear.com/7.x/initials/svg?seed=${userData.name}`
-          }
-        }
-      });
+      const { data, error } = await registerUser(userData);
 
       if (error) {
         console.error('Error al registrar usuario:', error);
@@ -176,13 +139,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return null;
       }
 
-      // El perfil se crea automáticamente mediante el trigger en Supabase
       toast({
         title: t('general.success'),
         description: "Registro exitoso. ¡Bienvenido!",
       });
 
-      // Devolver el usuario recién creado
       if (data.user) {
         const newUser: User = {
           id: data.user.id,
@@ -215,7 +176,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = async () => {
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.signOut();
+      const { error } = await logoutUser();
       
       if (error) {
         console.error('Error al cerrar sesión:', error);
@@ -227,7 +188,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return;
       }
       
-      // El cambio de estado de autenticación actualizará currentUser a null
       toast({
         title: "Sesión cerrada",
         description: "Has cerrado sesión correctamente",
@@ -257,18 +217,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       // Actualizar el perfil en la tabla profiles
-      const { data, error } = await supabase
-        .from('profiles')
-        .update({
-          name: userData.name,
-          email: userData.email,
-          is_organization: userData.isOrganization,
-          profile_image: userData.profileImage,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', currentUser.id)
-        .select()
-        .single();
+      const { data, error } = await updateUserProfile(currentUser.id, userData);
 
       if (error) {
         console.error('Error al actualizar perfil:', error);
@@ -282,9 +231,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       // Si se cambió el email, actualizar también en Auth
       if (userData.email && userData.email !== currentUser.email) {
-        const { error: updateAuthError } = await supabase.auth.updateUser({
-          email: userData.email
-        });
+        const { error: updateAuthError } = await updateUserEmail(userData.email);
 
         if (updateAuthError) {
           console.error('Error al actualizar email en Auth:', updateAuthError);
@@ -298,16 +245,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       // Convertir el perfil actualizado al formato User
-      const updatedUser: User = {
-        id: data.id,
-        name: data.name,
-        email: data.email,
-        isOrganization: data.is_organization,
-        averageRating: data.average_rating,
-        profileImage: data.profile_image,
-        emailVerified: true,
-        active: data.active
-      };
+      const updatedUser = mapProfileToUser(data);
 
       setCurrentUser(updatedUser);
       
@@ -343,13 +281,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       // Desactivar el perfil en la tabla profiles (soft delete)
-      const { error } = await supabase
-        .from('profiles')
-        .update({ 
-          active: false,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', currentUser.id);
+      const { error } = await deactivateProfile(currentUser.id);
 
       if (error) {
         console.error('Error al desactivar perfil:', error);
@@ -383,13 +315,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const resendVerificationEmail = async (email: string) => {
+  const handleResendVerificationEmail = async (email: string) => {
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email: email
-      });
+      const { error } = await resendVerificationEmail(email);
       
       if (error) {
         console.error('Error al reenviar email de verificación:', error);
@@ -426,12 +355,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const loginWithSocialMedia = async (provider: string) => {
     setIsLoading(true);
     try {
-      let { error } = await supabase.auth.signInWithOAuth({
-        provider: provider as any,
-        options: {
-          redirectTo: window.location.origin
-        }
-      });
+      let { error } = await loginWithProvider(provider);
       
       if (error) {
         console.error(`Error al iniciar sesión con ${provider}:`, error);
@@ -465,7 +389,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       verifyEmail,
       loginWithSocialMedia,
       pendingVerification,
-      resendVerificationEmail
+      resendVerificationEmail: handleResendVerificationEmail
     }}>
       {children}
     </AuthContext.Provider>
