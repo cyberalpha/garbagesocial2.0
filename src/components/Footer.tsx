@@ -22,9 +22,15 @@ const Footer = () => {
               Conectando residuos con recicladores para un mundo más limpio y sostenible.
             </p>
             <div className="flex space-x-3">
-              <Button variant="ghost" size="icon" className="rounded-full h-8 w-8">
-                <Github className="h-4 w-4" />
-              </Button>
+              <a 
+                href="https://github.com/cyberalpha/GarbageSocial" 
+                target="_blank" 
+                rel="noopener noreferrer"
+              >
+                <Button variant="ghost" size="icon" className="rounded-full h-8 w-8">
+                  <Github className="h-4 w-4" />
+                </Button>
+              </a>
               <a 
                 href="https://x.com/GarbageSocial" 
                 target="_blank" 
