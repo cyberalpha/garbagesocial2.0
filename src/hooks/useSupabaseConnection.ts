@@ -23,6 +23,8 @@ export const useSupabaseConnection = (): UseSupabaseConnectionResult => {
   const { toast } = useToast();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isFirstCheck = useRef(true);
+  const retryDelayRef = useRef(5000); // Comenzar con 5 segundos
+  const maxRetryDelay = 60000; // Máximo 1 minuto entre intentos
 
   const checkConnection = async () => {
     // Limpiamos cualquier timeout anterior
@@ -33,7 +35,7 @@ export const useSupabaseConnection = (): UseSupabaseConnectionResult => {
 
     setStatus('connecting');
     
-    // Establecemos un timeout de 10 segundos
+    // Establecemos un timeout de 15 segundos (aumentado de 10)
     timeoutRef.current = setTimeout(() => {
       console.log("Supabase connection timeout reached");
       setStatus('disconnected');
@@ -47,12 +49,22 @@ export const useSupabaseConnection = (): UseSupabaseConnectionResult => {
           variant: "destructive"
         });
       }
-    }, 10000);
+      
+      // Programar el próximo intento con backoff exponencial
+      scheduleNextCheck();
+    }, 15000);
     
     try {
       console.log("Comprobando conexión con Supabase...");
       
-      // Intentamos hacer una consulta simple para verificar la conexión
+      // Primero verificamos si podemos obtener la sesión (autenticación)
+      const { data: authData, error: authError } = await supabase.auth.getSession();
+      
+      if (authError) {
+        throw new Error(`Error de autenticación: ${authError.message}`);
+      }
+      
+      // Luego intentamos hacer una consulta simple para verificar el acceso a datos
       const { data, error: queryError } = await supabase
         .from('profiles')
         .select('count')
@@ -77,10 +89,16 @@ export const useSupabaseConnection = (): UseSupabaseConnectionResult => {
             variant: "destructive"
           });
         }
+        
+        // Programar el próximo intento con backoff exponencial
+        scheduleNextCheck();
       } else {
         console.log("Conexión con Supabase exitosa!");
         setStatus('connected');
         setError(null);
+        
+        // Resetear el retardo de reintento
+        retryDelayRef.current = 5000;
         
         // Si estaba desconectado antes, mostramos notificación de reconexión
         if (status === 'disconnected' && !isFirstCheck.current) {
@@ -115,7 +133,24 @@ export const useSupabaseConnection = (): UseSupabaseConnectionResult => {
       
       isFirstCheck.current = false;
       setLastChecked(new Date());
+      
+      // Programar el próximo intento con backoff exponencial
+      scheduleNextCheck();
     }
+  };
+  
+  // Función para programar el próximo intento con backoff exponencial
+  const scheduleNextCheck = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    
+    timeoutRef.current = setTimeout(() => {
+      checkConnection();
+    }, retryDelayRef.current);
+    
+    // Aumentar el tiempo de espera para el próximo intento (exponential backoff)
+    retryDelayRef.current = Math.min(retryDelayRef.current * 1.5, maxRetryDelay);
   };
 
   // Comprobamos la conexión al montar el componente
@@ -124,7 +159,11 @@ export const useSupabaseConnection = (): UseSupabaseConnectionResult => {
     
     // Comprobamos la conexión cada 60 segundos
     const intervalId = setInterval(() => {
-      checkConnection();
+      // Solo verificamos automáticamente si estamos conectados
+      // Si está desconectado, el backoff exponencial se encargará
+      if (status === 'connected') {
+        checkConnection();
+      }
     }, 60000);
     
     // Limpiamos el intervalo y timeout al desmontar
@@ -134,7 +173,7 @@ export const useSupabaseConnection = (): UseSupabaseConnectionResult => {
         clearTimeout(timeoutRef.current);
       }
     };
-  }, []);
+  }, [status]);
 
   return {
     status,

@@ -1,10 +1,11 @@
 
 import React from 'react';
 import { useSupabaseConnection } from '@/hooks/useSupabaseConnection';
-import { Database, CloudOff, RefreshCw } from 'lucide-react';
+import { Database, CloudOff, RefreshCw, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
 
 interface SupabaseConnectionAlertProps {
   className?: string;
@@ -82,14 +83,36 @@ const SupabaseConnectionAlert = ({ className }: SupabaseConnectionAlertProps) =>
             {getStatusIcon()}
           </Button>
         </TooltipTrigger>
-        <TooltipContent side="left" className="max-w-xs">
-          <div className="space-y-2">
-            <p>{getStatusText()}</p>
+        <TooltipContent side="left" className="max-w-xs p-4">
+          <div className="space-y-3">
+            <p className="font-medium">{getStatusText()}</p>
             {lastChecked && (
               <p className="text-xs text-muted-foreground">
                 Última comprobación: {lastChecked.toLocaleTimeString()}
               </p>
             )}
+            
+            {status === 'disconnected' && (
+              <div className="border-t pt-2">
+                <p className="text-xs text-amber-600 flex items-center gap-1 mb-1">
+                  <AlertCircle className="h-3 w-3" /> 
+                  Posibles soluciones:
+                </p>
+                <ul className="text-xs text-muted-foreground list-disc pl-4 space-y-1">
+                  <li>Verificar conexión a internet</li>
+                  <li>Comprobar que el proyecto Supabase esté activo</li>
+                  <li>Verificar las credenciales de Supabase</li>
+                </ul>
+                <Link 
+                  to="/supabase-diagnostic" 
+                  className="mt-2 text-xs text-primary hover:underline inline-flex items-center"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Ver herramienta de diagnóstico
+                </Link>
+              </div>
+            )}
+            
             <p className="text-xs italic">Haz clic para comprobar manualmente</p>
           </div>
         </TooltipContent>
