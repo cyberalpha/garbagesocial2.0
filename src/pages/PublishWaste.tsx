@@ -15,7 +15,7 @@ const PublishWaste = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { currentUser } = useAuth();
   
-  const handleSubmit = (data: {
+  const handleSubmit = async (data: {
     type: WasteType;
     description: string;
     imageUrl?: string;
@@ -50,8 +50,8 @@ const PublishWaste = () => {
         status: "pending"
       };
       
-      // Usar la función addWaste actualizada que genera un ID
-      const newWaste = addWaste(newWasteData);
+      // Usar la función addWaste actualizada que ahora es async
+      const newWaste = await addWaste(newWasteData);
       
       // Show success message
       toast({
