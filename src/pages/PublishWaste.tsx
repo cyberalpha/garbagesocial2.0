@@ -50,7 +50,7 @@ const PublishWaste = () => {
         status: "pending"
       };
       
-      // Agregar el residuo usando la función del servicio
+      // Usar la función addWaste actualizada que genera un ID
       const newWaste = addWaste(newWasteData);
       
       // Show success message

@@ -31,11 +31,34 @@ export const getWasteById = (id: string): Waste | null => {
 
 /**
  * Add new waste to localStorage
+ * Accepts partial waste and returns the complete waste object
  */
-export const addWaste = (waste: Waste): void => {
+export const addWaste = (wasteData: Partial<Waste>): Waste => {
   const wastes = getWastes();
-  wastes.push(waste);
+  
+  // Generate a unique ID (simple implementation)
+  const newId = `waste_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+  
+  // Create complete waste object with defaults for required fields
+  const newWaste: Waste = {
+    id: newId,
+    userId: wasteData.userId || '',
+    type: wasteData.type || 'various',
+    description: wasteData.description || '',
+    imageUrl: wasteData.imageUrl,
+    location: wasteData.location || {
+      type: 'Point',
+      coordinates: [0, 0]
+    },
+    publicationDate: wasteData.publicationDate || new Date(),
+    status: wasteData.status || 'pending',
+    pickupCommitment: wasteData.pickupCommitment
+  };
+  
+  wastes.push(newWaste);
   saveToStorage(WASTES_STORAGE_KEY, wastes);
+  
+  return newWaste;
 };
 
 /**
