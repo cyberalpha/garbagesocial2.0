@@ -8,6 +8,7 @@ interface AuthContextType {
   currentUser: User | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   switchRole: () => void;
 }
@@ -81,6 +82,55 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const register = async (name: string, email: string, password: string) => {
+    setIsLoading(true);
+    try {
+      // Simulación de registro
+      // En una implementación real, enviaríamos los datos al servidor para crear la cuenta
+      
+      // Verificar si el email ya está registrado
+      const users = getAllUsers();
+      const existingUser = users.find(u => u.email === email);
+      
+      if (existingUser) {
+        toast({
+          title: "Error de registro",
+          description: "Este correo electrónico ya está registrado",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Simular usuario creado
+      const newUser: User = {
+        id: `user-${Date.now()}`,
+        name,
+        email,
+        role: 'publisher', // Por defecto, los nuevos usuarios son publicadores
+        isOrganization: false,
+        averageRating: 0,
+        profileImage: `https://api.dicebear.com/7.x/initials/svg?seed=${name}` // Avatar generado
+      };
+      
+      // En una implementación real, esto sería manejado por el backend
+      setCurrentUser(newUser);
+      
+      toast({
+        title: "Registro exitoso",
+        description: "Tu cuenta ha sido creada correctamente"
+      });
+    } catch (error) {
+      console.error('Error al registrar usuario:', error);
+      toast({
+        title: "Error",
+        description: "Ocurrió un error durante el registro",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const logout = () => {
     setCurrentUser(null);
     toast({
@@ -106,7 +156,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ currentUser, isLoading, login, logout, switchRole }}>
+    <AuthContext.Provider value={{ currentUser, isLoading, login, register, logout, switchRole }}>
       {children}
     </AuthContext.Provider>
   );

@@ -8,17 +8,30 @@ import { ArrowLeft } from "lucide-react";
 import { getUserById, getWastesByUserId } from "@/services/mockData";
 import WasteCard from "@/components/WasteCard";
 import UserProfile from "@/components/UserProfile";
+import { useAuth } from "@/components/AuthProvider";
 
 const Profile = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
   const [user, setUser] = useState<User | null>(null);
   const [wastes, setWastes] = useState<Waste[]>([]);
   const [loading, setLoading] = useState(true);
   
   useEffect(() => {
+    setLoading(true);
+    
+    // Si no hay ID, usar el usuario actual (si está autenticado)
+    if (!id && currentUser) {
+      setUser(currentUser);
+      const userWastes = getWastesByUserId(currentUser.id);
+      setWastes(userWastes);
+      setLoading(false);
+      return;
+    }
+    
+    // Si hay ID, buscar el usuario
     if (id) {
-      // Get user data
       const userData = getUserById(id);
       if (userData) {
         setUser(userData);
@@ -28,8 +41,16 @@ const Profile = () => {
         setWastes(userWastes);
       }
     }
+    
     setLoading(false);
-  }, [id]);
+  }, [id, currentUser]);
+  
+  // Redireccionar a login si no hay usuario autenticado y no se proporciona ID
+  useEffect(() => {
+    if (!loading && !id && !currentUser) {
+      navigate('/login');
+    }
+  }, [loading, id, currentUser, navigate]);
   
   const handleNavigateToWaste = (wasteId: string) => {
     navigate(`/waste/${wasteId}`);
@@ -59,6 +80,9 @@ const Profile = () => {
     );
   }
   
+  // Determinar si el perfil es editable (es el usuario actual)
+  const isEditable = currentUser && user.id === currentUser.id;
+  
   return (
     <div className="container mx-auto max-w-2xl py-8 px-4">
       <Button 
@@ -70,7 +94,7 @@ const Profile = () => {
         Volver
       </Button>
       
-      <UserProfile user={user} />
+      <UserProfile user={user} isEditable={isEditable} />
     </div>
   );
 };

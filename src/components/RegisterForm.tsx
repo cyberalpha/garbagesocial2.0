@@ -7,33 +7,49 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Mail, Lock, LogIn, Facebook, Instagram } from 'lucide-react';
+import { Mail, Lock, User, LogIn, Facebook, Instagram } from 'lucide-react';
 
-const LoginForm = () => {
+const RegisterForm = () => {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { login, isLoading } = useAuth();
+  const { register, isLoading } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await login(email, password);
+    await register(name, email, password);
   };
 
   const handleSocialLogin = (provider: string) => {
     // En una implementación real, esto conectaría con el proveedor de autenticación
-    console.log(`Iniciando sesión con ${provider}`);
+    console.log(`Iniciando registro con ${provider}`);
   };
 
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
-        <CardTitle className="text-2xl">Iniciar Sesión</CardTitle>
+        <CardTitle className="text-2xl">Crear Cuenta</CardTitle>
         <CardDescription>
-          Ingresa tus credenciales para acceder a Garbage Social
+          Regístrate para empezar a publicar tus residuos reciclables
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">Nombre Completo</Label>
+            <div className="relative">
+              <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="name"
+                type="text"
+                placeholder="Tu nombre"
+                className="pl-10"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
+            </div>
+          </div>
           <div className="space-y-2">
             <Label htmlFor="email">Correo Electrónico</Label>
             <div className="relative">
@@ -75,7 +91,7 @@ const LoginForm = () => {
             ) : (
               <LogIn className="mr-2 h-4 w-4" />
             )}
-            {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+            {isLoading ? 'Creando cuenta...' : 'Crear Cuenta'}
           </Button>
           
           <div className="relative my-4">
@@ -147,15 +163,10 @@ const LoginForm = () => {
           </div>
         </CardContent>
         <CardFooter className="flex flex-col space-y-2">
-          <div className="text-sm text-center mt-4">
-            <p>Para probar, usa:</p>
-            <p className="text-muted-foreground">Usuario: juan@example.com</p>
-            <p className="text-muted-foreground">Contraseña: cualquier valor</p>
-          </div>
-          <div className="text-sm text-center mt-4">
-            ¿No tienes una cuenta?{" "}
-            <Link to="/register" className="text-primary hover:underline">
-              Regístrate
+          <div className="text-sm text-center">
+            ¿Ya tienes una cuenta?{" "}
+            <Link to="/login" className="text-primary hover:underline">
+              Iniciar Sesión
             </Link>
           </div>
         </CardFooter>
@@ -164,4 +175,4 @@ const LoginForm = () => {
   );
 };
 
-export default LoginForm;
+export default RegisterForm;

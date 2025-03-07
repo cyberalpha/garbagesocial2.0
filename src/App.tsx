@@ -11,6 +11,7 @@ import PublishWaste from "./pages/PublishWaste";
 import WasteDetail from "./pages/WasteDetail";
 import Profile from "./pages/Profile";
 import Login from "./pages/Login";
+import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
 import Navbar from "@/components/Navbar";
 
@@ -28,10 +29,12 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
               <Route path="/map" element={<MapView />} />
               <Route path="/publish" element={<PublishWaste />} />
               <Route path="/waste/:id" element={<WasteDetail />} />
               <Route path="/profile/:id" element={<Profile />} />
+              <Route path="/profile" element={<Profile />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>
