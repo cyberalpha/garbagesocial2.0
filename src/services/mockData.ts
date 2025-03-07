@@ -1,4 +1,3 @@
-
 import { User, Waste, WasteType, WasteStatus, UserRole } from "@/types";
 
 // Mock users data
@@ -10,7 +9,7 @@ export const users: User[] = [
     role: "publisher",
     isOrganization: false,
     averageRating: 4.5,
-    profileImage: "https://randomuser.me/api/portraits/men/1.jpg", // Corregido: usando profileImage en lugar de profileImageUrl
+    profileImage: "https://randomuser.me/api/portraits/men/1.jpg",
     location: {
       type: "Point",
       coordinates: [-58.3816, -34.6037]
@@ -23,7 +22,7 @@ export const users: User[] = [
     role: "recycler",
     isOrganization: false,
     averageRating: 4.8,
-    profileImage: "https://randomuser.me/api/portraits/women/2.jpg", // Corregido: usando profileImage en lugar de profileImageUrl
+    profileImage: "https://randomuser.me/api/portraits/women/2.jpg",
     location: {
       type: "Point",
       coordinates: [-58.3716, -34.6137]
@@ -36,7 +35,7 @@ export const users: User[] = [
     role: "recycler",
     isOrganization: true,
     averageRating: 4.7,
-    profileImage: "https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?q=80&w=200&auto=format&fit=crop", // Corregido: usando profileImage en lugar de profileImageUrl
+    profileImage: "https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?q=80&w=200&auto=format&fit=crop",
     location: {
       type: "Point",
       coordinates: [-58.3916, -34.5937]
@@ -68,7 +67,7 @@ export const wastes: Waste[] = [
       type: "Point",
       coordinates: [-58.3816, -34.6037]
     },
-    publicationDate: new Date("2024-06-10T10:00:00Z"), // Corregido: usando publicationDate en lugar de createdAt
+    publicationDate: new Date("2024-06-10T10:00:00Z"),
     status: "pending"
   },
   {
@@ -81,9 +80,9 @@ export const wastes: Waste[] = [
       type: "Point",
       coordinates: [-58.3788, -34.6012]
     },
-    publicationDate: new Date("2024-06-09T15:30:00Z"), // Corregido: usando publicationDate en lugar de createdAt
+    publicationDate: new Date("2024-06-09T15:30:00Z"),
     status: "in_progress",
-    pickupCommitment: { // Asumiendo que este es el nombre correcto basado en el tipo
+    pickupCommitment: {
       recyclerId: "2",
       commitmentDate: new Date("2024-06-09T16:30:00Z")
     }
@@ -98,7 +97,7 @@ export const wastes: Waste[] = [
       type: "Point",
       coordinates: [-58.3850, -34.6050]
     },
-    publicationDate: new Date("2024-06-08T09:15:00Z"), // Corregido: usando publicationDate en lugar de createdAt
+    publicationDate: new Date("2024-06-08T09:15:00Z"),
     status: "collected"
   },
   {
@@ -111,7 +110,7 @@ export const wastes: Waste[] = [
       type: "Point",
       coordinates: [-58.3900, -34.6100]
     },
-    publicationDate: new Date("2024-06-07T14:45:00Z"), // Corregido: usando publicationDate en lugar de createdAt
+    publicationDate: new Date("2024-06-07T14:45:00Z"),
     status: "pending"
   },
   {
@@ -124,7 +123,7 @@ export const wastes: Waste[] = [
       type: "Point",
       coordinates: [-58.3950, -34.6150]
     },
-    publicationDate: new Date("2024-06-06T11:20:00Z"), // Corregido: usando publicationDate en lugar de createdAt
+    publicationDate: new Date("2024-06-06T11:20:00Z"),
     status: "pending"
   }
 ];
@@ -166,5 +165,27 @@ export const getUserById = (id: string): User | undefined => {
 
 // Get current user (mock)
 export const getCurrentUser = (): User => {
-  return users[0]; // Return first user as current user for demo
+  return users[0];
+};
+
+// Add the missing commitToCollect function
+export const commitToCollect = (wasteId: string): Waste => {
+  const currentUser = getCurrentUser();
+  const wasteIndex = wastes.findIndex(waste => waste.id === wasteId);
+  
+  if (wasteIndex === -1) {
+    throw new Error('Waste not found');
+  }
+  
+  // Update the waste status and add pickup commitment
+  wastes[wasteIndex] = {
+    ...wastes[wasteIndex],
+    status: 'in_progress',
+    pickupCommitment: {
+      recyclerId: currentUser.id,
+      commitmentDate: new Date()
+    }
+  };
+  
+  return wastes[wasteIndex];
 };
