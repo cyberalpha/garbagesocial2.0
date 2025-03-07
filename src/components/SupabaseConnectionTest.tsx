@@ -10,8 +10,10 @@ const SupabaseConnectionTest = () => {
   const [isConnected, setIsConnected] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [consecutiveFailures, setConsecutiveFailures] = useState(0);
   const { toast } = useToast();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const testAttemptRef = useRef(0);
 
   const testConnection = async () => {
     // Clear any previous timeout
@@ -23,78 +25,102 @@ const SupabaseConnectionTest = () => {
     setIsLoading(true);
     setIsConnected(null);
     setErrorMessage(null);
+    testAttemptRef.current++;
+    const currentAttempt = testAttemptRef.current;
     
-    // Set a timeout of 15 seconds
+    // Set a timeout of 10 seconds (reduced from 15)
     timeoutRef.current = setTimeout(() => {
-      console.log("Supabase connection timeout reached");
-      setIsLoading(false);
-      setIsConnected(false);
-      setErrorMessage("Connection timeout. Check your network and Supabase configuration.");
-      toast({
-        title: "Connection Timeout",
-        description: "The connection to Supabase timed out. Please check your internet connection or Supabase configuration.",
-        variant: "destructive"
-      });
-    }, 15000);
+      // Solo procesamos si es el intento más reciente
+      if (currentAttempt === testAttemptRef.current) {
+        console.log("Supabase connection timeout reached");
+        setIsLoading(false);
+        setIsConnected(false);
+        setErrorMessage("Tiempo de espera agotado. Verifica tu red y configuración de Supabase.");
+        setConsecutiveFailures(prev => prev + 1);
+        toast({
+          title: "Tiempo de conexión agotado",
+          description: "La conexión con Supabase ha excedido el tiempo de espera. Verifica tu conexión a internet o la configuración de Supabase.",
+          variant: "destructive"
+        });
+      }
+    }, 10000);
     
     try {
-      console.log("Attempting to connect to Supabase...");
+      console.log("Intentando conectar a Supabase...");
       console.log("Supabase URL:", SUPABASE_CONFIG.url);
+      
+      // Verificación de ping básica para comprobar la latencia de red
+      const startTime = Date.now();
       
       // Primero verificamos la autenticación
       const { data: authData, error: authError } = await supabase.auth.getSession();
       
       if (authError) {
-        console.error("Auth connection error:", authError);
+        console.error("Error de conexión de autenticación:", authError);
         throw authError;
       }
       
-      console.log("Auth check successful:", authData);
+      console.log("Verificación de autenticación exitosa:", authData);
       
-      // Luego verificamos el acceso a datos
-      const { data, error } = await supabase.from('profiles').select('count');
+      // Luego verificamos el acceso a datos con una consulta liviana
+      const { data, error } = await supabase.from('profiles').select('count').limit(1).maybeSingle();
       
-      if (error) {
-        console.error("Data connection error:", error);
-        // Si la autenticación funcionó pero hay error en datos, puede ser un problema de permisos
-        setIsConnected(true);
-        setErrorMessage("Authentication works but data access may be limited: " + error.message);
-        toast({
-          title: "Partial Connection",
-          description: "Authentication is working but data access is limited. Check permissions.",
-          variant: "default" // Changed from "warning" to "default" since "warning" is not a valid variant
-        });
-      } else {
-        console.log("Supabase connection successful! Data:", data);
-        setIsConnected(true);
-        toast({
-          title: "Connection Successful",
-          description: "The application is properly connected to Supabase.",
-        });
-      }
+      // Calcular latencia
+      const latency = Date.now() - startTime;
+      console.log(`Latencia de Supabase: ${latency}ms`);
       
-      // Clear timeout since we got a response
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
+      // Solo procesamos si es el intento más reciente
+      if (currentAttempt === testAttemptRef.current) {
+        if (error) {
+          console.error("Error de conexión de datos:", error);
+          // Si la autenticación funcionó pero hay error en datos, puede ser un problema de permisos
+          setIsConnected(true);
+          setErrorMessage("La autenticación funciona pero el acceso a datos puede estar limitado: " + error.message);
+          toast({
+            title: "Conexión parcial",
+            description: "La autenticación funciona pero el acceso a datos está limitado. Verifica los permisos.",
+            variant: "default"
+          });
+        } else {
+          console.log("Conexión con Supabase exitosa! Datos:", data);
+          setIsConnected(true);
+          setConsecutiveFailures(0);
+          toast({
+            title: "Conexión exitosa",
+            description: `La aplicación está correctamente conectada a Supabase. Latencia: ${latency}ms`,
+          });
+        }
+        
+        // Clear timeout since we got a response
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
+        }
       }
     } catch (error: any) {
-      // Clear timeout since we got a response (error)
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
+      // Solo procesamos si es el intento más reciente
+      if (currentAttempt === testAttemptRef.current) {
+        // Clear timeout since we got a response (error)
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
+        }
+        
+        console.error("Error de conexión:", error);
+        setIsConnected(false);
+        setErrorMessage(error.message || "Error desconocido");
+        setConsecutiveFailures(prev => prev + 1);
+        toast({
+          title: "Error de conexión",
+          description: "Ocurrió un error al conectar con Supabase: " + error.message,
+          variant: "destructive"
+        });
       }
-      
-      console.error("Connection error:", error);
-      setIsConnected(false);
-      setErrorMessage(error.message || "Unknown error");
-      toast({
-        title: "Connection Error",
-        description: "An error occurred while connecting to Supabase: " + error.message,
-        variant: "destructive"
-      });
     } finally {
-      setIsLoading(false);
+      // Solo procesamos si es el intento más reciente
+      if (currentAttempt === testAttemptRef.current) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -110,6 +136,20 @@ const SupabaseConnectionTest = () => {
   // Test connection automatically when component loads
   useEffect(() => {
     testConnection();
+    
+    // También verificamos cada vez que la ventana recupere el foco
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && !isLoading) {
+        console.log("Ventana visible de nuevo, verificando conexión...");
+        testConnection();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   return (
