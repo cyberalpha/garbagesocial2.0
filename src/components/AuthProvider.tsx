@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, ReactNode } from 'react';
 import { 
   getAllUsers, 
@@ -22,6 +21,7 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [pendingVerification, setPendingVerification] = useState(false);
   const { toast } = useToast();
   const { t } = useLanguage();
 
@@ -32,6 +32,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const user = getActiveUserByEmail(email);
       
       if (user) {
+        // Verificar si el correo está verificado
+        if (!user.emailVerified) {
+          setPendingVerification(true);
+          toast({
+            title: t('general.error'),
+            description: "Por favor verifica tu correo electrónico antes de iniciar sesión",
+            variant: "destructive"
+          });
+          setIsLoading(false);
+          return;
+        }
+        
         setCurrentUser(user);
         toast({
           title: t('general.success'),
@@ -92,7 +104,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           ...existingInactiveUser,
           name: userData.name || existingInactiveUser.name,
           isOrganization: userData.isOrganization !== undefined ? userData.isOrganization : existingInactiveUser.isOrganization,
-          active: true  // Reactivate the user
+          active: true,  // Reactivate the user
+          emailVerified: false  // Requerir verificación de correo nuevamente
         };
         
         const reactivatedUser = updateUser(existingInactiveUser.id, updatedUserData);
@@ -100,10 +113,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (reactivatedUser) {
           toast({
             title: t('general.success'),
-            description: "¡Bienvenido de vuelta! Tu cuenta ha sido reactivada."
+            description: "¡Bienvenido de vuelta! Tu cuenta ha sido reactivada. Por favor verifica tu correo electrónico."
           });
           
-          setCurrentUser(reactivatedUser);
+          // Enviar correo de verificación
+          await sendVerificationEmail(reactivatedUser.email);
+          setPendingVerification(true);
+          
           return reactivatedUser;
         }
       }
@@ -116,20 +132,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         isOrganization: userData.isOrganization || false,
         averageRating: 0,
         profileImage: `https://api.dicebear.com/7.x/initials/svg?seed=${userData.name}`,
-        emailVerified: true, // Simplificamos el proceso de verificación
+        emailVerified: false, // Requiere verificación de correo
         active: true
       };
       
       // Save user to our mock database
       const savedUser = addUser(newUser);
       
+      // Enviar correo de verificación
+      await sendVerificationEmail(savedUser.email);
+      setPendingVerification(true);
+      
       toast({
         title: t('general.success'),
-        description: t('auth.registerSuccess')
+        description: "Registro exitoso. Por favor verifica tu correo electrónico para activar tu cuenta."
       });
       
-      // Auto-login with the new user
-      setCurrentUser(savedUser);
       return savedUser;
     } catch (error) {
       console.error('Error al registrar usuario:', error);
@@ -146,6 +164,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = () => {
     setCurrentUser(null);
+    setPendingVerification(false);
     toast({
       title: "Sesión cerrada",
       description: "Has cerrado sesión correctamente",
@@ -164,7 +183,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return null;
       }
 
-      // If email is being changed, check that it's not already taken by an active user
+      // Si se cambia el correo, verificar que no esté ya registrado
       if (userData.email && userData.email !== currentUser.email) {
         const existingUser = getActiveUserByEmail(userData.email);
         if (existingUser && existingUser.id !== currentUser.id) {
@@ -175,17 +194,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           });
           return null;
         }
+        
+        // Si se cambia el correo, requerir verificación
+        userData.emailVerified = false;
       }
 
       // Update user in the database
       const updatedUser = updateUser(currentUser.id, userData);
       
       if (updatedUser) {
-        setCurrentUser(updatedUser);
-        toast({
-          title: t('general.success'),
-          description: "Perfil actualizado correctamente"
-        });
+        // Si se cambió el correo electrónico, enviar verificación
+        if (userData.email && userData.email !== currentUser.email) {
+          await sendVerificationEmail(updatedUser.email);
+          setPendingVerification(true);
+          toast({
+            title: t('general.success'),
+            description: "Perfil actualizado correctamente. Por favor verifica tu nuevo correo electrónico."
+          });
+          logout(); // Cerrar sesión para forzar la verificación
+        } else {
+          setCurrentUser(updatedUser);
+          toast({
+            title: t('general.success'),
+            description: "Perfil actualizado correctamente"
+          });
+        }
         return updatedUser;
       } else {
         toast({
@@ -251,6 +284,92 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // Función para enviar correo de verificación (simulada)
+  const sendVerificationEmail = async (email: string) => {
+    console.log(`Enviando correo de verificación a ${email}`);
+    // En un entorno real, aquí se enviaría el correo con un token único
+    // Para esta simulación, solo registramos en consola
+    
+    // Simulamos un delay para simular el envío del correo
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    toast({
+      title: t('general.success'),
+      description: "Se ha enviado un correo de verificación a tu dirección de correo electrónico"
+    });
+    
+    return true;
+  };
+  
+  // Función para reenviar el correo de verificación
+  const resendVerificationEmail = async (email: string) => {
+    setIsLoading(true);
+    try {
+      await sendVerificationEmail(email);
+      toast({
+        title: t('general.success'),
+        description: "Se ha reenviado el correo de verificación"
+      });
+    } catch (error) {
+      console.error('Error al reenviar correo de verificación:', error);
+      toast({
+        title: t('general.error'),
+        description: "Error al reenviar el correo de verificación",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Función para verificar el correo electrónico con un token
+  const verifyEmail = async (token: string) => {
+    setIsLoading(true);
+    try {
+      // En un entorno real, aquí verificaríamos el token con el backend
+      // Para esta simulación, asumimos que cualquier token es válido
+      
+      if (!currentUser) {
+        toast({
+          title: t('general.error'),
+          description: "No hay usuario para verificar",
+          variant: "destructive"
+        });
+        return false;
+      }
+      
+      // Actualizar el usuario con emailVerified = true
+      const updatedUser = updateUser(currentUser.id, { emailVerified: true });
+      
+      if (updatedUser) {
+        setCurrentUser(updatedUser);
+        setPendingVerification(false);
+        toast({
+          title: t('general.success'),
+          description: "Correo electrónico verificado correctamente"
+        });
+        return true;
+      } else {
+        toast({
+          title: t('general.error'),
+          description: "No se pudo verificar el correo electrónico",
+          variant: "destructive"
+        });
+        return false;
+      }
+    } catch (error) {
+      console.error('Error al verificar correo:', error);
+      toast({
+        title: t('general.error'),
+        description: "Ocurrió un error durante la verificación",
+        variant: "destructive"
+      });
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <AuthContext.Provider value={{ 
       currentUser, 
@@ -260,10 +379,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       logout,
       updateProfile,
       deleteProfile,
-      verifyEmail: async () => false, // Simplificado
+      verifyEmail,
       loginWithSocialMedia: async () => {}, // Simplificado
-      pendingVerification: false, // Simplificado
-      resendVerificationEmail: async () => {} // Simplificado
+      pendingVerification,
+      resendVerificationEmail
     }}>
       {children}
     </AuthContext.Provider>

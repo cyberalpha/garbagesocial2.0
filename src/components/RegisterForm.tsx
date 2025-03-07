@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { User, Mail, Lock, LogIn, Building } from 'lucide-react';
 import { User as UserType } from '@/types';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const RegisterForm = () => {
   const [userData, setUserData] = useState<Partial<UserType>>({
@@ -18,14 +19,14 @@ const RegisterForm = () => {
     isOrganization: false
   });
   const [password, setPassword] = useState('');
-  const { register, isLoading } = useAuth();
+  const { register, isLoading, pendingVerification, resendVerificationEmail } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const user = await register(userData);
-    if (user) {
+    if (user && user.emailVerified) {
       navigate('/');
     }
   };
@@ -37,6 +38,42 @@ const RegisterForm = () => {
       [name]: type === 'checkbox' ? checked : value
     }));
   };
+
+  const handleResendVerification = async () => {
+    if (userData.email) {
+      await resendVerificationEmail(userData.email);
+    }
+  };
+
+  if (pendingVerification) {
+    return (
+      <Card className="w-full max-w-md mx-auto">
+        <CardHeader>
+          <CardTitle className="text-2xl">{t('auth.verificationPending')}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Alert>
+            <AlertDescription>
+              {t('auth.verificationSent')}
+            </AlertDescription>
+          </Alert>
+          <div className="mt-6 text-center">
+            <Button onClick={handleResendVerification} variant="outline">
+              {t('auth.resendVerification')}
+            </Button>
+          </div>
+        </CardContent>
+        <CardFooter className="flex flex-col space-y-2">
+          <div className="text-sm text-center">
+            {t('auth.alreadyHaveAccount')}{" "}
+            <Link to="/login" className="text-primary hover:underline">
+              {t('auth.login')}
+            </Link>
+          </div>
+        </CardFooter>
+      </Card>
+    );
+  }
 
   return (
     <Card className="w-full max-w-md mx-auto">
