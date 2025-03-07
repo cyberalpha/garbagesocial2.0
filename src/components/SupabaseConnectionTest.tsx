@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,30 +11,70 @@ const SupabaseConnectionTest = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { toast } = useToast();
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const testConnection = async () => {
+    // Limpiar cualquier timeout anterior
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+
     setIsLoading(true);
     setIsConnected(null);
     setErrorMessage(null);
     
+    // Configurar un timeout más corto (5 segundos)
+    timeoutRef.current = setTimeout(() => {
+      console.log("Conexión a Supabase timeout alcanzado");
+      setIsLoading(false);
+      setIsConnected(false);
+      setErrorMessage("Tiempo de espera excedido. Verifica la URL y la clave de Supabase.");
+      toast({
+        title: "Tiempo de espera excedido",
+        description: "La conexión a Supabase está tomando demasiado tiempo. Verifica tu conexión a internet o la configuración de Supabase.",
+        variant: "destructive"
+      });
+    }, 5000); // Reducido a 5 segundos
+    
     try {
-      // Comprobamos que podemos conectar a Supabase
+      // Probar primero con una consulta sencilla para verificar la conexión
       console.log("Intentando conectar a Supabase...");
-      const { data, error } = await supabase.auth.getSession();
+      console.log("URL de Supabase:", supabase.supabaseUrl);
       
-      console.log("Supabase connection test response:", { data, error });
+      const { data, error } = await supabase.from('profiles').select('count').limit(1);
+      
+      // Limpiar el timeout ya que obtuvimos una respuesta
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
       
       if (error) {
-        console.error("Error de conexión:", error);
-        setIsConnected(false);
-        setErrorMessage(error.message);
-        toast({
-          title: "Error de conexión",
-          description: error.message,
-          variant: "destructive"
-        });
+        console.error("Error de conexión a la tabla profiles:", error);
+        // Intentar con getSession como fallback
+        const sessionResponse = await supabase.auth.getSession();
+        
+        if (sessionResponse.error) {
+          console.error("Error de conexión con getSession:", sessionResponse.error);
+          setIsConnected(false);
+          setErrorMessage(sessionResponse.error.message || "No se pudo conectar a Supabase");
+          toast({
+            title: "Error de conexión",
+            description: sessionResponse.error.message || "No se pudo conectar a Supabase",
+            variant: "destructive"
+          });
+        } else {
+          // Si getSession funciona pero la tabla no, probablemente es un problema de permisos, no de conexión
+          console.log("Conexión a Supabase exitosa (auth funciona pero tabla no)");
+          setIsConnected(true);
+          toast({
+            title: "Conexión parcial",
+            description: "La autenticación funciona pero hay problemas con el acceso a las tablas: " + error.message,
+          });
+        }
       } else {
-        console.log("Conexión exitosa a Supabase");
+        console.log("Conexión exitosa a Supabase:", data);
         setIsConnected(true);
         toast({
           title: "Conexión exitosa",
@@ -42,12 +82,18 @@ const SupabaseConnectionTest = () => {
         });
       }
     } catch (error: any) {
+      // Limpiar el timeout ya que obtuvimos una respuesta (error)
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+      
       console.error("Error inesperado:", error);
       setIsConnected(false);
       setErrorMessage(error.message || "Error desconocido");
       toast({
         title: "Error inesperado",
-        description: "Ocurrió un error al intentar conectar con Supabase",
+        description: "Ocurrió un error al intentar conectar con Supabase: " + error.message,
         variant: "destructive"
       });
     } finally {
@@ -55,24 +101,18 @@ const SupabaseConnectionTest = () => {
     }
   };
 
-  // Probar la conexión automáticamente al cargar el componente, con un timeout
+  // Limpiar timeout al desmontar el componente
   useEffect(() => {
-    const connectionTimeout = setTimeout(() => {
-      if (isLoading) {
-        setIsLoading(false);
-        setIsConnected(false);
-        setErrorMessage("Tiempo de espera excedido");
-        toast({
-          title: "Tiempo de espera excedido",
-          description: "La conexión a Supabase está tomando demasiado tiempo. Verifica tu conexión a internet o intenta más tarde.",
-          variant: "destructive"
-        });
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
       }
-    }, 10000); // 10 segundos de timeout
+    };
+  }, []);
 
+  // Probar la conexión automáticamente al cargar el componente
+  useEffect(() => {
     testConnection();
-
-    return () => clearTimeout(connectionTimeout);
   }, []);
 
   return (
@@ -103,6 +143,15 @@ const SupabaseConnectionTest = () => {
             {errorMessage && (
               <p className="text-sm text-center mt-2 max-w-xs">{errorMessage}</p>
             )}
+            <div className="mt-4 p-4 bg-red-50 rounded-md text-sm">
+              <h4 className="font-medium mb-2">Posibles soluciones:</h4>
+              <ul className="list-disc pl-5 space-y-1">
+                <li>Verifica la URL y la clave de Supabase en el cliente</li>
+                <li>Comprueba si tu proyecto de Supabase está activo</li>
+                <li>Revisa si hay problemas de CORS o bloqueos de red</li>
+                <li>La tabla 'profiles' existe y tiene permisos correctos</li>
+              </ul>
+            </div>
           </div>
         )}
       </CardContent>
