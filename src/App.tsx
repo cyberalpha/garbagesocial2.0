@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/components/AuthProvider";
 import { LanguageProvider } from "@/components/LanguageContext";
+import InternetConnectionAlert from "@/components/InternetConnectionAlert";
 import Home from "./pages/Home";
 import MapView from "./pages/MapView";
 import PublishWaste from "./pages/PublishWaste";
@@ -95,6 +96,7 @@ const App = () => (
         <AuthProvider>
           <Toaster />
           <Sonner />
+          <InternetConnectionAlert />
           <BrowserRouter>
             <Navbar />
             <main className="pt-16"> {/* Adjust for navbar height */}
