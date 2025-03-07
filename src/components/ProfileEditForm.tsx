@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, UserRole } from '@/types';
+import { User } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
 import {
   Card,
@@ -26,7 +26,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Pencil, Trash2, Save, X } from 'lucide-react';
+import { Save, X, Trash2 } from 'lucide-react';
 
 interface ProfileEditFormProps {
   user: User;

@@ -10,7 +10,6 @@ export interface AuthContextType {
   logout: () => void;
   updateProfile: (userData: Partial<User>) => Promise<User | null>;
   deleteProfile: () => Promise<boolean>;
-  switchRole: () => void;
   verifyEmail: (token: string) => Promise<boolean>;
   loginWithSocialMedia: (provider: string) => Promise<void>;
   pendingVerification: boolean;

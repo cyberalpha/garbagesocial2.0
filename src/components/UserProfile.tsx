@@ -1,7 +1,6 @@
-
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, Waste, UserRole } from '../types';
+import { User, Waste } from '../types';
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -19,7 +18,7 @@ import {
 } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Edit, Star, Award, Recycle, Upload, BarChart3, Pencil, Trash2 } from 'lucide-react';
+import { Star, Award, Recycle, Upload, BarChart3, Pencil } from 'lucide-react';
 import WasteCard from './WasteCard';
 import ProfileEditForm from './ProfileEditForm';
 import { useAuth } from '@/hooks/useAuth';
@@ -31,7 +30,7 @@ interface UserProfileProps {
 }
 
 const UserProfile = ({ userId, isEditable = false, user }: UserProfileProps) => {
-  const { switchRole, deleteProfile } = useAuth();
+  const { deleteProfile } = useAuth();
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [wastes] = useState<Waste[]>([
@@ -80,7 +79,6 @@ const UserProfile = ({ userId, isEditable = false, user }: UserProfileProps) => 
   ]);
   const [activeTab, setActiveTab] = useState('published');
   
-  // Función para renderizar las estrellas de calificación
   const renderStars = (rating: number) => {
     return Array.from({ length: 5 }).map((_, i) => (
       <Star 
@@ -90,16 +88,10 @@ const UserProfile = ({ userId, isEditable = false, user }: UserProfileProps) => 
     ));
   };
   
-  // Traducir el rol de usuario
-  const getUserRoleText = (role: UserRole) => {
-    return role === 'publisher' ? 'Publicador' : 'Reciclador';
-  };
-  
-  // Filtrar residuos según la pestaña activa
   const filteredWastes = wastes.filter(waste => {
     switch (activeTab) {
       case 'published':
-        return true; // Todos los residuos publicados
+        return true;
       case 'pending':
         return waste.status === 'pending';
       case 'collected':
@@ -117,22 +109,16 @@ const UserProfile = ({ userId, isEditable = false, user }: UserProfileProps) => 
     setIsEditing(false);
   };
 
-  const handleSwitchRole = () => {
-    switchRole();
-  };
-
   if (isEditing && isEditable) {
     return <ProfileEditForm user={user} onCancel={handleCancelEdit} />;
   }
 
   return (
     <div className="space-y-6">
-      {/* Card de perfil */}
       <Card className="overflow-hidden">
         <div className="h-32 bg-gradient-to-r from-primary/30 to-accent/30"></div>
         <CardContent className="relative pt-0">
           <div className="flex flex-col md:flex-row md:items-end -mt-16 md:-mt-12 mb-4 gap-4">
-            {/* Avatar */}
             <div className="relative">
               <div className="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden border-4 border-white shadow-lg">
                 <img 
@@ -148,18 +134,14 @@ const UserProfile = ({ userId, isEditable = false, user }: UserProfileProps) => 
                   className="absolute bottom-0 right-0"
                   onClick={handleEditClick}
                 >
-                  <Edit className="h-4 w-4" />
+                  <Pencil className="h-4 w-4" />
                 </Button>
               )}
             </div>
             
-            {/* Info básica */}
             <div className="flex-1">
               <div className="flex flex-wrap items-center gap-2 mb-1">
                 <h2 className="text-2xl font-bold">{user.name}</h2>
-                <Badge variant="outline" className="font-normal">
-                  {getUserRoleText(user.role)}
-                </Badge>
                 {user.isOrganization && (
                   <Badge className="bg-blue-500 text-white">Organización</Badge>
                 )}
@@ -171,12 +153,8 @@ const UserProfile = ({ userId, isEditable = false, user }: UserProfileProps) => 
               </div>
             </div>
             
-            {/* Botones de acción */}
             {isEditable && (
               <div className="flex gap-2 mt-4 md:mt-0">
-                <Button variant="outline" size="sm" onClick={handleSwitchRole}>
-                  Cambiar Rol
-                </Button>
                 <Button size="sm" onClick={handleEditClick}>
                   <Pencil className="h-4 w-4 mr-2" />
                   Editar Perfil
@@ -185,7 +163,6 @@ const UserProfile = ({ userId, isEditable = false, user }: UserProfileProps) => 
             )}
           </div>
           
-          {/* Estadísticas */}
           <div className="grid grid-cols-3 gap-4 my-4">
             <div className="bg-muted rounded-lg p-3 text-center">
               <div className="font-bold text-2xl">{wastes.length}</div>
@@ -205,7 +182,6 @@ const UserProfile = ({ userId, isEditable = false, user }: UserProfileProps) => 
           
           <Separator className="my-4" />
           
-          {/* Medallas o logros */}
           <div className="mb-4">
             <h3 className="text-sm font-medium mb-2 flex items-center gap-1">
               <Award className="h-4 w-4 text-primary" />
@@ -233,7 +209,6 @@ const UserProfile = ({ userId, isEditable = false, user }: UserProfileProps) => 
         </CardContent>
       </Card>
       
-      {/* Pestañas de residuos */}
       <Tabs defaultValue="published" onValueChange={setActiveTab}>
         <TabsList className="w-full grid grid-cols-3">
           <TabsTrigger value="published">Todos</TabsTrigger>

@@ -1,3 +1,4 @@
+
 // Tipos de residuos disponibles
 export type WasteType = 
   | 'organic' 
@@ -16,7 +17,7 @@ export type WasteStatus =
   | 'collected' 
   | 'canceled';
 
-// Roles de usuario
+// Roles de usuario - lo mantenemos para referencias existentes en otros archivos
 export type UserRole = 
   | 'publisher' 
   | 'recycler';
@@ -26,7 +27,6 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: UserRole;
   isOrganization: boolean;
   averageRating: number;
   location?: GeoLocation;

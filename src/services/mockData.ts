@@ -1,5 +1,4 @@
-
-import { User, Waste, WasteType, WasteStatus, UserRole } from "@/types";
+import { User, Waste, WasteType, WasteStatus } from "@/types";
 
 // Mock users data
 export const users: User[] = [
@@ -7,7 +6,6 @@ export const users: User[] = [
     id: "2",
     name: "María López",
     email: "maria@example.com",
-    role: "recycler",
     isOrganization: false,
     averageRating: 4.8,
     profileImage: "https://randomuser.me/api/portraits/women/2.jpg",
@@ -21,7 +19,6 @@ export const users: User[] = [
     id: "3",
     name: "EcoRecycle",
     email: "info@ecorecycle.com",
-    role: "recycler",
     isOrganization: true,
     averageRating: 4.7,
     profileImage: "https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?q=80&w=200&auto=format&fit=crop",

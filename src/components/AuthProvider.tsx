@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect, ReactNode } from 'react';
 import { getAllUsers, addUser, getUserByEmail, updateUser, deleteUser } from '@/services/mockData';
-import { User, UserRole } from '@/types';
+import { User } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
 import { useLanguage } from './LanguageContext';
 import { AuthContext } from '@/contexts/AuthContext';
@@ -71,7 +70,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         id: `user-${Date.now()}`,
         name: userData.name || '',
         email: userData.email || '',
-        role: userData.role || 'publisher',
         isOrganization: userData.isOrganization || false,
         averageRating: 0,
         profileImage: `https://api.dicebear.com/7.x/initials/svg?seed=${userData.name}`,
@@ -209,22 +207,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const switchRole = () => {
-    if (!currentUser) return;
-    
-    const newRole: UserRole = currentUser.role === 'publisher' ? 'recycler' : 'publisher';
-    
-    setCurrentUser({
-      ...currentUser,
-      role: newRole
-    });
-    
-    toast({
-      title: "Rol cambiado",
-      description: `Ahora eres ${newRole === 'publisher' ? 'Publicador' : 'Reciclador'}`,
-    });
-  };
-
   return (
     <AuthContext.Provider value={{ 
       currentUser, 
@@ -234,7 +216,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       logout,
       updateProfile,
       deleteProfile,
-      switchRole,
       verifyEmail: async () => false, // Simplificado
       loginWithSocialMedia: async () => {}, // Simplificado
       pendingVerification: false, // Simplificado

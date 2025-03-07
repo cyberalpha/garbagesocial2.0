@@ -8,14 +8,13 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { User, Mail, Lock, LogIn, Building, User as UserIcon } from 'lucide-react';
+import { User, Mail, Lock, LogIn, Building } from 'lucide-react';
 import { User as UserType } from '@/types';
 
 const RegisterForm = () => {
   const [userData, setUserData] = useState<Partial<UserType>>({
     name: '',
     email: '',
-    role: 'publisher',
     isOrganization: false
   });
   const [password, setPassword] = useState('');
@@ -52,7 +51,7 @@ const RegisterForm = () => {
           <div className="space-y-2">
             <Label htmlFor="name">{t('auth.name')}</Label>
             <div className="relative">
-              <UserIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <UserType className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 id="name"
                 name="name"
@@ -115,34 +114,6 @@ const RegisterForm = () => {
             >
               {t('auth.isOrganization')}
             </label>
-          </div>
-          
-          <div className="space-y-2">
-            <Label>{t('auth.role')}</Label>
-            <div className="flex space-x-4">
-              <label className="flex items-center space-x-2 cursor-pointer">
-                <input 
-                  type="radio" 
-                  name="role"
-                  value="publisher"
-                  checked={userData.role === 'publisher'}
-                  onChange={handleChange}
-                  className="form-radio h-4 w-4 text-primary"
-                />
-                <span>{t('auth.publisher')}</span>
-              </label>
-              <label className="flex items-center space-x-2 cursor-pointer">
-                <input 
-                  type="radio" 
-                  name="role"
-                  value="recycler"
-                  checked={userData.role === 'recycler'}
-                  onChange={handleChange}
-                  className="form-radio h-4 w-4 text-primary"
-                />
-                <span>{t('auth.recycler')}</span>
-              </label>
-            </div>
           </div>
           
           <Button 
