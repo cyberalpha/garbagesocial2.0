@@ -8,6 +8,7 @@ import { ArrowLeft } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import WasteForm from "@/components/WasteForm";
+import { addWaste } from "@/services/mockData";
 
 const PublishWaste = () => {
   const navigate = useNavigate();
@@ -34,10 +35,9 @@ const PublishWaste = () => {
       return;
     }
     
-    // Simulating API call
-    setTimeout(() => {
+    try {
       // Create new waste object
-      const newWaste: Partial<Waste> = {
+      const newWasteData: Partial<Waste> = {
         userId: currentUser.id,
         type: data.type,
         description: data.description,
@@ -50,15 +50,28 @@ const PublishWaste = () => {
         status: "pending"
       };
       
+      // Agregar el residuo usando la función del servicio
+      const newWaste = addWaste(newWasteData);
+      
       // Show success message
       toast({
         title: "Publicación exitosa",
         description: "Tu residuo ha sido publicado correctamente",
       });
       
-      setIsSubmitting(false);
+      // Redirigir a la página principal
       navigate('/');
-    }, 1500);
+    } catch (error) {
+      // Mostrar mensaje de error
+      toast({
+        title: "Error",
+        description: "Ha ocurrido un error al publicar el residuo. Intenta de nuevo.",
+        variant: "destructive"
+      });
+      console.error("Error al publicar residuo:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
   
   return (

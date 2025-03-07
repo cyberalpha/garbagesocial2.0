@@ -74,69 +74,46 @@ const wasteTypeImages: Record<WasteType, string> = {
   various: "https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?q=80&w=300&auto=format&fit=crop"
 };
 
-// Mock waste data
-export const wastes: Waste[] = [
-  // Modificamos los wastes para asignarlos a usuarios existentes
-  {
-    id: "2",
-    userId: "2",  // Ahora pertenece a María López
-    type: "paper",
-    description: "Cajas de cartón y periódicos",
-    imageUrl: wasteTypeImages.paper,
-    location: {
-      type: "Point",
-      coordinates: [-58.3788, -34.6012]
-    },
-    publicationDate: new Date("2024-06-09T15:30:00Z"),
-    status: "in_progress",
-    pickupCommitment: {
-      recyclerId: "3",  // Ahora EcoRecycle
-      commitmentDate: new Date("2024-06-09T16:30:00Z")
-    }
-  },
-  {
-    id: "3",
-    userId: "2",
-    type: "glass",
-    description: "Botellas de vidrio para reciclar",
-    imageUrl: wasteTypeImages.glass,
-    location: {
-      type: "Point",
-      coordinates: [-58.3850, -34.6050]
-    },
-    publicationDate: new Date("2024-06-08T09:15:00Z"),
-    status: "collected"
-  },
-  {
-    id: "4",
-    userId: "3",
-    type: "organic",
-    description: "Restos de poda y jardinería",
-    imageUrl: wasteTypeImages.organic,
-    location: {
-      type: "Point",
-      coordinates: [-58.3900, -34.6100]
-    },
-    publicationDate: new Date("2024-06-07T14:45:00Z"),
-    status: "pending"
-  },
-  {
-    id: "5",
-    userId: "2",
-    type: "metal",
-    description: "Latas de aluminio",
-    imageUrl: wasteTypeImages.metal,
-    location: {
-      type: "Point",
-      coordinates: [-58.3950, -34.6150]
-    },
-    publicationDate: new Date("2024-06-06T11:20:00Z"),
-    status: "pending"
-  }
-];
+// Mock waste data - iniciamos con un array vacío
+export const wastes: Waste[] = [];
 
 // For simplicity we'll maintain a local "database" of wastes
-let localWastes = [...wastes];
+const WASTES_STORAGE_KEY = 'garbage_social_wastes';
+
+// Initialize localWastes from localStorage or default to wastes array
+const getInitialWastes = (): Waste[] => {
+  try {
+    const storedWastes = localStorage.getItem(WASTES_STORAGE_KEY);
+    if (storedWastes) {
+      const parsedWastes = JSON.parse(storedWastes);
+      // Convertimos las fechas de string a Date
+      if (Array.isArray(parsedWastes)) {
+        return parsedWastes.map(waste => ({
+          ...waste,
+          publicationDate: new Date(waste.publicationDate),
+          pickupCommitment: waste.pickupCommitment ? {
+            ...waste.pickupCommitment,
+            commitmentDate: new Date(waste.pickupCommitment.commitmentDate)
+          } : undefined
+        }));
+      }
+    }
+  } catch (error) {
+    console.error('Error loading wastes from localStorage:', error);
+  }
+  return [...wastes];
+};
+
+let localWastes = getInitialWastes();
+
+// Function to save wastes to localStorage
+const saveWastesToStorage = () => {
+  try {
+    localStorage.setItem(WASTES_STORAGE_KEY, JSON.stringify(localWastes));
+  } catch (error) {
+    console.error('Error saving wastes to localStorage:', error);
+  }
+};
 
 // Get all wastes
 export const getAllWastes = (): Waste[] => {
@@ -161,6 +138,29 @@ export const getWastesByType = (type: WasteType): Waste[] => {
 // Get wastes by status
 export const getWastesByStatus = (status: WasteStatus): Waste[] => {
   return localWastes.filter(waste => waste.status === status);
+};
+
+// Add new waste
+export const addWaste = (waste: Partial<Waste>): Waste => {
+  const newId = Date.now().toString();
+  const newWaste: Waste = {
+    id: newId,
+    userId: waste.userId || '',
+    type: waste.type || 'various',
+    description: waste.description || '',
+    imageUrl: waste.imageUrl || wasteTypeImages[waste.type || 'various'],
+    location: waste.location || {
+      type: "Point",
+      coordinates: [0, 0]
+    },
+    publicationDate: waste.publicationDate || new Date(),
+    status: waste.status || 'pending',
+    pickupCommitment: waste.pickupCommitment
+  };
+  
+  localWastes.push(newWaste);
+  saveWastesToStorage(); // Guardamos en localStorage
+  return newWaste;
 };
 
 // Get all users
@@ -265,5 +265,6 @@ export const commitToCollect = (wasteId: string, recyclerId: string): Waste => {
     }
   };
   
+  saveWastesToStorage(); // Guardamos en localStorage
   return localWastes[wasteIndex];
 };
