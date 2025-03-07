@@ -51,7 +51,7 @@ const RegisterForm = () => {
           <div className="space-y-2">
             <Label htmlFor="name">{t('auth.name')}</Label>
             <div className="relative">
-              <UserType className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 id="name"
                 name="name"

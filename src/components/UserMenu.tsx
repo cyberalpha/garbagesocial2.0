@@ -11,11 +11,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { User, LogOut, UserCog, RefreshCw } from 'lucide-react';
+import { User, LogOut, UserCog } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 const UserMenu = () => {
-  const { currentUser, logout, switchRole } = useAuth();
+  const { currentUser, logout } = useAuth();
 
   if (!currentUser) {
     return (
@@ -37,10 +37,6 @@ const UserMenu = () => {
       .substring(0, 2);
   };
 
-  const getRoleText = () => {
-    return currentUser.role === 'publisher' ? 'Publicador' : 'Reciclador';
-  };
-
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -59,12 +55,9 @@ const UserMenu = () => {
               {currentUser.email}
             </p>
             <div className="flex items-center pt-1">
-              <Badge variant="outline" className="text-xs">
-                {getRoleText()}
-              </Badge>
               {currentUser.isOrganization && (
                 <Badge className="text-xs ml-1 bg-blue-500">
-                  Org
+                  Organización
                 </Badge>
               )}
             </div>
@@ -76,10 +69,6 @@ const UserMenu = () => {
             <UserCog className="mr-2 h-4 w-4" />
             <span>Mi Perfil</span>
           </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={switchRole} className="cursor-pointer">
-          <RefreshCw className="mr-2 h-4 w-4" />
-          <span>Cambiar a {currentUser.role === 'publisher' ? 'Reciclador' : 'Publicador'}</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={logout} className="cursor-pointer text-red-600">
