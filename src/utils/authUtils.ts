@@ -6,8 +6,12 @@ export const sendVerificationEmail = (to: string, emailContent: any, userLanguag
   console.log(`Simulando envío de correo a ${to} en idioma: ${userLanguage}`);
   console.log(`Asunto: ${emailContent.subject}`);
   console.log(`Contenido: ${emailContent.text}`);
+  console.log(`URL de verificación: ${emailContent.verificationUrl}`);
   
   // En un entorno real, aquí llamaríamos a un servicio de correo
+  // Para simular que el correo fue enviado correctamente, mostramos un mensaje en la consola
+  console.log('✅ Correo enviado exitosamente (simulación)');
+  
   return new Promise<void>((resolve) => {
     setTimeout(() => resolve(), 500); // Simular el tiempo de envío
   });

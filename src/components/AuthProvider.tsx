@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, ReactNode } from 'react';
 import { getCurrentUser, getAllUsers } from '@/services/mockData';
 import { User, UserRole } from '@/types';
@@ -13,7 +12,6 @@ import {
   decodeJwtResponse
 } from '@/utils/authUtils';
 
-// Re-export useAuth for backwards compatibility
 export { useAuth } from '@/hooks/useAuth';
 
 interface AuthProviderProps {
@@ -129,6 +127,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const verificationToken = generateVerificationToken(email);
       const verificationUrl = generateVerificationUrl(verificationToken);
       
+      console.log("Enviando correo de verificación a:", email);
+      console.log("URL de verificación:", verificationUrl);
+      
       await sendVerificationEmail(
         email, 
         {
@@ -202,11 +203,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
       
       const pendingUser = JSON.parse(pendingUserData);
+      
       const userLanguage = pendingUser.language || language;
       const emailContent = prepareVerificationEmail(t, userLanguage);
       
       const verificationToken = generateVerificationToken(email);
       const verificationUrl = generateVerificationUrl(verificationToken);
+      
+      console.log("Reenviando correo de verificación a:", email);
+      console.log("URL de verificación:", verificationUrl);
       
       await sendVerificationEmail(
         email, 
@@ -238,103 +243,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Función comentada para uso futuro
   const loginWithSocialMedia = async (provider: string) => {
-    /* 
-    setIsLoading(true);
-    try {
-      if (provider === 'google') {
-        const handleCredentialResponse = async (response: any) => {
-          console.log("Google Auth Response:", response);
-          
-          if (response.credential) {
-            try {
-              const decodedToken = decodeJwtResponse(response.credential);
-              console.log("Decoded token:", decodedToken);
-              
-              const googleUser: User = {
-                id: `google-${decodedToken.sub}`,
-                name: decodedToken.name,
-                email: decodedToken.email,
-                role: 'publisher',
-                isOrganization: false,
-                averageRating: 0,
-                emailVerified: true,
-                profileImage: decodedToken.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${decodedToken.name}`
-              };
-              
-              setCurrentUser(googleUser);
-              
-              toast({
-                title: t('general.success'),
-                description: `${t('auth.login')} ${googleUser.name}`,
-              });
-            } catch (error) {
-              console.error('Error processing Google credentials:', error);
-              throw error;
-            }
-          }
-        };
-        
-        if (window.google && window.google.accounts) {
-          window.google.accounts.id.initialize({
-            client_id: '114112049135-72gbo65i96o08g9dhr1118n94bnkfn7q.apps.googleusercontent.com',
-            callback: handleCredentialResponse,
-            auto_select: false,
-            cancel_on_tap_outside: true,
-          });
-          
-          window.google.accounts.id.prompt((notification: any) => {
-            if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-              console.log('Google One Tap not displayed or skipped');
-              window.google.accounts.id.renderButton(
-                document.getElementById('googleSignInButton')!, 
-                { theme: 'outline', size: 'large', width: '100%' }
-              );
-            }
-          });
-        } else {
-          console.error('Google Identity Services library not loaded');
-          toast({
-            title: t('general.error'),
-            description: 'Google authentication service is not available',
-            variant: "destructive"
-          });
-        }
-      } else {
-        console.log(`Iniciando sesión con ${provider}`);
-        
-        const newUser: User = {
-          id: `user-social-${Date.now()}`,
-          name: `Usuario de ${provider}`,
-          email: `usuario.${provider}@example.com`,
-          role: 'publisher',
-          isOrganization: false,
-          averageRating: 0,
-          emailVerified: true,
-          profileImage: `https://api.dicebear.com/7.x/initials/svg?seed=${provider}`
-        };
-        
-        setCurrentUser(newUser);
-        
-        toast({
-          title: "Sesión iniciada",
-          description: `Bienvenido/a ${newUser.name}`
-        });
-      }
-    } catch (error) {
-      console.error(`Error al iniciar sesión con ${provider}:`, error);
-      toast({
-        title: "Error de autenticación",
-        description: `No pudimos autenticarte con ${provider}. Por favor, intenta nuevamente.`,
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-    */
-    
-    // Versión simplificada para mantener la interfaz funcionando
     console.log(`Inicio de sesión con ${provider} está desactivado temporalmente`);
   };
 

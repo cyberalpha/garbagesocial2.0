@@ -22,6 +22,11 @@ export const translations = {
     'auth.registerWelcome': 'Únete a nuestra comunidad de reciclaje',
     'auth.registerIntro': '¡Bienvenido a GarbageSocial!',
     'auth.registerExplanation': 'Para formar parte de nuestra comunidad exclusiva de reciclaje, necesitas crear una cuenta. Completa el formulario a continuación para comenzar.',
+    'auth.noAccount': 'Crear una cuenta',
+    'auth.demoCredentials': 'Acceso de demostración:',
+    'auth.demoUser': 'Usuario',
+    'auth.demoPassword': 'Contraseña: password123',
+    'auth.loginExplanation': 'Inicia sesión para acceder a todas las funciones de la plataforma.',
     
     // Verificación de Email
     'email.verification.title': 'Verificación de Cuenta',
@@ -64,6 +69,11 @@ export const translations = {
     'auth.registerWelcome': 'Join our recycling community',
     'auth.registerIntro': 'Welcome to GarbageSocial!',
     'auth.registerExplanation': 'To be part of our exclusive recycling community, you need to create an account. Complete the form below to get started.',
+    'auth.noAccount': 'Create an account',
+    'auth.demoCredentials': 'Demo access:',
+    'auth.demoUser': 'User',
+    'auth.demoPassword': 'Password: password123',
+    'auth.loginExplanation': 'Log in to access all platform features.',
     
     // Email Verification
     'email.verification.title': 'Account Verification',
