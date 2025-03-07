@@ -10,6 +10,7 @@ export const users: User[] = [
     averageRating: 4.8,
     profileImage: "https://randomuser.me/api/portraits/women/2.jpg",
     emailVerified: true,
+    active: true,
     location: {
       type: "Point",
       coordinates: [-58.3716, -34.6137]
@@ -23,6 +24,7 @@ export const users: User[] = [
     averageRating: 4.7,
     profileImage: "https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?q=80&w=200&auto=format&fit=crop",
     emailVerified: true,
+    active: true,
     location: {
       type: "Point",
       coordinates: [-58.3916, -34.5937]
@@ -139,9 +141,19 @@ export const getAllUsers = (): User[] => {
   return localUsers;
 };
 
+// Get all active users
+export const getAllActiveUsers = (): User[] => {
+  return localUsers.filter(user => user.active !== false);
+};
+
 // Get user by id
 export const getUserById = (id: string): User | undefined => {
   return localUsers.find(user => user.id === id);
+};
+
+// Get active user by id
+export const getActiveUserById = (id: string): User | undefined => {
+  return localUsers.find(user => user.id === id && user.active !== false);
 };
 
 // Get user by email
@@ -149,10 +161,30 @@ export const getUserByEmail = (email: string): User | undefined => {
   return localUsers.find(user => user.email === email);
 };
 
+// Get active user by email
+export const getActiveUserByEmail = (email: string): User | undefined => {
+  return localUsers.find(user => user.email === email && user.active !== false);
+};
+
 // Add a new user
 export const addUser = (user: User): User => {
-  localUsers.push(user);
-  return user;
+  // Check if user with the same email exists but is deactivated
+  const existingUserIndex = localUsers.findIndex(u => u.email === user.email);
+  
+  if (existingUserIndex !== -1 && localUsers[existingUserIndex].active === false) {
+    // Reactivate and update existing user
+    localUsers[existingUserIndex] = { 
+      ...localUsers[existingUserIndex], 
+      ...user, 
+      active: true 
+    };
+    return localUsers[existingUserIndex];
+  }
+  
+  // Add as new user with active status
+  const newUser = { ...user, active: true };
+  localUsers.push(newUser);
+  return newUser;
 };
 
 // Update a user
@@ -164,11 +196,15 @@ export const updateUser = (userId: string, userData: Partial<User>): User | null
   return localUsers[index];
 };
 
-// Delete a user
+// Deactivate a user (soft delete)
 export const deleteUser = (userId: string): boolean => {
-  const initialLength = localUsers.length;
-  localUsers = localUsers.filter(user => user.id !== userId);
-  return localUsers.length < initialLength;
+  const index = localUsers.findIndex(user => user.id === userId);
+  
+  if (index === -1) return false;
+  
+  // Mark user as inactive instead of removing
+  localUsers[index] = { ...localUsers[index], active: false };
+  return true;
 };
 
 // Add the commitToCollect function

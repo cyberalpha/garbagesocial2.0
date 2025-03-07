@@ -1,4 +1,3 @@
-
 // Tipos de residuos disponibles
 export type WasteType = 
   | 'organic' 
@@ -32,6 +31,7 @@ export interface User {
   location?: GeoLocation;
   profileImage?: string;
   emailVerified?: boolean;
+  active?: boolean;
 }
 
 // Estructura para localización geográfica

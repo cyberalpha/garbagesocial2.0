@@ -1,5 +1,13 @@
+
 import React, { useState, useEffect, ReactNode } from 'react';
-import { getAllUsers, addUser, getUserByEmail, updateUser, deleteUser } from '@/services/mockData';
+import { 
+  getAllUsers, 
+  addUser, 
+  getActiveUserByEmail, 
+  updateUser, 
+  deleteUser, 
+  getUserByEmail 
+} from '@/services/mockData';
 import { User } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
 import { useLanguage } from './LanguageContext';
@@ -21,8 +29,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsLoading(true);
     try {
       console.log(`Iniciando sesión con: ${email}`);
-      const users = getAllUsers();
-      const user = users.find(u => u.email === email);
+      const user = getActiveUserByEmail(email);
       
       if (user) {
         setCurrentUser(user);
@@ -31,11 +38,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           description: `${t('auth.login')} ${user.name}`,
         });
       } else {
-        toast({
-          title: t('general.error'),
-          description: "Correo electrónico o contraseña incorrectos",
-          variant: "destructive"
-        });
+        // Check if user exists but is inactive
+        const inactiveUser = getUserByEmail(email);
+        if (inactiveUser && inactiveUser.active === false) {
+          toast({
+            title: t('general.error'),
+            description: "Tu cuenta está desactivada. Registrate nuevamente para reactivarla.",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: t('general.error'),
+            description: "Correo electrónico o contraseña incorrectos",
+            variant: "destructive"
+          });
+        }
       }
     } catch (error) {
       console.error('Error al iniciar sesión:', error);
@@ -53,10 +70,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsLoading(true);
     try {
       console.log(`Registrando usuario: ${userData.name} (${userData.email})`);
-      // Check if user already exists
-      const existingUser = getUserByEmail(userData.email || '');
+      // Check if user already exists and is active
+      const existingActiveUser = getActiveUserByEmail(userData.email || '');
       
-      if (existingUser) {
+      if (existingActiveUser) {
         toast({
           title: t('general.error'),
           description: "Este correo electrónico ya está registrado",
@@ -65,7 +82,33 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return null;
       }
       
-      // Create new user
+      // Check if user exists but is inactive (for reactivation)
+      const existingInactiveUser = getUserByEmail(userData.email || '');
+      if (existingInactiveUser && existingInactiveUser.active === false) {
+        console.log('Reactivando usuario:', existingInactiveUser.id);
+        
+        // Update user data for reactivation
+        const updatedUserData = {
+          ...existingInactiveUser,
+          name: userData.name || existingInactiveUser.name,
+          isOrganization: userData.isOrganization !== undefined ? userData.isOrganization : existingInactiveUser.isOrganization,
+          active: true  // Reactivate the user
+        };
+        
+        const reactivatedUser = updateUser(existingInactiveUser.id, updatedUserData);
+        
+        if (reactivatedUser) {
+          toast({
+            title: t('general.success'),
+            description: "¡Bienvenido de vuelta! Tu cuenta ha sido reactivada."
+          });
+          
+          setCurrentUser(reactivatedUser);
+          return reactivatedUser;
+        }
+      }
+      
+      // Create new user if no reactivation
       const newUser: User = {
         id: `user-${Date.now()}`,
         name: userData.name || '',
@@ -73,7 +116,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         isOrganization: userData.isOrganization || false,
         averageRating: 0,
         profileImage: `https://api.dicebear.com/7.x/initials/svg?seed=${userData.name}`,
-        emailVerified: true // Simplificamos el proceso de verificación
+        emailVerified: true, // Simplificamos el proceso de verificación
+        active: true
       };
       
       // Save user to our mock database
@@ -120,9 +164,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return null;
       }
 
-      // If email is being changed, check that it's not already taken
+      // If email is being changed, check that it's not already taken by an active user
       if (userData.email && userData.email !== currentUser.email) {
-        const existingUser = getUserByEmail(userData.email);
+        const existingUser = getActiveUserByEmail(userData.email);
         if (existingUser && existingUser.id !== currentUser.id) {
           toast({
             title: t('general.error'),
@@ -170,35 +214,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (!currentUser) {
         toast({
           title: t('general.error'),
-          description: "Debes iniciar sesión para eliminar tu perfil",
+          description: "Debes iniciar sesión para desactivar tu perfil",
           variant: "destructive"
         });
         return false;
       }
 
-      // Delete user from the database
+      // Soft delete (deactivate) user
       const success = deleteUser(currentUser.id);
       
       if (success) {
         setCurrentUser(null);
         toast({
           title: t('general.success'),
-          description: "Perfil eliminado correctamente"
+          description: "Tu perfil ha sido desactivado. Puedes reactivarlo registrándote nuevamente con el mismo correo electrónico."
         });
         return true;
       } else {
         toast({
           title: t('general.error'),
-          description: "No se pudo eliminar el perfil",
+          description: "No se pudo desactivar el perfil",
           variant: "destructive"
         });
         return false;
       }
     } catch (error) {
-      console.error('Error al eliminar perfil:', error);
+      console.error('Error al desactivar perfil:', error);
       toast({
         title: t('general.error'),
-        description: "Ocurrió un error durante la eliminación",
+        description: "Ocurrió un error durante la desactivación",
         variant: "destructive"
       });
       return false;
