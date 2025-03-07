@@ -23,11 +23,8 @@ export const supabase = createClient<Database>(
       headers: {
         'x-application-name': 'garbage-social-app'
       }
-    },
-    realtime: {
-      // Configure realtime according to available options
-      presence: false
     }
+    // Removed the realtime configuration as it was causing errors
   }
 );
 

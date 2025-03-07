@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { supabase, SUPABASE_CONFIG } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -37,47 +38,23 @@ const SupabaseConnectionTest = () => {
     }, 15000);
     
     try {
-      // First try with a simple ping - faster and less likely to timeout
       console.log("Attempting to connect to Supabase...");
       console.log("Supabase URL:", SUPABASE_CONFIG.url);
       
-      // Try to get auth session first - lightweight call
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      // Simple ping to check if Supabase is reachable
+      const { data, error } = await supabase.from('profiles').select('count');
       
-      if (sessionError) {
-        console.log("Auth check failed:", sessionError);
-        throw sessionError;
+      if (error) {
+        console.error("Connection error:", error);
+        throw error;
       }
       
-      console.log("Auth session check successful:", sessionData);
-      
-      // If auth worked, try a simple data query as well
-      try {
-        const { error: pingError } = await supabase.from('profiles').select('count').limit(1);
-        
-        if (pingError) {
-          console.log("Data query failed, but auth worked:", pingError);
-          setIsConnected(true);
-          toast({
-            title: "Partial Connection",
-            description: "Authentication is working but data access may be limited.",
-          });
-        } else {
-          console.log("Supabase connection fully successful!");
-          setIsConnected(true);
-          toast({
-            title: "Connection Successful",
-            description: "The application is properly connected to Supabase.",
-          });
-        }
-      } catch (dataError) {
-        console.log("Data query failed with exception, but auth worked:", dataError);
-        setIsConnected(true);
-        toast({
-          title: "Partial Connection",
-          description: "Authentication is working but data access may be limited.",
-        });
-      }
+      console.log("Supabase connection successful! Data:", data);
+      setIsConnected(true);
+      toast({
+        title: "Connection Successful",
+        description: "The application is properly connected to Supabase.",
+      });
       
       // Clear timeout since we got a response
       if (timeoutRef.current) {
@@ -154,6 +131,7 @@ const SupabaseConnectionTest = () => {
                 <li>Clear browser cache and cookies</li>
                 <li>Check for CORS issues (for local development)</li>
                 <li>Verify the Supabase URL and key are correct</li>
+                <li>Ensure you have the 'profiles' table created in Supabase</li>
               </ul>
             </div>
           </div>
