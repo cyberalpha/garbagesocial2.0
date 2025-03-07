@@ -1,7 +1,9 @@
-import React, { useCallback, useRef, useEffect } from 'react';
+
+import React, { useCallback, useRef, useEffect, useState } from 'react';
 import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
 import { GeoLocation, MapOptions, Waste } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
+import { Button } from '@/components/ui/button';
 import MapControls from './MapControls';
 import MapMarkers from './MapMarkers';
 import MapRoutePolyline from './MapRoutePolyline';
@@ -38,6 +40,9 @@ interface MapContainerProps {
     clearRoute: () => void;
   };
 }
+
+// Ahora vamos a dividir este componente en partes más pequeñas
+// Primero extraemos la lógica de configuración del mapa en un nuevo componente
 
 const MapContainer = ({ 
   initialOptions, 
