@@ -121,13 +121,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         profileImage: `https://api.dicebear.com/7.x/initials/svg?seed=${name}`
       };
       
-      console.log(`Enviando correo de verificación a ${email} en idioma: ${language}`);
+      const userPreferredLanguage = language;
+      
+      console.log(`Enviando correo de verificación a ${email} en idioma: ${userPreferredLanguage}`);
       console.log(`Asunto: ${t('email.welcome.subject')}`);
       console.log(`Contenido: ${t('email.welcome.text')}`);
       
+      const emailContent = {
+        subject: t('email.welcome.subject'),
+        title: t('email.welcome.title'),
+        text: t('email.welcome.text'),
+        buttonText: t('email.welcome.button'),
+        footer: t('email.welcome.footer'),
+        language: userPreferredLanguage
+      };
+      
       localStorage.setItem('pendingVerification', JSON.stringify({
         ...newUser,
-        language
+        language: userPreferredLanguage,
+        emailContent
       }));
       
       setPendingVerification(true);
@@ -186,9 +198,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       if (pendingUser) {
         const user = JSON.parse(pendingUser);
+        
+        const emailContent = {
+          subject: t('email.welcome.subject'),
+          title: t('email.welcome.title'),
+          text: t('email.welcome.text'),
+          buttonText: t('email.welcome.button'),
+          footer: t('email.welcome.footer'),
+          language: userLanguage
+        };
+        
         localStorage.setItem('pendingVerification', JSON.stringify({
           ...user,
-          language: userLanguage
+          language: userLanguage,
+          emailContent
         }));
       }
       

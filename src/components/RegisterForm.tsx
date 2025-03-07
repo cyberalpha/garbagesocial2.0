@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from './AuthProvider';
@@ -8,7 +9,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Mail, Lock, User, LogIn, Facebook, Instagram } from 'lucide-react';
-import LanguageSelector from './LanguageSelector';
 
 const RegisterForm = () => {
   const [name, setName] = useState('');
@@ -28,13 +28,10 @@ const RegisterForm = () => {
 
   return (
     <Card className="w-full max-w-md mx-auto">
-      <CardHeader className="relative">
-        <div className="absolute top-4 right-4">
-          <LanguageSelector />
-        </div>
+      <CardHeader>
         <CardTitle className="text-2xl">{t('auth.register')}</CardTitle>
         <CardDescription>
-          Regístrate para empezar a publicar tus residuos reciclables
+          {t('auth.registerExplanation')}
         </CardDescription>
       </CardHeader>
       {pendingVerification ? (

@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Globe } from 'lucide-react';
 
-const LanguageSelector = () => {
+const LanguageSelector = ({ showLabel = false }: { showLabel?: boolean }) => {
   const { language, setLanguage, t } = useLanguage();
   
   const languages: { value: Language, label: string, flag: string }[] = [
@@ -23,9 +23,12 @@ const LanguageSelector = () => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="px-2">
-          <Globe className="h-4 w-4 mr-1" />
+        <Button variant="ghost" size="sm" className="px-2 h-9 gap-1">
+          <Globe className="h-4 w-4" />
           <span>{currentLanguage?.flag}</span>
+          {showLabel && (
+            <span className="ml-1">{t('general.language')}</span>
+          )}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">

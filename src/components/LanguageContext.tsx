@@ -19,6 +19,9 @@ export const translations = {
     'auth.resendVerification': 'Reenviar correo de verificación',
     'auth.continueWith': 'O continúa con',
     'auth.alreadyHaveAccount': '¿Ya tienes una cuenta?',
+    'auth.registerWelcome': 'Únete a nuestra comunidad de reciclaje',
+    'auth.registerIntro': '¡Bienvenido a GarbageSocial!',
+    'auth.registerExplanation': 'Para formar parte de nuestra comunidad exclusiva de reciclaje, necesitas crear una cuenta. Completa el formulario a continuación para comenzar.',
     
     // Verificación de Email
     'email.verification.title': 'Verificación de Cuenta',
@@ -58,6 +61,9 @@ export const translations = {
     'auth.resendVerification': 'Resend verification email',
     'auth.continueWith': 'Or continue with',
     'auth.alreadyHaveAccount': 'Already have an account?',
+    'auth.registerWelcome': 'Join our recycling community',
+    'auth.registerIntro': 'Welcome to GarbageSocial!',
+    'auth.registerExplanation': 'To be part of our exclusive recycling community, you need to create an account. Complete the form below to get started.',
     
     // Email Verification
     'email.verification.title': 'Account Verification',
