@@ -4,7 +4,7 @@ import { useDataSync } from '@/hooks/useDataSync';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
-import { CloudSyncIcon, CloudOffIcon, Loader2Icon } from 'lucide-react';
+import { CloudOff, Loader2, Database } from 'lucide-react';
 
 interface DataSyncIndicatorProps {
   className?: string;
@@ -46,14 +46,14 @@ const DataSyncIndicator = ({ className }: DataSyncIndicatorProps) => {
             disabled={isSyncing}
           >
             {isSyncing ? (
-              <Loader2Icon className="h-5 w-5 text-white animate-spin" />
+              <Loader2 className="h-5 w-5 text-white animate-spin" />
             ) : isOnline ? (
-              <CloudSyncIcon className={cn(
+              <Database className={cn(
                 "h-5 w-5 text-white",
                 pendingOperations > 0 && "animate-pulse"
               )} />
             ) : (
-              <CloudOffIcon className="h-5 w-5 text-white" />
+              <CloudOff className="h-5 w-5 text-white" />
             )}
           </Button>
         </TooltipTrigger>
