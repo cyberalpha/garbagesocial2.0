@@ -5,6 +5,31 @@ import { getFromStorage, saveToStorage } from "../localStorage";
 import { supabase } from "@/integrations/supabase/client";
 import { transformWasteForSupabase } from "./utils";
 import { getWasteById } from "./fetchers";
+import { syncQueue } from "../sync/SyncQueue";
+import { dataSynchronizer } from "../sync/DataSynchronizer";
+
+/**
+ * Guardar residuo localmente y añadir a la cola de sincronización
+ */
+const saveWasteLocally = (waste: Waste, operation: 'create' | 'update'): void => {
+  // Guardar en localStorage como respaldo
+  const wastes = getFromStorage<Waste[]>(WASTES_STORAGE_KEY, []);
+  const existingIndex = wastes.findIndex(w => w.id === waste.id);
+  
+  if (existingIndex >= 0) {
+    wastes[existingIndex] = waste;
+  } else {
+    wastes.push(waste);
+  }
+  
+  saveToStorage(WASTES_STORAGE_KEY, wastes, { syncStatus: 'pending' });
+  
+  // Añadir a la cola de sincronización
+  syncQueue.addOperation(operation, 'waste', waste.id, waste);
+  
+  // Intentar sincronizar inmediatamente si estamos online
+  dataSynchronizer.forceSyncIfOnline();
+};
 
 /**
  * Add new waste to Supabase and localStorage as backup
@@ -31,27 +56,37 @@ export const addWaste = async (wasteData: Partial<Waste>): Promise<Waste> => {
   };
   
   try {
-    // Transformar para Supabase y guardar
-    const supabaseData = transformWasteForSupabase(newWaste);
+    // Intentar guardar en Supabase si hay conexión
+    const isOnline = dataSynchronizer.isDeviceOnline();
     
-    // Intentar guardar en Supabase
-    const { error } = await supabase
-      .from('wastes')
-      .insert(supabaseData);
-    
-    if (error) {
-      console.error("Error al insertar residuo en Supabase:", error);
-      throw error;
+    if (isOnline) {
+      // Transformar para Supabase y guardar
+      const supabaseData = transformWasteForSupabase(newWaste);
+      
+      // Intentar guardar en Supabase
+      const { error } = await supabase
+        .from('wastes')
+        .insert(supabaseData);
+      
+      if (error) {
+        console.error("Error al insertar residuo en Supabase:", error);
+        // Guardar localmente y agregar a la cola si hay error
+        saveWasteLocally(newWaste, 'create');
+      } else {
+        console.log("Residuo guardado correctamente en Supabase:", newWaste);
+        // También guardar en localStorage para acceso rápido
+        const wastes = getFromStorage<Waste[]>(WASTES_STORAGE_KEY, []);
+        wastes.push(newWaste);
+        saveToStorage(WASTES_STORAGE_KEY, wastes, { syncStatus: 'synced' });
+      }
+    } else {
+      // Sin conexión, guardar localmente y agregar a la cola
+      saveWasteLocally(newWaste, 'create');
     }
-    
-    console.log("Residuo guardado correctamente en Supabase:", newWaste);
   } catch (error) {
     // En caso de error (por ejemplo, si Supabase no está disponible)
     console.error("Error en addWaste, usando localStorage como respaldo:", error);
-    // Guardar en localStorage como respaldo
-    const wastes = getFromStorage<Waste[]>(WASTES_STORAGE_KEY, []);
-    wastes.push(newWaste);
-    saveToStorage(WASTES_STORAGE_KEY, wastes);
+    saveWasteLocally(newWaste, 'create');
   }
   
   return newWaste;
@@ -62,34 +97,43 @@ export const addWaste = async (wasteData: Partial<Waste>): Promise<Waste> => {
  */
 export const saveWaste = async (waste: Waste): Promise<void> => {
   try {
-    // Transformar para Supabase
-    const supabaseData = transformWasteForSupabase(waste);
+    const isOnline = dataSynchronizer.isDeviceOnline();
     
-    // Intentar guardar en Supabase
-    const { error } = await supabase
-      .from('wastes')
-      .upsert(supabaseData);
-    
-    if (error) {
-      console.error("Error al actualizar residuo en Supabase:", error);
-      throw error;
+    if (isOnline) {
+      // Transformar para Supabase
+      const supabaseData = transformWasteForSupabase(waste);
+      
+      // Intentar guardar en Supabase
+      const { error } = await supabase
+        .from('wastes')
+        .upsert(supabaseData);
+      
+      if (error) {
+        console.error("Error al actualizar residuo en Supabase:", error);
+        // Guardar localmente y agregar a la cola si hay error
+        saveWasteLocally(waste, 'update');
+      } else {
+        console.log("Residuo actualizado correctamente en Supabase:", waste);
+        // También guardar en localStorage para acceso rápido
+        const wastes = getFromStorage<Waste[]>(WASTES_STORAGE_KEY, []);
+        const existingIndex = wastes.findIndex(w => w.id === waste.id);
+        
+        if (existingIndex >= 0) {
+          wastes[existingIndex] = waste;
+        } else {
+          wastes.push(waste);
+        }
+        
+        saveToStorage(WASTES_STORAGE_KEY, wastes, { syncStatus: 'synced' });
+      }
+    } else {
+      // Sin conexión, guardar localmente y agregar a la cola
+      saveWasteLocally(waste, 'update');
     }
-    
-    console.log("Residuo actualizado correctamente en Supabase:", waste);
   } catch (error) {
     // En caso de error (por ejemplo, si Supabase no está disponible)
     console.error("Error en saveWaste, usando localStorage como respaldo:", error);
-    // Guardar en localStorage como respaldo
-    const wastes = getFromStorage<Waste[]>(WASTES_STORAGE_KEY, []);
-    const existingIndex = wastes.findIndex(w => w.id === waste.id);
-    
-    if (existingIndex >= 0) {
-      wastes[existingIndex] = waste;
-    } else {
-      wastes.push(waste);
-    }
-    
-    saveToStorage(WASTES_STORAGE_KEY, wastes);
+    saveWasteLocally(waste, 'update');
   }
 };
 
@@ -97,27 +141,36 @@ export const saveWaste = async (waste: Waste): Promise<void> => {
  * Delete waste by ID from Supabase and localStorage
  */
 export const deleteWaste = async (id: string): Promise<void> => {
+  // Siempre eliminar de localStorage primero para respuesta inmediata
+  const wastes = getFromStorage<Waste[]>(WASTES_STORAGE_KEY, []);
+  const filteredWastes = wastes.filter(waste => waste.id !== id);
+  saveToStorage(WASTES_STORAGE_KEY, filteredWastes);
+  
   try {
-    // Intentar eliminar de Supabase
-    const { error } = await supabase
-      .from('wastes')
-      .delete()
-      .eq('id', id);
+    const isOnline = dataSynchronizer.isDeviceOnline();
     
-    if (error) {
-      console.error(`Error al eliminar residuo con ID ${id} de Supabase:`, error);
-      throw error;
+    if (isOnline) {
+      // Intentar eliminar de Supabase
+      const { error } = await supabase
+        .from('wastes')
+        .delete()
+        .eq('id', id);
+      
+      if (error) {
+        console.error(`Error al eliminar residuo con ID ${id} de Supabase:`, error);
+        // Agregar a la cola de sincronización
+        syncQueue.addOperation('delete', 'waste', id);
+      } else {
+        console.log(`Residuo con ID ${id} eliminado correctamente de Supabase`);
+      }
+    } else {
+      // Sin conexión, agregar a la cola de sincronización
+      syncQueue.addOperation('delete', 'waste', id);
     }
-    
-    console.log(`Residuo con ID ${id} eliminado correctamente de Supabase`);
   } catch (error) {
-    // En caso de error (por ejemplo, si Supabase no está disponible)
-    console.error(`Error en deleteWaste para ${id}, usando localStorage:`, error);
-  } finally {
-    // Siempre eliminar de localStorage para mantener sincronización
-    const wastes = getFromStorage<Waste[]>(WASTES_STORAGE_KEY, []);
-    const filteredWastes = wastes.filter(waste => waste.id !== id);
-    saveToStorage(WASTES_STORAGE_KEY, filteredWastes);
+    // En caso de error, asegurar que se agregue a la cola
+    console.error(`Error en deleteWaste para ${id}:`, error);
+    syncQueue.addOperation('delete', 'waste', id);
   }
 };
 
