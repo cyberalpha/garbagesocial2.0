@@ -26,45 +26,68 @@ const Profile = () => {
       return;
     }
     
-    setLoading(true);
-    console.log("Cargando perfil para ID:", id || (currentUser?.id ?? 'no id'));
+    const userId = id || (currentUser?.id ?? '');
+    console.log("Cargando perfil para ID:", userId);
     
+    if (!userId) {
+      console.error('No se pudo obtener un ID de usuario válido');
+      toast({
+        title: "Error",
+        description: "No se pudo cargar el perfil. Intenta nuevamente.",
+        variant: "destructive"
+      });
+      setLoading(false);
+      return;
+    }
+    
+    // También verificar si hay un usuario en el localStorage
+    const storedUserData = localStorage.getItem('auth_user_data');
+    let storedUser: User | null = null;
+    
+    if (storedUserData) {
+      try {
+        storedUser = JSON.parse(storedUserData);
+        console.log("Usuario encontrado en localStorage:", storedUser);
+      } catch (error) {
+        console.error("Error al parsear usuario del localStorage:", error);
+      }
+    }
+    
+    setLoading(true);
+
     const loadProfileData = async () => {
       try {
-        // Si no hay ID, usar el usuario actual (si está autenticado)
-        const userId = id || (currentUser?.id ?? '');
-        
-        if (!userId) {
-          console.error('No se pudo obtener un ID de usuario válido');
-          toast({
-            title: "Error",
-            description: "No se pudo cargar el perfil. Intenta nuevamente.",
-            variant: "destructive"
-          });
-          setLoading(false);
-          return;
-        }
-        
         console.log('Obteniendo datos del usuario con ID:', userId);
-        const userData = await getUserById(userId);
         
-        if (userData) {
-          console.log('Datos del usuario encontrados:', userData);
-          setUser(userData);
-          
-          // Get user's wastes
-          console.log('Buscando residuos del usuario con ID:', userId);
-          const userWastes = await getWastesByUserId(userId);
-          console.log('Residuos del usuario encontrados:', userWastes);
-          setWastes(userWastes);
+        // Si el ID del perfil corresponde al usuario actual o al usuario almacenado, usarlo directamente
+        if (currentUser && currentUser.id === userId) {
+          console.log('Usando datos del usuario actual:', currentUser);
+          setUser(currentUser);
+        } else if (storedUser && storedUser.id === userId) {
+          console.log('Usando datos del usuario almacenado:', storedUser);
+          setUser(storedUser);
         } else {
-          console.error('No se encontraron datos para el usuario con ID:', userId);
-          toast({
-            title: "Error",
-            description: "Usuario no encontrado",
-            variant: "destructive"
-          });
+          // Si no, obtener los datos del usuario desde el servicio
+          const userData = await getUserById(userId);
+          
+          if (userData) {
+            console.log('Datos del usuario encontrados:', userData);
+            setUser(userData);
+          } else {
+            console.error('No se encontraron datos para el usuario con ID:', userId);
+            toast({
+              title: "Error",
+              description: "Usuario no encontrado",
+              variant: "destructive"
+            });
+          }
         }
+        
+        // Get user's wastes
+        console.log('Buscando residuos del usuario con ID:', userId);
+        const userWastes = await getWastesByUserId(userId);
+        console.log('Residuos del usuario encontrados:', userWastes);
+        setWastes(userWastes);
       } catch (error) {
         console.error('Error al cargar los datos del perfil:', error);
         toast({

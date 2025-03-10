@@ -65,14 +65,28 @@ const PublishWaste = () => {
         description: "Tu residuo ha sido publicado correctamente",
       });
       
-      // Esperar un momento antes de redirigir para asegurar que los datos se hayan guardado
+      // Guardar el perfil en localStorage para asegurar que esté disponible
+      if (currentUser) {
+        console.log("Guardando usuario en localStorage antes de redirigir:", currentUser);
+        localStorage.setItem('auth_user_data', JSON.stringify(currentUser));
+      }
+      
+      // Esperar un momento más largo antes de redirigir para asegurar que los datos se hayan guardado
       setTimeout(() => {
         setIsSubmitting(false);
+        
+        // Verificar que el ID del usuario sea válido
+        if (!currentUser.id) {
+          console.error("Error: ID de usuario no válido al intentar redirigir");
+          navigate('/');
+          return;
+        }
+        
         // Redirigir al perfil del usuario
         const profilePath = `/profile/${currentUser.id}`;
         console.log("Redirigiendo a:", profilePath);
         navigate(profilePath);
-      }, 500);
+      }, 1000); // Aumentado a 1 segundo para dar más tiempo
     } catch (error) {
       console.error("Error al publicar residuo:", error);
       // Mostrar mensaje de error

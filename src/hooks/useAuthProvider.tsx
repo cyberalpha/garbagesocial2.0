@@ -19,11 +19,15 @@ export const useAuthProvider = () => {
 
   // Inicializamos el estado con el usuario del localStorage si existe
   const initializeFromLocalStorage = () => {
-    const savedUser = getFromStorage(AUTH_USER_STORAGE_KEY, null);
-    if (savedUser && !currentUser) {
-      console.log('Restaurando usuario desde localStorage:', savedUser);
-      setCurrentUser(savedUser);
-      setIsLoading(false);
+    try {
+      const savedUser = getFromStorage(AUTH_USER_STORAGE_KEY, null);
+      if (savedUser && !currentUser) {
+        console.log('Restaurando usuario desde localStorage:', savedUser);
+        setCurrentUser(savedUser);
+        setIsLoading(false);
+      }
+    } catch (error) {
+      console.error('Error al inicializar desde localStorage:', error);
     }
   };
 
@@ -45,6 +49,9 @@ export const useAuthProvider = () => {
       if (user) {
         console.log('Guardando usuario en localStorage:', user);
         saveToStorage(AUTH_USER_STORAGE_KEY, user, { expiration: 7 * 24 * 60 * 60 * 1000 }); // 7 días
+        
+        // También guardamos en el localStorage estándar para asegurar compatibilidad
+        localStorage.setItem(AUTH_USER_STORAGE_KEY, JSON.stringify(user));
       } else {
         // Si el usuario es null (logout), eliminamos del localStorage
         console.log('Eliminando usuario de localStorage');
@@ -69,6 +76,9 @@ export const useAuthProvider = () => {
       if (user) {
         console.log('Actualizando usuario en localStorage:', user);
         saveToStorage(AUTH_USER_STORAGE_KEY, user, { expiration: 7 * 24 * 60 * 60 * 1000 });
+        
+        // También en localStorage estándar
+        localStorage.setItem(AUTH_USER_STORAGE_KEY, JSON.stringify(user));
       }
     },
     setIsLoading,
