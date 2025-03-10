@@ -7,7 +7,7 @@ export const checkDatabaseConnection = async () => {
   try {
     console.log('Verificando conexión a Supabase...');
     const startTime = performance.now();
-    const { data, error } = await supabase.from('users').select('count()', { count: 'exact', head: true });
+    const { data, error } = await supabase.from('profiles').select('count()', { count: 'exact', head: true });
     const endTime = performance.now();
     
     if (error) {

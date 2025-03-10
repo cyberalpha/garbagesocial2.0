@@ -50,9 +50,9 @@ export interface ConnectionTestResult {
 // Supabase connection test
 export const testConnection = async (): Promise<ConnectionTestResult> => {
   try {
-    // Simple ping test to Supabase
+    // Simple ping test to Supabase usando la tabla profiles en lugar de users
     const startTime = performance.now();
-    const { data, error } = await supabase.from('users').select('count()', { count: 'exact', head: true });
+    const { data, error } = await supabase.from('profiles').select('count()', { count: 'exact', head: true });
     const endTime = performance.now();
     
     if (error) {
