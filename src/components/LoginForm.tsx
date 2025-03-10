@@ -50,8 +50,7 @@ const LoginForm = () => {
           description: response.error.message || "Error al iniciar sesión. Por favor verifica tus credenciales.",
           variant: "destructive"
         });
-        setIsSubmitting(false);
-        return; // Añadido return para evitar continuar con el código
+        return; // Retornar temprano en caso de error
       }
       
       // Si no hay usuario después de iniciar sesión, también mostrar error
@@ -61,8 +60,7 @@ const LoginForm = () => {
           description: "No se pudo obtener la información del usuario. Por favor intenta nuevamente.",
           variant: "destructive"
         });
-        setIsSubmitting(false);
-        return; // Añadido return para evitar continuar con el código
+        return; // Retornar temprano en caso de error
       }
       
       // El useEffect que observa currentUser manejará la redirección
@@ -78,6 +76,7 @@ const LoginForm = () => {
         description: error.message || "Error al iniciar sesión. Por favor verifica tus credenciales.",
         variant: "destructive"
       });
+    } finally {
       setIsSubmitting(false);
     }
   };

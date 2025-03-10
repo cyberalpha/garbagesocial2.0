@@ -2,6 +2,7 @@
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getFromStorage } from '@/services/localStorage';
+import { syncProfilesWithLocalStorage } from '@/utils/supabaseConnectionUtils';
 
 interface UseSessionManagerProps {
   handleSessionChange: (session: any) => Promise<void>;
@@ -20,7 +21,13 @@ export const useSessionManager = ({
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event, session);
+        
         try {
+          // Después de un inicio de sesión exitoso, sincronizar perfiles
+          if (event === 'SIGNED_IN' && session) {
+            await syncProfilesWithLocalStorage();
+          }
+          
           await handleSessionChange(session);
         } catch (error) {
           console.error('Error en handleSessionChange:', error);
@@ -58,6 +65,9 @@ export const useSessionManager = ({
           setIsLoading(false);
           return;
         }
+
+        // Sincronizar perfiles si tenemos una sesión válida
+        await syncProfilesWithLocalStorage();
 
         try {
           await handleSessionChange(session);

@@ -50,8 +50,25 @@ export const useAuthActions = (
           }
         } else if (profile) {
           const userProfile = mapProfileToUser(profile);
+          console.log('Usuario mapeado desde perfil:', userProfile);
           setCurrentUser(userProfile);
           // Guardar el usuario en localStorage
+          saveToStorage(AUTH_USER_STORAGE_KEY, userProfile, { expiration: 7 * 24 * 60 * 60 * 1000 });
+        } else {
+          console.log('No se encontró perfil para el usuario:', session.user.id);
+          // Si no hay perfil, crear uno básico desde los metadatos del usuario
+          const userProfile: User = {
+            id: session.user.id,
+            name: session.user.user_metadata?.name || 'Usuario',
+            email: session.user.email || '',
+            isOrganization: session.user.user_metadata?.isOrganization || false,
+            averageRating: 0,
+            profileImage: session.user.user_metadata?.profileImage || `https://api.dicebear.com/7.x/initials/svg?seed=${session.user.user_metadata?.name || 'Usuario'}`,
+            emailVerified: true,
+            active: true
+          };
+          console.log('Creando usuario desde metadatos:', userProfile);
+          setCurrentUser(userProfile);
           saveToStorage(AUTH_USER_STORAGE_KEY, userProfile, { expiration: 7 * 24 * 60 * 60 * 1000 });
         }
       } else {
@@ -96,6 +113,7 @@ export const useAuthActions = (
           variant: "destructive"
         });
       } else if (response.data && response.data.user) {
+        console.log('Login exitoso, guardando sesión');
         // Al iniciar sesión exitosamente, guardamos los datos de la sesión
         saveToStorage(AUTH_SESSION_STORAGE_KEY, response.data.session, { expiration: 7 * 24 * 60 * 60 * 1000 });
         
