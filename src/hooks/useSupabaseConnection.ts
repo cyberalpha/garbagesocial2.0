@@ -2,6 +2,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { checkDatabaseConnection } from '@/utils/supabaseConnectionUtils';
 
+// Tipo para el estado de conexión
+export type ConnectionStatus = 'connected' | 'disconnected' | 'connecting' | 'unknown';
+
 // Función auxiliar para calcular el tiempo de reintento
 const calculateNextRetryDelay = (attempt: number, baseDelay = 2000, maxDelay = 30000) => {
   const delay = Math.min(baseDelay * Math.pow(2, attempt - 1), maxDelay);
@@ -13,27 +16,35 @@ export const useSupabaseConnection = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [retryAttempt, setRetryAttempt] = useState(0);
+  const [lastChecked, setLastChecked] = useState<Date | null>(null);
+  const [status, setStatus] = useState<ConnectionStatus>('unknown');
   
   const checkConnection = useCallback(async () => {
     setIsLoading(true);
     setErrorMessage(null);
+    setStatus('connecting');
     
     try {
       const { success, error } = await checkDatabaseConnection();
       
       setIsConnected(success);
+      setLastChecked(new Date());
       
       if (!success && error) {
         setErrorMessage(typeof error === 'string' ? error : error.message || 'Error desconocido');
         setRetryAttempt(prev => prev + 1);
+        setStatus('disconnected');
       } else {
         setRetryAttempt(0);
+        setStatus('connected');
       }
     } catch (error: any) {
       console.error('Error checking Supabase connection:', error);
       setIsConnected(false);
       setErrorMessage(error.message || 'Error desconocido');
       setRetryAttempt(prev => prev + 1);
+      setStatus('disconnected');
+      setLastChecked(new Date());
     } finally {
       setIsLoading(false);
     }
@@ -69,7 +80,10 @@ export const useSupabaseConnection = () => {
     isConnected,
     isLoading,
     errorMessage,
-    checkConnection
+    checkConnection,
+    status,
+    lastChecked,
+    error: errorMessage
   };
 };
 
