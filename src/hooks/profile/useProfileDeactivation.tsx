@@ -12,7 +12,7 @@ export const useProfileDeactivation = (
   const { toast } = useToast();
   const { t } = useLanguage();
 
-  const deleteProfile = async () => {
+  const deleteProfile = async (): Promise<void> => {
     setIsLoading(true);
     try {
       if (!currentUser) {
@@ -21,7 +21,7 @@ export const useProfileDeactivation = (
           description: "Debes iniciar sesión para desactivar tu perfil",
           variant: "destructive"
         });
-        return false;
+        return;
       }
 
       console.log('Intentando desactivar perfil en Supabase:', currentUser.id);
@@ -42,7 +42,7 @@ export const useProfileDeactivation = (
           description: supabaseError.message || "Error al desactivar perfil en la base de datos",
           variant: "destructive"
         });
-        return false;
+        return;
       }
       
       // Cerrar sesión después de desactivar el perfil
@@ -52,8 +52,6 @@ export const useProfileDeactivation = (
         title: t('general.success'),
         description: "Tu perfil ha sido desactivado. Puedes reactivarlo registrándote nuevamente con el mismo correo electrónico."
       });
-      
-      return true;
     } catch (error: any) {
       console.error('Error inesperado al desactivar perfil:', error);
       toast({
@@ -61,7 +59,6 @@ export const useProfileDeactivation = (
         description: error.message || "Ocurrió un error durante la desactivación",
         variant: "destructive"
       });
-      return false;
     } finally {
       setIsLoading(false);
     }

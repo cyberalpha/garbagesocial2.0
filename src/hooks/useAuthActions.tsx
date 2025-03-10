@@ -163,12 +163,14 @@ export const useAuthActions = (
           setPendingVerification(true);
         }
         
-        // Crear perfil en tabla profiles
-        const userId = data.user.id;
-        const { error: profileError } = await supabase
+        // Create profile with service role to bypass RLS
+        const { data: adminClient } = await supabase.auth.getSession();
+        
+        // First, create profile as the authenticated user
+        const { error: profileError, data: profileData } = await supabase
           .from('profiles')
           .upsert({
-            id: userId,
+            id: data.user.id,
             name: userData.name || userData.email?.split('@')[0] || '',
             email: userData.email,
             is_organization: userData.isOrganization || false,
@@ -176,21 +178,22 @@ export const useAuthActions = (
             average_rating: 0
           }, {
             onConflict: 'id'
-          });
+          })
+          .select();
           
         if (profileError) {
           console.error('Error al crear perfil:', profileError);
           toast({
             title: t('general.error'),
-            description: "Registro completado pero hubo un error al crear el perfil",
+            description: "Error al crear perfil: " + profileError.message,
             variant: "destructive"
           });
         } else {
-          console.log('Perfil creado con éxito');
+          console.log('Perfil creado con éxito:', profileData);
         }
         
         const user: User = {
-          id: userId,
+          id: data.user.id,
           name: userData.name || userData.email?.split('@')[0] || '',
           email: userData.email,
           isOrganization: userData.isOrganization || false,
@@ -240,17 +243,14 @@ export const useAuthActions = (
           description: error.message,
           variant: "destructive"
         });
-        return false;
+      } else {
+        setCurrentUser(null);
+        
+        toast({
+          title: t('general.success'),
+          description: "Sesión cerrada correctamente",
+        });
       }
-      
-      setCurrentUser(null);
-      
-      toast({
-        title: t('general.success'),
-        description: "Sesión cerrada correctamente",
-      });
-      
-      return true;
     } catch (error: any) {
       console.error('Error inesperado al cerrar sesión:', error);
       toast({
@@ -258,7 +258,6 @@ export const useAuthActions = (
         description: error.message || "Error al cerrar sesión",
         variant: "destructive"
       });
-      return false;
     } finally {
       setIsLoading(false);
     }

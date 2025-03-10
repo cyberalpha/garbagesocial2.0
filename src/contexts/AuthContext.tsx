@@ -2,7 +2,6 @@
 import { createContext } from 'react';
 import { User } from '@/types';
 
-// Update the auth response type to match our implementation
 export interface AuthResponseData {
   user: User | null;
   session?: { user: User } | null;

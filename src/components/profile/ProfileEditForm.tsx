@@ -84,14 +84,13 @@ const ProfileEditForm: React.FC<ProfileEditFormProps> = ({ user, onCancel }) => 
     if (isSubmitting) return;
     
     try {
-      const success = await deleteProfile();
-      if (success) {
-        // La redirección ya debería estar manejada por el logout en deleteProfile
-        toast({
-          title: "Cuenta desactivada",
-          description: "Tu cuenta ha sido desactivada correctamente."
-        });
-      }
+      setIsSubmitting(true);
+      await deleteProfile();
+      // Redirect should be handled by logout in deleteProfile
+      toast({
+        title: "Cuenta desactivada",
+        description: "Tu cuenta ha sido desactivada correctamente."
+      });
     } catch (error) {
       console.error('Error desactivando perfil:', error);
       toast({
@@ -99,6 +98,8 @@ const ProfileEditForm: React.FC<ProfileEditFormProps> = ({ user, onCancel }) => 
         description: "No se pudo desactivar tu cuenta. Por favor intenta nuevamente.",
         variant: "destructive"
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 

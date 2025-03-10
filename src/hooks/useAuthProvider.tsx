@@ -1,3 +1,4 @@
+
 import { useAuthState } from './useAuthState';
 import { useAuthActions } from './useAuthActions';
 import { useProfileActions } from './useProfileActions';
@@ -13,16 +14,16 @@ export const useAuthProvider = () => {
     setPendingVerification
   } = useAuthState();
 
-  // Inicializar desde la sesión de Supabase en lugar de localStorage
+  // Initialize from Supabase session instead of localStorage
   const initializeFromSupabase = async () => {
     try {
       if (!currentUser) {
         setIsLoading(true);
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
-          console.log('Usuario restaurado desde sesión de Supabase:', session.user);
+          console.log('User restored from Supabase session:', session.user);
           
-          // Obtener datos del perfil del usuario desde Supabase
+          // Get user profile data from Supabase
           const { data: profileData, error } = await supabase
             .from('profiles')
             .select('*')
@@ -30,13 +31,13 @@ export const useAuthProvider = () => {
             .maybeSingle();
           
           if (error) {
-            console.error('Error al obtener perfil:', error);
+            console.error('Error fetching profile:', error);
           }
           
           if (profileData) {
-            // Verificar si el perfil está desactivado por el nombre
+            // Check if profile is deactivated by name
             if (profileData.name && profileData.name.startsWith('DELETED_')) {
-              console.log('Este perfil está desactivado');
+              console.log('This profile is deactivated');
               setCurrentUser(null);
               setIsLoading(false);
               return;
@@ -54,8 +55,8 @@ export const useAuthProvider = () => {
             };
             setCurrentUser(user);
           } else {
-            // Si aún no existe un perfil pero el usuario está autenticado, crearlo
-            console.log('Creando perfil para usuario autenticado sin perfil');
+            // If profile doesn't exist yet but user is authenticated, create it
+            console.log('Creating profile for authenticated user without profile');
             const user = {
               id: session.user.id,
               name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || '',
@@ -67,7 +68,7 @@ export const useAuthProvider = () => {
               active: true
             };
             
-            // Crear el perfil en Supabase de manera explícita
+            // Explicitly create profile in Supabase
             const { error: createError } = await supabase
               .from('profiles')
               .upsert({
@@ -82,9 +83,9 @@ export const useAuthProvider = () => {
               });
             
             if (createError) {
-              console.error('Error al crear perfil en Supabase:', createError);
+              console.error('Error creating profile in Supabase:', createError);
             } else {
-              console.log('Perfil creado automáticamente en Supabase');
+              console.log('Profile automatically created in Supabase');
             }
             
             setCurrentUser(user);
@@ -93,7 +94,7 @@ export const useAuthProvider = () => {
         setIsLoading(false);
       }
     } catch (error) {
-      console.error('Error al inicializar desde Supabase:', error);
+      console.error('Error initializing from Supabase:', error);
       setIsLoading(false);
     }
   };
@@ -125,9 +126,7 @@ export const useAuthProvider = () => {
     currentUser,
     setCurrentUser,
     setIsLoading,
-    async () => {
-      await logout();
-    }
+    logout
   );
 
   return {
