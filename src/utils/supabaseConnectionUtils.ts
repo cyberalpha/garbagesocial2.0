@@ -85,7 +85,7 @@ export const syncProfilesWithLocalStorage = async () => {
       localStorage.setItem('offline_profiles', JSON.stringify({
         data: profiles,
         timestamp: Date.now(),
-        expiresAt: Date.now() + (7 * 24 * 60 * 60 * a1000),
+        expiresAt: Date.now() + (7 * 24 * 60 * 60 * 1000),
         version: '1.0'
       }));
       console.log(`${profiles.length} perfiles sincronizados con localStorage`);
