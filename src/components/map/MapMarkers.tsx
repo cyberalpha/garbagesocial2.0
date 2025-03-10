@@ -76,7 +76,7 @@ const MapMarkers = ({
         );
       })}
       
-      {/* User location marker */}
+      {/* User location marker - Mejorado con un estilo más visible */}
       {location && (
         <Marker
           position={{
@@ -84,11 +84,16 @@ const MapMarkers = ({
             lng: location.coordinates[0]
           }}
           icon={{
-            url: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
-            scaledSize: new google.maps.Size(40, 40)
+            path: google.maps.SymbolPath.CIRCLE,
+            fillColor: "#0ea5e9", // sky-500 - color azul más brillante
+            fillOpacity: 1,
+            strokeColor: "#ffffff",
+            strokeWeight: 3,
+            scale: 12, // Tamaño ligeramente más grande
           }}
           zIndex={1000}
-          title="Mi ubicación"
+          title="Mi ubicación actual"
+          animation={google.maps.Animation.DROP} // Añadir animación para hacerlo más visible
         />
       )}
       
