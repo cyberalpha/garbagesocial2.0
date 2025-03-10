@@ -27,43 +27,46 @@ const Profile = () => {
     }
     
     setLoading(true);
+    console.log("Cargando perfil para ID:", id || (currentUser?.id ?? 'no id'));
     
     const loadProfileData = async () => {
       try {
         // Si no hay ID, usar el usuario actual (si está autenticado)
-        if (!id && currentUser) {
-          console.log('Using current user data:', currentUser);
-          setUser(currentUser);
-          const userWastes = await getWastesByUserId(currentUser.id);
-          setWastes(userWastes);
+        const userId = id || (currentUser?.id ?? '');
+        
+        if (!userId) {
+          console.error('No se pudo obtener un ID de usuario válido');
+          toast({
+            title: "Error",
+            description: "No se pudo cargar el perfil. Intenta nuevamente.",
+            variant: "destructive"
+          });
           setLoading(false);
           return;
         }
         
-        // Si hay ID, buscar el usuario
-        if (id) {
-          console.log('Fetching user data for ID:', id);
-          const userData = getUserById(id);
+        console.log('Obteniendo datos del usuario con ID:', userId);
+        const userData = await getUserById(userId);
+        
+        if (userData) {
+          console.log('Datos del usuario encontrados:', userData);
+          setUser(userData);
           
-          if (userData) {
-            console.log('User data found:', userData);
-            setUser(userData);
-            
-            // Get user's wastes
-            const userWastes = await getWastesByUserId(id);
-            console.log('User wastes found:', userWastes);
-            setWastes(userWastes);
-          } else {
-            console.log('No user data found for ID:', id);
-            toast({
-              title: "Error",
-              description: "Usuario no encontrado",
-              variant: "destructive"
-            });
-          }
+          // Get user's wastes
+          console.log('Buscando residuos del usuario con ID:', userId);
+          const userWastes = await getWastesByUserId(userId);
+          console.log('Residuos del usuario encontrados:', userWastes);
+          setWastes(userWastes);
+        } else {
+          console.error('No se encontraron datos para el usuario con ID:', userId);
+          toast({
+            title: "Error",
+            description: "Usuario no encontrado",
+            variant: "destructive"
+          });
         }
       } catch (error) {
-        console.error('Error loading profile data:', error);
+        console.error('Error al cargar los datos del perfil:', error);
         toast({
           title: "Error",
           description: "Error al cargar los datos del perfil",

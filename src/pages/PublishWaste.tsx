@@ -36,6 +36,9 @@ const PublishWaste = () => {
     }
     
     try {
+      console.log("Creando nuevo residuo con datos:", data);
+      console.log("Usuario actual:", currentUser);
+      
       // Create new waste object
       const newWasteData: Partial<Waste> = {
         userId: currentUser.id,
@@ -50,8 +53,11 @@ const PublishWaste = () => {
         status: "pending"
       };
       
+      console.log("Datos del residuo a guardar:", newWasteData);
+      
       // Usar la función addWaste actualizada que ahora es async
       const newWaste = await addWaste(newWasteData);
+      console.log("Residuo creado exitosamente:", newWaste);
       
       // Show success message
       toast({
@@ -59,17 +65,22 @@ const PublishWaste = () => {
         description: "Tu residuo ha sido publicado correctamente",
       });
       
-      // Redirigir al perfil del usuario en lugar de la página principal
-      navigate(`/profile/${currentUser.id}`);
+      // Esperar un momento antes de redirigir para asegurar que los datos se hayan guardado
+      setTimeout(() => {
+        setIsSubmitting(false);
+        // Redirigir al perfil del usuario
+        const profilePath = `/profile/${currentUser.id}`;
+        console.log("Redirigiendo a:", profilePath);
+        navigate(profilePath);
+      }, 500);
     } catch (error) {
+      console.error("Error al publicar residuo:", error);
       // Mostrar mensaje de error
       toast({
         title: "Error",
         description: "Ha ocurrido un error al publicar el residuo. Intenta de nuevo.",
         variant: "destructive"
       });
-      console.error("Error al publicar residuo:", error);
-    } finally {
       setIsSubmitting(false);
     }
   };

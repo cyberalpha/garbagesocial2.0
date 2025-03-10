@@ -51,6 +51,8 @@ const MapMarkers = ({
     };
   };
 
+  console.log("Wastes en mapa:", wastes.length, "Location:", location ? "disponible" : "no disponible");
+
   return (
     <>
       {/* Waste markers */}
@@ -82,14 +84,11 @@ const MapMarkers = ({
             lng: location.coordinates[0]
           }}
           icon={{
-            path: google.maps.SymbolPath.CIRCLE,
-            fillColor: "#3b82f6",
-            fillOpacity: 1,
-            strokeColor: "#ffffff",
-            strokeWeight: 2,
-            scale: 8
+            url: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
+            scaledSize: new google.maps.Size(40, 40)
           }}
           zIndex={1000}
+          title="Mi ubicación"
         />
       )}
       
