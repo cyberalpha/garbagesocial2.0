@@ -47,28 +47,6 @@ if (typeof window !== 'undefined') {
 // import { supabase } from "@/integrations/supabase/client";
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, supabaseOptions);
 
-// Test connection function for diagnostics
-export const testSupabaseConnection = async () => {
-  try {
-    // Intentar una operación simple con un timeout más largo
-    const { data, error } = await supabase.from('profiles')
-      .select('count')
-      .limit(1)
-      .abortSignal(AbortSignal.timeout(5000)); // Usando abortSignal en lugar de timeout directo
-      
-    if (error) {
-      console.error('Error en prueba de conexión:', error);
-      throw error;
-    }
-    
-    console.log('Prueba de conexión exitosa:', data);
-    return { success: true };
-  } catch (error) {
-    console.error('Supabase connection test failed:', error);
-    return { success: false, error };
-  }
-};
-
 // Agregar función para verificar si el navegador está conectado a internet
 export const isOnline = () => {
   return typeof navigator !== 'undefined' && navigator.onLine;

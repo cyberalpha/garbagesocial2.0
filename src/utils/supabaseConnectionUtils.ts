@@ -1,7 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
-// Renamed testSupabaseConnection to checkDatabaseConnection to match existing imports
+// Función principal para verificar la conexión a la base de datos
 export const checkDatabaseConnection = async () => {
   try {
     console.log('Intentando verificar conexión a Supabase...');
@@ -31,7 +31,7 @@ export const checkDatabaseConnection = async () => {
   }
 };
 
-// Mantener testSupabaseConnection como alias por compatibilidad
+// Mantener compatibilidad con código existente
 export const testSupabaseConnection = checkDatabaseConnection;
 
 // Función para sincronizar perfiles de usuario con localStorage
