@@ -40,7 +40,7 @@ export const useGlobalGeolocation = create<GeolocationState>((set, get) => ({
     const { updateLocation, setStatus, setError, startLoading, stopLoading } = get();
     
     if (!navigator.geolocation) {
-      const defaultLocation = {
+      const defaultLocation: GeoLocation = {
         type: 'Point',
         coordinates: [-58.3816, -34.6037] // Buenos Aires por defecto
       };
@@ -59,7 +59,7 @@ export const useGlobalGeolocation = create<GeolocationState>((set, get) => ({
       const timeoutId = setTimeout(() => {
         if (get().isLoading) {
           console.log("Geolocation request timed out, using default location");
-          const defaultLocation = {
+          const defaultLocation: GeoLocation = {
             type: 'Point',
             coordinates: [-58.3816, -34.6037] // Default to Buenos Aires
           };
@@ -77,7 +77,7 @@ export const useGlobalGeolocation = create<GeolocationState>((set, get) => ({
           clearTimeout(timeoutId);
           console.log("Geolocation obtained successfully:", position.coords.latitude, position.coords.longitude);
           
-          const newLocation = {
+          const newLocation: GeoLocation = {
             type: 'Point',
             coordinates: [position.coords.longitude, position.coords.latitude]
           };
@@ -109,7 +109,7 @@ export const useGlobalGeolocation = create<GeolocationState>((set, get) => ({
               break;
           }
           
-          const defaultLocation = {
+          const defaultLocation: GeoLocation = {
             type: 'Point',
             coordinates: [-58.3816, -34.6037] // Buenos Aires por defecto
           };

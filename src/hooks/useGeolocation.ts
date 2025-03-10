@@ -20,7 +20,7 @@ const useGeolocation = () => {
 
   useEffect(() => {
     if (!navigator.geolocation) {
-      const defaultLocation = {
+      const defaultLocation: GeoLocation = {
         type: 'Point',
         coordinates: [-58.3816, -34.6037] // Buenos Aires por defecto
       };
@@ -28,12 +28,11 @@ const useGeolocation = () => {
       // Guardar en localStorage
       saveToStorage(GEOLOCATION_STORAGE_KEY, defaultLocation);
       
-      setState(prev => ({
-        ...prev,
+      setState({
         error: 'La geolocalización no está soportada por tu navegador',
         loading: false,
         location: defaultLocation
-      }));
+      });
       return;
     }
 
@@ -44,7 +43,7 @@ const useGeolocation = () => {
       setState(prev => {
         if (prev.loading) {
           console.log("Geolocation request timed out, using default location");
-          const defaultLocation = {
+          const defaultLocation: GeoLocation = {
             type: 'Point',
             coordinates: [-58.3816, -34.6037] // Default to Buenos Aires
           };
@@ -67,7 +66,7 @@ const useGeolocation = () => {
       clearTimeout(timeoutId);
       console.log("Geolocation obtained successfully:", position.coords.latitude, position.coords.longitude);
       
-      const newLocation = {
+      const newLocation: GeoLocation = {
         type: 'Point',
         coordinates: [position.coords.longitude, position.coords.latitude]
       };
@@ -103,7 +102,7 @@ const useGeolocation = () => {
       
       console.log("Usando ubicación predeterminada debido a error:", errorMessage);
       
-      const defaultLocation = {
+      const defaultLocation: GeoLocation = {
         type: 'Point',
         coordinates: [-58.3816, -34.6037] // Buenos Aires por defecto
       };
