@@ -30,7 +30,9 @@ const useGeolocation = () => {
       return;
     }
 
-    // Agregar timeout para la solicitud de geolocalización
+    console.log("Iniciando solicitud de geolocalización...");
+    
+    // Agregar timeout para la solicitud de geolocalización - aumentado a 15 segundos
     const timeoutId = setTimeout(() => {
       setState(prev => {
         if (prev.loading) {
@@ -47,7 +49,7 @@ const useGeolocation = () => {
         }
         return prev;
       });
-    }, 8000); // 8 segundos de timeout (reducido de 10s para una respuesta más rápida)
+    }, 15000); // 15 segundos de timeout (aumentado de 8s para dar más tiempo)
 
     const geoSuccess = (position: GeolocationPosition) => {
       clearTimeout(timeoutId);
@@ -77,14 +79,16 @@ const useGeolocation = () => {
           errorMessage = 'La información de ubicación no está disponible.';
           break;
         case error.TIMEOUT:
-          errorMessage = 'La solicitud para obtener la ubicación expiró.';
+          errorMessage = 'La solicitud para obtener la ubicación expiró. Puedes continuar usando una ubicación predeterminada.';
           break;
       }
+      
+      console.log("Usando ubicación predeterminada debido a error:", errorMessage);
       
       setState({
         error: errorMessage,
         loading: false,
-        // Proveer ubicación por defecto
+        // Proveer ubicación por defecto incluso en caso de error
         location: {
           type: 'Point',
           coordinates: [-58.3816, -34.6037] // Buenos Aires por defecto
@@ -97,7 +101,7 @@ const useGeolocation = () => {
       geoError,
       {
         enableHighAccuracy: true,
-        timeout: 7000,
+        timeout: 12000, // Aumentado a 12 segundos
         maximumAge: 0
       }
     );

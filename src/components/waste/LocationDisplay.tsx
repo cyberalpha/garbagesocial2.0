@@ -1,7 +1,7 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { MapPin, Loader, AlertCircle } from 'lucide-react';
+import { MapPin, Loader, AlertCircle, Info } from 'lucide-react';
 import { GeoLocation } from '@/types';
 import { useLanguage } from '@/components/LanguageContext';
 
@@ -25,9 +25,17 @@ const LocationDisplay = ({ location, loading, error }: LocationDisplayProps) => 
               <span className="text-sm">{t('waste.gettingLocation')}</span>
             </div>
           ) : error ? (
-            <div className="flex items-center bg-red-50 p-3 rounded-md text-red-800 text-sm">
-              <AlertCircle className="h-4 w-4 mr-2 flex-shrink-0" />
-              <span>{error}</span>
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center bg-yellow-50 p-3 rounded-md text-yellow-800 text-sm">
+                <AlertCircle className="h-4 w-4 mr-2 flex-shrink-0" />
+                <span>{error}</span>
+              </div>
+              {location && (
+                <div className="flex items-center gap-2 text-sm mt-2">
+                  <Info className="h-4 w-4 text-blue-500" />
+                  <span className="text-xs">Usando ubicación predeterminada. Puedes continuar con el formulario.</span>
+                </div>
+              )}
             </div>
           ) : location ? (
             <div className="space-y-2">
