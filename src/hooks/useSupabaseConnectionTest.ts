@@ -1,6 +1,6 @@
 
 import { useState, useCallback, useEffect } from 'react';
-import { testConnection as testSupabaseConnection, offlineMode } from '@/integrations/supabase/client';
+import { testConnection, offlineMode } from '@/integrations/supabase/client';
 
 interface ConnectionDetails {
   latency?: number;
@@ -28,14 +28,14 @@ export const useSupabaseConnectionTest = () => {
     
     try {
       console.log('Iniciando prueba de conexión a Supabase...');
-      const result = await testSupabaseConnection();
+      const result = await testConnection();
       
       setIsConnected(result.success);
       setConnectionDetails({
         latency: result.latency,
         timestamp: Date.now(),
         // Only access version if it exists on the result object
-        supabaseVersion: 'version' in result ? result.version : 'Desconocida'
+        supabaseVersion: result.version
       });
       
       if (!result.success && result.error) {

@@ -1,4 +1,3 @@
-
 import { Waste, WasteStatus } from "@/types";
 import { WASTES_STORAGE_KEY } from "./constants";
 import { getFromStorage, saveToStorage } from "../localStorage";
@@ -7,6 +6,7 @@ import { transformWasteForSupabase } from "./utils";
 import { getWasteById } from "./fetchers";
 import { syncQueue } from "../sync/SyncQueue";
 import { dataSynchronizer } from "../sync/DataSynchronizer";
+import { safeTableAccess } from "@/utils/supabaseMockUtils";
 
 /**
  * Guardar residuo localmente y añadir a la cola de sincronización
@@ -74,8 +74,7 @@ export const addWaste = async (wasteData: Partial<Waste>): Promise<Waste> => {
       const supabaseData = transformWasteForSupabase(newWaste);
       
       // Intentar guardar en Supabase
-      const { error } = await supabase
-        .from('wastes')
+      const { error } = await safeTableAccess('wastes')
         .insert(supabaseData);
       
       if (error) {
@@ -114,8 +113,7 @@ export const saveWaste = async (waste: Waste): Promise<void> => {
       const supabaseData = transformWasteForSupabase(waste);
       
       // Intentar guardar en Supabase
-      const { error } = await supabase
-        .from('wastes')
+      const { error } = await safeTableAccess('wastes')
         .upsert(supabaseData);
       
       if (error) {
@@ -161,8 +159,7 @@ export const deleteWaste = async (id: string): Promise<void> => {
     
     if (isOnline) {
       // Intentar eliminar de Supabase
-      const { error } = await supabase
-        .from('wastes')
+      const { error } = await safeTableAccess('wastes')
         .delete()
         .eq('id', id);
       

@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { checkDatabaseConnection } from '@/utils/supabaseConnectionUtils';
 import { supabase, offlineMode, setOfflineMode, isOnline as browserIsOnline } from '@/integrations/supabase/client';
@@ -170,7 +169,7 @@ export const useSupabaseConnection = () => {
       // Si pasamos a modo online, verificar conexión
       setTimeout(() => checkConnection(), 100);
     }
-  }, [isOfflineMode, checkConnection]);
+  }, [isOfflineMode]);
 
   return {
     isConnected,

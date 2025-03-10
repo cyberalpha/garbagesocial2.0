@@ -1,7 +1,7 @@
 
 import React, { useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { SUPABASE_CONFIG, supabase } from '@/integrations/supabase/client';
+import { SUPABASE_CONFIG } from '@/integrations/supabase/client';
 import { useSupabaseConnectionTest } from '@/hooks/useSupabaseConnectionTest';
 import ConnectionStatusDisplay from './supabase-connection/ConnectionStatusDisplay';
 import StatusIcon from './supabase-connection/StatusIcon';

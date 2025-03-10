@@ -1,5 +1,6 @@
 
 import { supabase, testConnection } from '@/integrations/supabase/client';
+import { safeTableAccess } from './supabaseMockUtils';
 
 // Función para verificar la conexión a la base de datos
 export const checkDatabaseConnection = async () => {
@@ -23,7 +24,8 @@ export const testSupabaseConnection = checkDatabaseConnection;
 export const syncProfilesWithLocalStorage = async () => {
   try {
     console.log('Sincronizando perfiles con localStorage...');
-    const { data: profiles, error } = await supabase.from('profiles').select('*');
+    // Use safe access to prevent errors on non-existent table
+    const { data: profiles, error } = await safeTableAccess('profiles').select('*');
     
     if (error) {
       console.error('Error al obtener perfiles:', error);

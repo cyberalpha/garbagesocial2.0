@@ -4,6 +4,7 @@ import { WASTES_STORAGE_KEY, initialWastes } from "./constants";
 import { getFromStorage } from "../localStorage";
 import { supabase, offlineMode } from "@/integrations/supabase/client";
 import { transformSupabaseWaste } from "./utils";
+import { safeTableAccess } from "@/utils/supabaseMockUtils";
 
 /**
  * Get all wastes from Supabase or localStorage as fallback
@@ -16,10 +17,8 @@ export const getWastes = async (): Promise<Waste[]> => {
   }
   
   try {
-    // Intentar obtener datos de Supabase
-    const { data, error } = await supabase
-      .from('wastes')
-      .select('*');
+    // Intentar obtener datos de Supabase usando safe access
+    const { data, error } = await safeTableAccess('wastes').select('*');
     
     if (error) {
       console.error("Error al obtener residuos de Supabase:", error);
@@ -58,8 +57,7 @@ export const getWastesByType = async (type: WasteType): Promise<Waste[]> => {
   
   try {
     // Intentar obtener datos de Supabase filtrados por tipo
-    const { data, error } = await supabase
-      .from('wastes')
+    const { data, error } = await safeTableAccess('wastes')
       .select('*')
       .eq('type', type);
     
@@ -97,8 +95,7 @@ export const getWasteById = async (id: string): Promise<Waste | null> => {
   
   try {
     // Intentar obtener datos de Supabase
-    const { data, error } = await supabase
-      .from('wastes')
+    const { data, error } = await safeTableAccess('wastes')
       .select('*')
       .eq('id', id)
       .maybeSingle();
