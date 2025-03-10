@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { User } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
@@ -12,10 +11,12 @@ import {
   deactivateProfile,
   resendVerificationEmail,
   loginWithProvider,
-  getUserProfile
+  getUserProfile,
+  getCurrentSession
 } from '@/services/authService';
 import { mapProfileToUser } from '@/utils/userUtils';
 import { saveToStorage, getFromStorage, removeItem } from '@/services/localStorage';
+import { syncProfilesWithLocalStorage } from '@/utils/supabaseConnectionUtils';
 
 const AUTH_USER_STORAGE_KEY = 'auth_user_data';
 const AUTH_SESSION_STORAGE_KEY = 'auth_session_data';
@@ -32,10 +33,13 @@ export const useAuthActions = (
   const handleSessionChange = async (session: any) => {
     try {
       console.log("Session change detected:", session);
+      setIsLoading(true);
+      
       if (session?.user) {
         // Guardar la sesión en localStorage para recuperarla en caso de error
         saveToStorage(AUTH_SESSION_STORAGE_KEY, session, { expiration: 7 * 24 * 60 * 60 * 1000 });
         
+        // Intentar obtener el perfil del usuario
         const { data: profile, error } = await getUserProfile(session.user.id);
 
         if (error) {
@@ -43,33 +47,29 @@ export const useAuthActions = (
           // Si hay error pero tenemos un usuario en localStorage, lo mantenemos
           const savedUser = getFromStorage(AUTH_USER_STORAGE_KEY, null);
           if (savedUser) {
-            console.log('Usando usuario de respaldo desde localStorage debido a error en perfil');
+            console.log('Error fetching profile, using saved user from localStorage');
             setCurrentUser(savedUser);
           } else {
-            setCurrentUser(null);
+            // Si no hay perfil ni usuario guardado, crear uno básico desde los metadatos
+            createUserFromSession(session);
           }
         } else if (profile) {
+          // Si tenemos perfil, lo mapeamos y lo guardamos
           const userProfile = mapProfileToUser(profile);
           console.log('Usuario mapeado desde perfil:', userProfile);
           setCurrentUser(userProfile);
-          // Guardar el usuario en localStorage
           saveToStorage(AUTH_USER_STORAGE_KEY, userProfile, { expiration: 7 * 24 * 60 * 60 * 1000 });
         } else {
+          // Si no hay perfil, crear uno básico desde los metadatos
           console.log('No se encontró perfil para el usuario:', session.user.id);
-          // Si no hay perfil, crear uno básico desde los metadatos del usuario
-          const userProfile: User = {
-            id: session.user.id,
-            name: session.user.user_metadata?.name || 'Usuario',
-            email: session.user.email || '',
-            isOrganization: session.user.user_metadata?.isOrganization || false,
-            averageRating: 0,
-            profileImage: session.user.user_metadata?.profileImage || `https://api.dicebear.com/7.x/initials/svg?seed=${session.user.user_metadata?.name || 'Usuario'}`,
-            emailVerified: true,
-            active: true
-          };
-          console.log('Creando usuario desde metadatos:', userProfile);
-          setCurrentUser(userProfile);
-          saveToStorage(AUTH_USER_STORAGE_KEY, userProfile, { expiration: 7 * 24 * 60 * 60 * 1000 });
+          createUserFromSession(session);
+        }
+        
+        // Sincronizar perfiles después de actualizar el usuario
+        try {
+          await syncProfilesWithLocalStorage();
+        } catch (syncError) {
+          console.error('Error synchronizing profiles after session change:', syncError);
         }
       } else {
         // Verificar si tenemos usuario en localStorage antes de limpiarlo
@@ -91,7 +91,7 @@ export const useAuthActions = (
       // Si hay error pero tenemos un usuario en localStorage, lo mantenemos
       const savedUser = getFromStorage(AUTH_USER_STORAGE_KEY, null);
       if (savedUser) {
-        console.log('Usando usuario de respaldo desde localStorage debido a error en cambio de sesión');
+        console.log('Error in session change, using saved user from localStorage');
         setCurrentUser(savedUser);
       } else {
         setCurrentUser(null);
@@ -101,8 +101,27 @@ export const useAuthActions = (
     }
   };
 
+  const createUserFromSession = (session: any) => {
+    const userProfile: User = {
+      id: session.user.id,
+      name: session.user.user_metadata?.name || 'Usuario',
+      email: session.user.email || '',
+      isOrganization: session.user.user_metadata?.isOrganization || false,
+      averageRating: 0,
+      profileImage: session.user.user_metadata?.profileImage || `https://api.dicebear.com/7.x/initials/svg?seed=${session.user.user_metadata?.name || 'Usuario'}`,
+      emailVerified: true,
+      active: true
+    };
+    console.log('Creando usuario desde metadatos:', userProfile);
+    setCurrentUser(userProfile);
+    saveToStorage(AUTH_USER_STORAGE_KEY, userProfile, { expiration: 7 * 24 * 60 * 60 * 1000 });
+  };
+
   const login = async (email: string, password: string) => {
     try {
+      console.log('Login attempt with email:', email);
+      setIsLoading(true);
+      
       const response = await loginUser(email, password);
       
       if (response.error) {
@@ -116,6 +135,13 @@ export const useAuthActions = (
         console.log('Login exitoso, guardando sesión');
         // Al iniciar sesión exitosamente, guardamos los datos de la sesión
         saveToStorage(AUTH_SESSION_STORAGE_KEY, response.data.session, { expiration: 7 * 24 * 60 * 60 * 1000 });
+        
+        // Intentar sincronizar perfiles inmediatamente
+        try {
+          await syncProfilesWithLocalStorage();
+        } catch (syncError) {
+          console.error('Error synchronizing profiles after login:', syncError);
+        }
         
         toast({
           title: t('general.success'),
@@ -132,6 +158,8 @@ export const useAuthActions = (
         variant: "destructive"
       });
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 

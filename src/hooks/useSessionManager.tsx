@@ -1,6 +1,6 @@
 
 import { useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, offlineMode } from '@/integrations/supabase/client';
 import { getFromStorage } from '@/services/localStorage';
 import { syncProfilesWithLocalStorage } from '@/utils/supabaseConnectionUtils';
 
@@ -17,6 +17,9 @@ export const useSessionManager = ({
 }: UseSessionManagerProps) => {
   
   useEffect(() => {
+    // Start in loading state
+    setIsLoading(true);
+    
     // Configurar el listener de cambio de estado de autenticación
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
@@ -32,6 +35,10 @@ export const useSessionManager = ({
         } catch (error) {
           console.error('Error en handleSessionChange:', error);
           // Si hay un error, mantenemos el usuario almacenado en localStorage
+          const savedUser = getFromStorage(AUTH_USER_STORAGE_KEY, null);
+          if (savedUser) {
+            console.log('Error handling session change, using saved user from localStorage');
+          }
           setIsLoading(false);
         }
       }
@@ -40,7 +47,7 @@ export const useSessionManager = ({
     // Verificar la sesión actual al cargar
     const checkCurrentSession = async () => {
       try {
-        setIsLoading(true);
+        console.log('Checking current session...');
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
@@ -49,10 +56,8 @@ export const useSessionManager = ({
           const savedUser = getFromStorage(AUTH_USER_STORAGE_KEY, null);
           if (savedUser) {
             console.log('Usando usuario de respaldo desde localStorage:', savedUser);
-            setIsLoading(false);
-          } else {
-            setIsLoading(false);
           }
+          setIsLoading(false);
           return;
         }
         
@@ -67,7 +72,11 @@ export const useSessionManager = ({
         }
 
         // Sincronizar perfiles si tenemos una sesión válida
-        await syncProfilesWithLocalStorage();
+        try {
+          await syncProfilesWithLocalStorage();
+        } catch (syncError) {
+          console.error('Error synchronizing profiles:', syncError);
+        }
 
         try {
           await handleSessionChange(session);
@@ -91,6 +100,7 @@ export const useSessionManager = ({
       }
     };
 
+    // Check session immediately
     checkCurrentSession();
 
     // Limpiar suscripción

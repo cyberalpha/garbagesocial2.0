@@ -1,6 +1,6 @@
 
 import { User } from '@/types';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, offlineMode } from '@/integrations/supabase/client';
 
 // Función para iniciar sesión
 export const loginUser = async (email: string, password: string) => {
@@ -110,9 +110,34 @@ export const loginWithProvider = async (provider: string) => {
 
 // Función para obtener el perfil del usuario
 export const getUserProfile = async (userId: string) => {
-  return await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', userId)
-    .single();
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    
+    if (error) {
+      console.error('Error fetching profile:', error);
+    }
+    
+    return { data, error };
+  } catch (error) {
+    console.error('Unexpected error in getUserProfile:', error);
+    return { data: null, error };
+  }
+};
+
+// Verificar la sesión actual
+export const getCurrentSession = async () => {
+  try {
+    const { data, error } = await supabase.auth.getSession();
+    if (error) {
+      console.error('Error getting current session:', error);
+    }
+    return { data, error };
+  } catch (error) {
+    console.error('Unexpected error in getCurrentSession:', error);
+    return { data: null, error };
+  }
 };

@@ -14,7 +14,7 @@ const LoginForm = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { login, currentUser } = useAuth();
+  const { login, currentUser, isLoading } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -40,27 +40,18 @@ const LoginForm = () => {
     setIsSubmitting(true);
     
     try {
+      console.log(`Attempting login with: ${email}`);
       const response = await login(email, password);
-      console.log("Login result:", response);
       
       // Si hay un error en la respuesta, mostrar toast de error
       if (response.error) {
+        console.error("Login error:", response.error);
         toast({
           title: t('general.error'),
           description: response.error.message || "Error al iniciar sesión. Por favor verifica tus credenciales.",
           variant: "destructive"
         });
-        return; // Retornar temprano en caso de error
-      }
-      
-      // Si no hay usuario después de iniciar sesión, también mostrar error
-      if (!response.data || !response.data.user) {
-        toast({
-          title: t('general.error'),
-          description: "No se pudo obtener la información del usuario. Por favor intenta nuevamente.",
-          variant: "destructive"
-        });
-        return; // Retornar temprano en caso de error
+        return;
       }
       
       // El useEffect que observa currentUser manejará la redirección
@@ -107,7 +98,7 @@ const LoginForm = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                disabled={isSubmitting}
+                disabled={isSubmitting || isLoading}
               />
             </div>
           </div>
@@ -123,7 +114,7 @@ const LoginForm = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                disabled={isSubmitting}
+                disabled={isSubmitting || isLoading}
               />
             </div>
           </div>
@@ -131,7 +122,7 @@ const LoginForm = () => {
           <Button 
             type="submit" 
             className="w-full" 
-            disabled={isSubmitting}
+            disabled={isSubmitting || isLoading}
           >
             {isSubmitting ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -146,7 +137,7 @@ const LoginForm = () => {
             variant="outline" 
             className="w-full bg-primary/5" 
             onClick={goToRegister}
-            disabled={isSubmitting}
+            disabled={isSubmitting || isLoading}
           >
             <UserPlus className="mr-2 h-4 w-4" />
             {t('auth.noAccount')}
