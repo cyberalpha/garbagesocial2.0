@@ -1,4 +1,3 @@
-
 import { Waste, WasteStatus } from "@/types";
 import { WASTES_STORAGE_KEY } from "./constants";
 import { getFromStorage, saveToStorage } from "../localStorage";

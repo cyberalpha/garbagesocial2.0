@@ -57,11 +57,9 @@ export const getWastesByType = async (type: WasteType): Promise<Waste[]> => {
   
   try {
     // Intentar obtener datos de Supabase filtrados por tipo
-    const result = await safeTableAccess('wastes')
+    const { data, error } = await safeTableAccess('wastes')
       .select('*')
       .eq('type', type);
-    
-    const { data, error } = result;
     
     if (error) {
       console.error(`Error al obtener residuos de tipo ${type} de Supabase:`, error);
