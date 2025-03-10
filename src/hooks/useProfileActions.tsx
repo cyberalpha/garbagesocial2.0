@@ -2,14 +2,9 @@
 import { User } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
 import { useLanguage } from '@/components/LanguageContext';
-import { 
-  updateUserProfile, 
-  updateUserEmail,
-  deactivateProfile,
-  resendVerificationEmail,
-  loginWithProvider
-} from '@/services/authService';
-import { mapProfileToUser } from '@/utils/userUtils';
+import { getFromStorage, saveToStorage } from '@/services/localStorage';
+
+const AUTH_USER_STORAGE_KEY = 'auth_user_data';
 
 export const useProfileActions = (
   currentUser: User | null,
@@ -32,35 +27,16 @@ export const useProfileActions = (
         return null;
       }
 
-      const { data, error } = await updateUserProfile(currentUser.id, userData);
+      // Actualizar el usuario en memoria
+      const updatedUser = {
+        ...currentUser,
+        ...userData,
+      };
 
-      if (error) {
-        console.error('Error al actualizar perfil:', error);
-        toast({
-          title: t('general.error'),
-          description: error.message || "No se pudo actualizar el perfil",
-          variant: "destructive"
-        });
-        return null;
-      }
-
-      if (userData.email && userData.email !== currentUser.email) {
-        const { error: updateAuthError } = await updateUserEmail(userData.email);
-
-        if (updateAuthError) {
-          console.error('Error al actualizar email en Auth:', updateAuthError);
-          toast({
-            title: t('general.error'),
-            description: updateAuthError.message || "No se pudo actualizar el email",
-            variant: "destructive"
-          });
-          return null;
-        }
-      }
-
-      const updatedUser = mapProfileToUser(data);
-
+      // En una aplicación real, aquí actualizaríamos el perfil en la base de datos
+      
       setCurrentUser(updatedUser);
+      saveToStorage(AUTH_USER_STORAGE_KEY, updatedUser, { expiration: 7 * 24 * 60 * 60 * 1000 });
       
       toast({
         title: t('general.success'),
@@ -93,18 +69,8 @@ export const useProfileActions = (
         return false;
       }
 
-      const { error } = await deactivateProfile(currentUser.id);
-
-      if (error) {
-        console.error('Error al desactivar perfil:', error);
-        toast({
-          title: t('general.error'),
-          description: error.message || "No se pudo desactivar el perfil",
-          variant: "destructive"
-        });
-        return false;
-      }
-
+      // En una aplicación real, aquí desactivaríamos el perfil en la base de datos
+      
       await logout();
       
       toast({
@@ -129,17 +95,7 @@ export const useProfileActions = (
   const handleResendVerificationEmail = async (email: string) => {
     setIsLoading(true);
     try {
-      const { error } = await resendVerificationEmail(email);
-      
-      if (error) {
-        console.error('Error al reenviar email de verificación:', error);
-        toast({
-          title: t('general.error'),
-          description: error.message || "Error al reenviar email de verificación",
-          variant: "destructive"
-        });
-        return;
-      }
+      // En una aplicación real, aquí enviaríamos el correo de verificación
       
       toast({
         title: t('general.success'),
@@ -158,22 +114,19 @@ export const useProfileActions = (
   };
 
   const verifyEmail = async (token: string) => {
+    // En una aplicación real, aquí verificaríamos el token de correo electrónico
     return true;
   };
 
   const loginWithSocialMedia = async (provider: string) => {
     setIsLoading(true);
     try {
-      let { error } = await loginWithProvider(provider);
-      
-      if (error) {
-        console.error(`Error al iniciar sesión con ${provider}:`, error);
-        toast({
-          title: t('general.error'),
-          description: error.message || `Error al iniciar sesión con ${provider}`,
-          variant: "destructive"
-        });
-      }
+      // En una aplicación real, aquí manejaríamos el inicio de sesión con redes sociales
+      toast({
+        title: t('general.error'),
+        description: `Inicio de sesión con ${provider} no implementado en el modo desconectado`,
+        variant: "destructive"
+      });
     } catch (error: any) {
       console.error(`Error inesperado al iniciar sesión con ${provider}:`, error);
       toast({

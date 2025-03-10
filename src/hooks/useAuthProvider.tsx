@@ -3,8 +3,6 @@ import { useAuthState } from './useAuthState';
 import { useAuthActions } from './useAuthActions';
 import { useProfileActions } from './useProfileActions';
 import { getFromStorage, saveToStorage } from '@/services/localStorage';
-import { getOfflineProfiles, syncProfilesWithLocalStorage } from '@/utils/supabaseConnectionUtils';
-import { offlineMode } from '@/integrations/supabase/client';
 
 // Clave para almacenar el usuario en localStorage
 const AUTH_USER_STORAGE_KEY = 'auth_user_data';
@@ -47,11 +45,6 @@ export const useAuthProvider = () => {
       if (user) {
         console.log('Guardando usuario en localStorage:', user);
         saveToStorage(AUTH_USER_STORAGE_KEY, user, { expiration: 7 * 24 * 60 * 60 * 1000 }); // 7 días
-        
-        // Sincronizar perfiles al actualizar usuario si estamos online
-        if (!offlineMode) {
-          syncProfilesWithLocalStorage();
-        }
       } else {
         // Si el usuario es null (logout), eliminamos del localStorage
         console.log('Eliminando usuario de localStorage');
