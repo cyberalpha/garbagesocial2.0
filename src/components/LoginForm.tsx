@@ -52,13 +52,12 @@ const LoginForm = () => {
         } else {
           setLoginError(response.error.message || "Error al iniciar sesión");
         }
-        return;
+      } else {
+        toast({
+          title: t('general.success'),
+          description: "Has iniciado sesión correctamente.",
+        });
       }
-      
-      toast({
-        title: t('general.success'),
-        description: "Has iniciado sesión correctamente.",
-      });
       
     } catch (error: any) {
       console.error('Error durante el inicio de sesión:', error);
@@ -101,7 +100,7 @@ const LoginForm = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                disabled={isSubmitting || isLoading}
+                disabled={isSubmitting}
               />
             </div>
           </div>
@@ -117,7 +116,7 @@ const LoginForm = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                disabled={isSubmitting || isLoading}
+                disabled={isSubmitting}
               />
             </div>
           </div>
@@ -125,7 +124,7 @@ const LoginForm = () => {
           <Button 
             type="submit" 
             className="w-full" 
-            disabled={isSubmitting || isLoading}
+            disabled={isSubmitting}
           >
             {isSubmitting ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -140,7 +139,7 @@ const LoginForm = () => {
             variant="outline" 
             className="w-full bg-primary/5" 
             onClick={goToRegister}
-            disabled={isSubmitting || isLoading}
+            disabled={isSubmitting}
           >
             <UserPlus className="mr-2 h-4 w-4" />
             {t('auth.noAccount')}
