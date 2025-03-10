@@ -6,6 +6,7 @@ import { useSupabaseConnectionTest } from '@/hooks/useSupabaseConnectionTest';
 import ConnectionStatusDisplay from './supabase-connection/ConnectionStatusDisplay';
 import StatusIcon from './supabase-connection/StatusIcon';
 import OfflineModeToggle from './OfflineModeToggle';
+import { useSupabaseConnection } from '@/hooks/useSupabaseConnection';
 
 const SupabaseConnectionTest = () => {
   const { 
@@ -14,6 +15,8 @@ const SupabaseConnectionTest = () => {
     errorMessage, 
     testConnection 
   } = useSupabaseConnectionTest();
+  
+  const { status } = useSupabaseConnection();
 
   return (
     <div className="w-full max-w-xl mx-auto bg-white shadow-md rounded-lg p-6 my-4">
@@ -31,7 +34,7 @@ const SupabaseConnectionTest = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium">Estado:</span>
-              <StatusIcon isConnected={isConnected} isLoading={isLoading} />
+              <StatusIcon status={isConnected ? 'connected' : isLoading ? 'connecting' : 'disconnected'} />
             </div>
             <Button 
               variant="outline" 

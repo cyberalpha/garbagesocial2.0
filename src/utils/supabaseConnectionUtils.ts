@@ -57,7 +57,7 @@ export const checkDatabaseConnection = async () => {
     console.error('Error inesperado al verificar conexión:', error);
     return { 
       success: false, 
-      error: error.message || 'Error inesperado al verificar la conexión',
+      error: error?.message || 'Error inesperado al verificar la conexión',
       offlineMode: false
     };
   }

@@ -11,7 +11,7 @@ interface StatusTooltipContentProps {
   status: ConnectionStatus;
   error: string | null;
   lastChecked: Date | null;
-  onManualCheck: () => void;
+  onManualCheck: (e: React.MouseEvent) => void;
 }
 
 const StatusTooltipContent = ({ 
