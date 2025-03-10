@@ -35,7 +35,8 @@ const defaultMapOptions = {
 };
 
 const GoogleMapWrapper = ({ children, mapOptions, onMapLoad }: GoogleMapWrapperProps) => {
-  const GOOGLE_MAPS_API_KEY = "AIzaSyDoOHTnpE8apO6OzsrAnbv-JMx3_K1xfNY";
+  // Usar la API key proporcionada
+  const GOOGLE_MAPS_API_KEY = "AIzaSyDw-oZruoaJzPckh5ZE2wpJBblpWSuYdUQ";
 
   console.log("Using Google Maps API Key:", GOOGLE_MAPS_API_KEY ? "Key is present" : "No key found");
 
