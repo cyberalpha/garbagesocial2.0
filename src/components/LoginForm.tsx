@@ -153,13 +153,6 @@ const LoginForm = () => {
             {t('auth.noAccount')}
           </Button>
         </CardContent>
-        <CardFooter className="flex flex-col space-y-2">
-          <div className="text-sm text-center mt-4">
-            <p>{t('auth.demoCredentials')}</p>
-            <p className="text-muted-foreground">{t('auth.demoUser')}: maria@example.com</p>
-            <p className="text-muted-foreground">{t('auth.demoPassword')}: password123</p>
-          </div>
-        </CardFooter>
       </form>
     </Card>
   );
