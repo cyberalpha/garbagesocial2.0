@@ -13,9 +13,9 @@ const Register = () => {
   const navigate = useNavigate();
   
   useEffect(() => {
-    // Si ya hay un usuario autenticado, redirigir al inicio
+    // Si ya hay un usuario autenticado, redirigir al perfil
     if (currentUser) {
-      navigate('/');
+      navigate('/profile');
     }
   }, [currentUser, navigate]);
   

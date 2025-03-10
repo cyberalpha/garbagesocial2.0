@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthProvider';
@@ -28,7 +27,7 @@ const RegisterForm = () => {
   // Redirect if user is already logged in
   useEffect(() => {
     if (currentUser) {
-      navigate('/');
+      navigate('/profile');
     }
   }, [currentUser, navigate]);
 
@@ -65,7 +64,8 @@ const RegisterForm = () => {
           title: t('general.success'),
           description: "Registro exitoso. ¡Bienvenido!",
         });
-        // No need to navigate here, the AuthProvider will handle redirection
+        // Redirigir explícitamente al perfil después del registro exitoso
+        navigate('/profile');
       }
     } catch (error: any) {
       console.error('Error en registro:', error);
