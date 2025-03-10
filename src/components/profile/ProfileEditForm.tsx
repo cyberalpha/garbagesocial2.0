@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Save, X } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
 import ProfileImageUploader from './ProfileImageUploader';
 import ProfileFormFields from './ProfileFormFields';
 import DeleteAccountDialog from './DeleteAccountDialog';
@@ -24,6 +25,7 @@ interface ProfileEditFormProps {
 
 const ProfileEditForm: React.FC<ProfileEditFormProps> = ({ user, onCancel }) => {
   const { updateProfile, deleteProfile, isLoading } = useAuth();
+  const { toast } = useToast();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: user.name,
@@ -55,15 +57,24 @@ const ProfileEditForm: React.FC<ProfileEditFormProps> = ({ user, onCancel }) => 
     setIsSubmitting(true);
     
     try {
-      console.log('Submitting profile update:', formData);
+      console.log('Enviando actualización de perfil:', formData);
       const result = await updateProfile(formData);
-      console.log('Profile update result:', result);
+      console.log('Resultado de actualización de perfil:', result);
       
       if (result) {
+        toast({
+          title: "Éxito",
+          description: "Tu perfil ha sido actualizado correctamente"
+        });
         onCancel(); // Return to view mode after successful update
       }
     } catch (error) {
-      console.error('Error updating profile:', error);
+      console.error('Error actualizando perfil:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el perfil. Por favor intenta nuevamente.",
+        variant: "destructive"
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -72,16 +83,22 @@ const ProfileEditForm: React.FC<ProfileEditFormProps> = ({ user, onCancel }) => 
   const handleDelete = async () => {
     if (isSubmitting) return;
     
-    setIsSubmitting(true);
     try {
       const success = await deleteProfile();
       if (success) {
-        navigate('/'); // Redirect to home after successful deactivation
+        // La redirección ya debería estar manejada por el logout en deleteProfile
+        toast({
+          title: "Cuenta desactivada",
+          description: "Tu cuenta ha sido desactivada correctamente."
+        });
       }
     } catch (error) {
-      console.error('Error deleting profile:', error);
-    } finally {
-      setIsSubmitting(false);
+      console.error('Error desactivando perfil:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo desactivar tu cuenta. Por favor intenta nuevamente.",
+        variant: "destructive"
+      });
     }
   };
 

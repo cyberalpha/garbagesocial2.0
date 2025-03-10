@@ -25,7 +25,7 @@ export const useProfileActions = (
         return null;
       }
 
-      console.log('Attempting to update profile in Supabase:', currentUser.id, userData);
+      console.log('Intentando actualizar perfil en Supabase:', currentUser.id, userData);
       
       // Update the user in Supabase
       const { data: supabaseData, error: supabaseError } = await supabase
@@ -36,7 +36,6 @@ export const useProfileActions = (
           email: userData.email || currentUser.email,
           is_organization: userData.isOrganization !== undefined ? userData.isOrganization : currentUser.isOrganization,
           profile_image: userData.profileImage || currentUser.profileImage,
-          // Keep existing values for other fields
           average_rating: currentUser.averageRating || 0
         }, {
           onConflict: 'id'
@@ -44,16 +43,16 @@ export const useProfileActions = (
         .select();
       
       if (supabaseError) {
-        console.error('Error updating profile in Supabase:', supabaseError);
+        console.error('Error al actualizar perfil en Supabase:', supabaseError);
         toast({
           title: t('general.error'),
-          description: supabaseError.message || "Error updating profile in database",
+          description: supabaseError.message || "Error actualizando perfil en la base de datos",
           variant: "destructive"
         });
         return null;
       }
       
-      console.log('Profile updated in Supabase:', supabaseData);
+      console.log('Perfil actualizado en Supabase:', supabaseData);
       
       // Actualizar el usuario en memoria
       const updatedUser = {
@@ -94,10 +93,9 @@ export const useProfileActions = (
         return false;
       }
 
-      console.log('Attempting to delete profile from Supabase:', currentUser.id);
+      console.log('Intentando desactivar perfil en Supabase:', currentUser.id);
       
-      // Instead of using "active" which doesn't exist in the table type,
-      // we'll just mark deleted profiles in a different way
+      // En lugar de usar un campo "active", marcamos el perfil como desactivado de otra manera
       const { error: supabaseError } = await supabase
         .from('profiles')
         .update({ 
@@ -107,15 +105,16 @@ export const useProfileActions = (
         .eq('id', currentUser.id);
       
       if (supabaseError) {
-        console.error('Error deactivating profile in Supabase:', supabaseError);
+        console.error('Error al desactivar perfil en Supabase:', supabaseError);
         toast({
           title: t('general.error'),
-          description: supabaseError.message || "Error deactivating profile in database",
+          description: supabaseError.message || "Error al desactivar perfil en la base de datos",
           variant: "destructive"
         });
         return false;
       }
       
+      // Cerrar sesión después de desactivar el perfil
       await logout();
       
       toast({
@@ -140,7 +139,7 @@ export const useProfileActions = (
   const handleResendVerificationEmail = async (email: string) => {
     setIsLoading(true);
     try {
-      // Send verification email through Supabase
+      // Enviar email de verificación a través de Supabase
       const { error } = await supabase.auth.resend({
         type: 'signup',
         email: email
@@ -174,13 +173,13 @@ export const useProfileActions = (
       });
       
       if (error) {
-        console.error('Error verifying email:', error);
+        console.error('Error verificando email:', error);
         return false;
       }
       
       return true;
     } catch (error) {
-      console.error('Unexpected error verifying email:', error);
+      console.error('Error inesperado verificando email:', error);
       return false;
     }
   };

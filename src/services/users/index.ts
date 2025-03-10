@@ -58,6 +58,13 @@ export const getUserById = async (id: string): Promise<User | null> => {
       console.error('Error al obtener perfil de Supabase:', error);
     } else if (data) {
       console.log('Perfil encontrado en Supabase:', data);
+      
+      // Verificar si el perfil está desactivado
+      if (data.name && data.name.startsWith('DELETED_')) {
+        console.log('Este perfil está desactivado');
+        return null;
+      }
+      
       // Convertir el formato de Supabase al formato User
       const user: User = {
         id: data.id,
@@ -136,7 +143,7 @@ export const getWastesByUserId = async (userId: string): Promise<Waste[]> => {
  */
 export const saveUser = async (user: User): Promise<void> => {
   try {
-    console.log('Saving user to Supabase:', user);
+    console.log('Guardando usuario en Supabase:', user);
     
     const { error } = await supabase
       .from('profiles')
@@ -152,23 +159,23 @@ export const saveUser = async (user: User): Promise<void> => {
       });
     
     if (error) {
-      console.error('Error saving user to Supabase:', error);
+      console.error('Error guardando usuario en Supabase:', error);
     } else {
-      console.log('User saved to Supabase successfully');
+      console.log('Usuario guardado en Supabase exitosamente');
     }
   } catch (error) {
-    console.error('Error saving user:', error);
+    console.error('Error guardando usuario:', error);
   }
 };
 
 /**
- * Delete user by ID
+ * Delete user by ID (desactivar)
  */
 export const deleteUser = async (id: string): Promise<void> => {
   try {
-    console.log('Deleting user from Supabase:', id);
+    console.log('Desactivando usuario en Supabase:', id);
     
-    // Update name to mark as deleted instead of using "active" flag which doesn't exist in the table
+    // Actualizar el nombre para marcar como eliminado en lugar de usar un flag "active"
     const { error } = await supabase
       .from('profiles')
       .update({ 
@@ -178,11 +185,11 @@ export const deleteUser = async (id: string): Promise<void> => {
       .eq('id', id);
     
     if (error) {
-      console.error('Error deactivating user in Supabase:', error);
+      console.error('Error desactivando usuario en Supabase:', error);
     } else {
-      console.log('User deactivated in Supabase successfully');
+      console.log('Usuario desactivado en Supabase exitosamente');
     }
   } catch (error) {
-    console.error('Error deleting user:', error);
+    console.error('Error eliminando usuario:', error);
   }
 };

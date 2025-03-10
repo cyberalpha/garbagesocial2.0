@@ -56,8 +56,13 @@ const RegisterForm = () => {
     setIsSubmitting(true);
     
     try {
+      console.log("Intentando registrar usuario:", {
+        ...userData,
+        password: userData.password ? "********" : undefined
+      });
+      
       const user = await register(userData);
-      console.log("Registration result:", user);
+      console.log("Resultado del registro:", user);
       
       if (user) {
         toast({

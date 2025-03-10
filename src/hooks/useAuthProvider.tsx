@@ -13,22 +13,34 @@ export const useAuthProvider = () => {
     setPendingVerification
   } = useAuthState();
 
-  // Initialize from Supabase session instead of localStorage
+  // Inicializar desde la sesión de Supabase en lugar de localStorage
   const initializeFromSupabase = async () => {
     try {
       if (!currentUser) {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
-          console.log('Restored user from Supabase session:', session.user);
+          console.log('Usuario restaurado desde sesión de Supabase:', session.user);
           
-          // Get user profile data from Supabase
-          const { data: profileData } = await supabase
+          // Obtener datos del perfil del usuario desde Supabase
+          const { data: profileData, error } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', session.user.id)
             .maybeSingle();
           
+          if (error) {
+            console.error('Error al obtener perfil:', error);
+          }
+          
           if (profileData) {
+            // Verificar si el perfil está desactivado por el nombre
+            if (profileData.name && profileData.name.startsWith('DELETED_')) {
+              console.log('Este perfil está desactivado');
+              setCurrentUser(null);
+              setIsLoading(false);
+              return;
+            }
+            
             const user = {
               id: profileData.id,
               name: profileData.name || session.user.email?.split('@')[0] || '',
@@ -41,7 +53,7 @@ export const useAuthProvider = () => {
             };
             setCurrentUser(user);
           } else {
-            // If no profile exists yet but user is authenticated
+            // Si aún no existe un perfil pero el usuario está autenticado
             const user = {
               id: session.user.id,
               name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || '',
@@ -52,18 +64,39 @@ export const useAuthProvider = () => {
               emailVerified: session.user.email_confirmed_at ? true : false,
               active: true
             };
+            
+            // Crear el perfil en Supabase
+            const { error: createError } = await supabase
+              .from('profiles')
+              .upsert({
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                is_organization: user.isOrganization,
+                profile_image: user.profileImage,
+                average_rating: 0
+              }, {
+                onConflict: 'id'
+              });
+            
+            if (createError) {
+              console.error('Error al crear perfil en Supabase:', createError);
+            } else {
+              console.log('Perfil creado automáticamente en Supabase');
+            }
+            
             setCurrentUser(user);
           }
         }
         setIsLoading(false);
       }
     } catch (error) {
-      console.error('Error initializing from Supabase:', error);
+      console.error('Error al inicializar desde Supabase:', error);
       setIsLoading(false);
     }
   };
 
-  // Initialize from Supabase when component loads
+  // Inicializar desde Supabase cuando se carga el componente
   if (!currentUser && !isLoading) {
     setIsLoading(true);
     initializeFromSupabase();
