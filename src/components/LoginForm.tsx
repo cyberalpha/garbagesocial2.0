@@ -7,17 +7,21 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Mail, Lock, LogIn, UserPlus, Loader2 } from 'lucide-react';
+import { Mail, Lock, LogIn, UserPlus, Loader2, AlertCircle } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useSupabaseConnection } from '@/hooks/useSupabaseConnection';
 
 const LoginForm = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
   const { login, currentUser, isLoading } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { status: connectionStatus } = useSupabaseConnection();
 
   useEffect(() => {
     if (currentUser) {
@@ -27,30 +31,37 @@ const LoginForm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoginError(null);
     
     if (!email || !password) {
-      toast({
-        title: t('general.error'),
-        description: "Por favor, ingresa tu email y contraseña",
-        variant: "destructive"
-      });
+      setLoginError("Por favor, ingresa tu email y contraseña");
+      return;
+    }
+    
+    // Verificar si estamos conectados antes de intentar login
+    if (connectionStatus === 'disconnected') {
+      setLoginError("No hay conexión a Internet. Por favor, verifica tu conexión e intenta nuevamente.");
       return;
     }
     
     setIsSubmitting(true);
     
     try {
-      console.log(`Attempting login with: ${email}`);
+      console.log(`Intentando iniciar sesión con: ${email}`);
       const response = await login(email, password);
       
-      // Si hay un error en la respuesta, mostrar toast de error
+      // Si hay un error en la respuesta, mostrar mensaje de error
       if (response.error) {
-        console.error("Login error:", response.error);
-        toast({
-          title: t('general.error'),
-          description: response.error.message || "Error al iniciar sesión. Por favor verifica tus credenciales.",
-          variant: "destructive"
-        });
+        console.error("Error de login:", response.error);
+        
+        // Manejar diferentes tipos de errores de autenticación
+        if (response.error.message.includes('Invalid login credentials')) {
+          setLoginError("Credenciales inválidas. Por favor verifica tu email y contraseña.");
+        } else if (response.error.message.includes('Email not confirmed')) {
+          setLoginError("Tu email no ha sido confirmado. Por favor revisa tu bandeja de entrada.");
+        } else {
+          setLoginError(response.error.message || "Error al iniciar sesión");
+        }
         return;
       }
       
@@ -62,11 +73,7 @@ const LoginForm = () => {
       
     } catch (error: any) {
       console.error('Error durante el inicio de sesión:', error);
-      toast({
-        title: t('general.error'),
-        description: error.message || "Error al iniciar sesión. Por favor verifica tus credenciales.",
-        variant: "destructive"
-      });
+      setLoginError(error.message || "Error al iniciar sesión. Por favor verifica tus credenciales.");
     } finally {
       setIsSubmitting(false);
     }
@@ -86,6 +93,22 @@ const LoginForm = () => {
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
+          {loginError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{loginError}</AlertDescription>
+            </Alert>
+          )}
+          
+          {connectionStatus === 'disconnected' && (
+            <Alert variant="warning" className="bg-amber-50 border-amber-200">
+              <AlertCircle className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-700">
+                No hay conexión a Supabase. Verifica tu conexión a Internet.
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="email">{t('auth.email')}</Label>
             <div className="relative">
@@ -122,7 +145,7 @@ const LoginForm = () => {
           <Button 
             type="submit" 
             className="w-full" 
-            disabled={isSubmitting || isLoading}
+            disabled={isSubmitting || isLoading || connectionStatus === 'disconnected'}
           >
             {isSubmitting ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />

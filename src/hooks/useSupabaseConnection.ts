@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { checkDatabaseConnection } from '@/utils/supabaseConnectionUtils';
-import { supabase, offlineMode, setOfflineMode } from '@/integrations/supabase/client';
+import { supabase, offlineMode, setOfflineMode, isOnline as browserIsOnline } from '@/integrations/supabase/client';
 
 // Tipo para el estado de conexión
 export type ConnectionStatus = 'connected' | 'disconnected' | 'connecting' | 'unknown' | 'offline';
@@ -22,7 +22,7 @@ export const useSupabaseConnection = () => {
   const [isOfflineMode, setIsOfflineMode] = useState(offlineMode);
   
   // Verificar si el navegador está online
-  const isOnline = typeof navigator !== 'undefined' && navigator.onLine;
+  const isOnline = browserIsOnline();
   
   const checkConnection = useCallback(async () => {
     // Si estamos en modo offline, no intentamos conectar
@@ -47,7 +47,7 @@ export const useSupabaseConnection = () => {
     
     try {
       // Verificar conexión a la base de datos
-      const { success, error, offlineMode: resultOffline } = await checkDatabaseConnection();
+      const { success, error } = await checkDatabaseConnection();
       
       setIsConnected(success);
       setLastChecked(new Date());
@@ -56,7 +56,7 @@ export const useSupabaseConnection = () => {
         console.error('Error de conexión detectado:', error);
         setErrorMessage(typeof error === 'string' ? error : error.message || 'Error desconocido');
         setRetryAttempt(prev => prev + 1);
-        setStatus(resultOffline ? 'offline' : 'disconnected');
+        setStatus('disconnected');
       } else {
         console.log('Conexión a Supabase exitosa');
         setRetryAttempt(0);

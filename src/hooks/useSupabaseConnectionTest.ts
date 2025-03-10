@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { testSupabaseConnection } from '@/utils/supabaseConnectionUtils';
+import { checkDatabaseConnection } from '@/utils/supabaseConnectionUtils';
 import { offlineMode } from '@/integrations/supabase/client';
 
 export const useSupabaseConnectionTest = () => {
@@ -20,7 +20,7 @@ export const useSupabaseConnectionTest = () => {
     setErrorMessage(null);
     
     try {
-      const result = await testSupabaseConnection();
+      const result = await checkDatabaseConnection();
       
       console.log('Resultado de prueba de conexión:', result);
       setIsConnected(result.success);

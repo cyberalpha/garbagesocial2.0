@@ -6,7 +6,7 @@ import type { Database } from './types';
 export const SUPABASE_URL = "https://kkiymeuqlznkpiqdedgz.supabase.co";
 export const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtraXltZXVxbHpua3BpcWRlZGd6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDEzMjYwNjMsImV4cCI6MjA1NjkwMjA2M30.aAsK16xq_dvzYBbj8HfmGGmTX5NUu1Xipe6CwbLDAe0";
 
-// For use in diagnostic components
+// Para uso en componentes de diagnóstico
 export const SUPABASE_CONFIG = {
   url: SUPABASE_URL,
   key: SUPABASE_PUBLISHABLE_KEY
@@ -43,11 +43,32 @@ if (typeof window !== 'undefined') {
   }
 }
 
+// Crear y exportar el cliente de Supabase
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, supabaseOptions);
 
-// Agregar función para verificar si el navegador está conectado a internet
+// Función para verificar si el navegador está conectado a internet
 export const isOnline = () => {
   return typeof navigator !== 'undefined' && navigator.onLine;
 };
+
+// Función simplificada para probar la conexión
+export const testConnection = async () => {
+  try {
+    console.log('Probando conexión a Supabase...');
+    const { data, error } = await supabase.from('profiles').select('count').limit(1);
+    
+    if (error) {
+      console.error('Error en prueba de conexión:', error);
+      return { success: false, error: error.message };
+    }
+    
+    console.log('Conexión a Supabase exitosa');
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error inesperado en prueba de conexión:', error);
+    return { success: false, error: error?.message || 'Error desconocido' };
+  }
+};
+

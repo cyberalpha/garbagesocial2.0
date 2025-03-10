@@ -1,28 +1,13 @@
 
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, testConnection } from '@/integrations/supabase/client';
 
-// Función principal para verificar la conexión a la base de datos
+// Función para verificar la conexión a la base de datos
 export const checkDatabaseConnection = async () => {
   try {
-    console.log('Intentando verificar conexión a Supabase...');
-    
-    // Usamos una consulta simple para verificar la conexión
-    const { data, error } = await supabase.from('profiles').select('count').limit(1);
-    
-    if (error) {
-      console.error('Error de conexión a Supabase:', error);
-      return { 
-        success: false, 
-        error: error.message || 'Error al conectar con la base de datos',
-        offlineMode: false
-      };
-    }
-    
-    // Si llegamos aquí, la conexión fue exitosa
-    console.log('Conexión a Supabase verificada exitosamente');
-    return { success: true, offlineMode: false };
+    console.log('Verificando conexión a Supabase...');
+    return await testConnection();
   } catch (error: any) {
-    console.error('Error inesperado al verificar conexión:', error);
+    console.error('Error al verificar conexión:', error);
     return { 
       success: false, 
       error: error?.message || 'Error inesperado al verificar la conexión',
