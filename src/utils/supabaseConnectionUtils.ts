@@ -73,6 +73,7 @@ export const checkSupabaseConnection = async (
   console.log("Comprobando conexión con Supabase...");
   
   try {
+    // Usamos la función mejorada de testSupabaseConnection
     const isConnected = await testSupabaseConnection();
     
     if (isConnected) {

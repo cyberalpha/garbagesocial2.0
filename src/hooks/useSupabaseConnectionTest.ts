@@ -26,73 +26,57 @@ export const useSupabaseConnectionTest = () => {
     testAttemptRef.current++;
     const currentAttempt = testAttemptRef.current;
     
-    // Set a timeout of 10 seconds
+    // Set a timeout of 45 segundos (aumentado para redes lentas)
     timeoutRef.current = setTimeout(() => {
       // Solo procesamos si es el intento más reciente
       if (currentAttempt === testAttemptRef.current) {
-        console.log("Supabase connection timeout reached");
+        console.log("Supabase connection timeout reached (45s)");
         setIsLoading(false);
         setIsConnected(false);
-        setErrorMessage("Tiempo de espera agotado. Verifica tu red y configuración de Supabase.");
+        setErrorMessage("Tiempo de espera agotado (45s). Verifica tu red y configuración de Supabase.");
         setConsecutiveFailures(prev => prev + 1);
         toast({
           title: "Tiempo de conexión agotado",
-          description: "La conexión con Supabase ha excedido el tiempo de espera. Verifica tu conexión a internet o la configuración de Supabase.",
+          description: "La conexión con Supabase ha excedido el tiempo de espera de 45 segundos. Podría ser un problema de red o del servidor.",
           variant: "destructive"
         });
       }
-    }, 10000);
+    }, 45000); // 45 segundos de timeout
     
     try {
       console.log("Intentando conectar a Supabase...");
       console.log("Supabase URL:", SUPABASE_CONFIG.url);
       
-      // Verificación de ping básica para comprobar la latencia de red
-      const startTime = Date.now();
-      
-      // Primero verificamos la autenticación
-      const { data: authData, error: authError } = await supabase.auth.getSession();
-      
-      if (authError) {
-        console.error("Error de conexión de autenticación:", authError);
-        throw authError;
-      }
-      
-      console.log("Verificación de autenticación exitosa:", authData);
-      
-      // Luego verificamos el acceso a datos con una consulta liviana
-      const { data, error } = await supabase.from('profiles').select('count').limit(1).maybeSingle();
-      
-      // Calcular latencia
-      const latency = Date.now() - startTime;
-      console.log(`Latencia de Supabase: ${latency}ms`);
+      // Usamos directamente la función mejorada de testSupabaseConnection
+      const isConnectedSuccessfully = await testSupabaseConnection();
       
       // Solo procesamos si es el intento más reciente
       if (currentAttempt === testAttemptRef.current) {
-        if (error) {
-          console.error("Error de conexión de datos:", error);
-          // Si la autenticación funcionó pero hay error en datos, puede ser un problema de permisos
-          setIsConnected(true);
-          setErrorMessage("La autenticación funciona pero el acceso a datos puede estar limitado: " + error.message);
-          toast({
-            title: "Conexión parcial",
-            description: "La autenticación funciona pero el acceso a datos está limitado. Verifica los permisos.",
-            variant: "default"
-          });
-        } else {
-          console.log("Conexión con Supabase exitosa! Datos:", data);
-          setIsConnected(true);
-          setConsecutiveFailures(0);
-          toast({
-            title: "Conexión exitosa",
-            description: `La aplicación está correctamente conectada a Supabase. Latencia: ${latency}ms`,
-          });
-        }
-        
         // Clear timeout since we got a response
         if (timeoutRef.current) {
           clearTimeout(timeoutRef.current);
           timeoutRef.current = null;
+        }
+        
+        if (isConnectedSuccessfully) {
+          console.log("Conexión con Supabase exitosa!");
+          setIsConnected(true);
+          setConsecutiveFailures(0);
+          setErrorMessage(null);
+          toast({
+            title: "Conexión exitosa",
+            description: "La aplicación está correctamente conectada a Supabase.",
+          });
+        } else {
+          console.error("Fallo al conectar con Supabase");
+          setIsConnected(false);
+          setErrorMessage("No se pudo establecer conexión con Supabase. Verifica tu configuración.");
+          setConsecutiveFailures(prev => prev + 1);
+          toast({
+            title: "Error de conexión",
+            description: "No se pudo establecer conexión con Supabase. Verifica tu configuración y red.",
+            variant: "destructive"
+          });
         }
       }
     } catch (error: any) {

@@ -18,7 +18,7 @@ const supabaseOptions = {
     autoRefreshToken: true,
     persistSession: true,
   },
-  // Incrementamos los tiempos de espera para redes lentas
+  // Incrementamos significativamente los tiempos de espera para redes muy lentas
   global: {
     headers: {
       'x-application-name': 'wasteless-app'
@@ -27,22 +27,22 @@ const supabaseOptions = {
       const controller = new AbortController();
       const { signal } = controller;
       
-      // Timeout de 30 segundos para peticiones lentas
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      // Incrementamos el timeout a 60 segundos para evitar los problemas de AbortError
+      const timeoutId = setTimeout(() => controller.abort(), 60000);
       
       return fetch(url, { 
         ...options, 
         signal,
-        // Caché agresivo para mejorar rendimiento
-        cache: 'default'
+        // Desactivamos caché para evitar problemas con datos desactualizados
+        cache: 'no-store'
       })
         .finally(() => clearTimeout(timeoutId));
     }
   },
   realtime: {
-    // Configuración optimizada para realtime
-    timeout: 30000,
-    heartbeatIntervalMs: 15000
+    // Configuración optimizada para realtime con tiempos más largos
+    timeout: 60000,
+    heartbeatIntervalMs: 30000
   }
 };
 
@@ -60,22 +60,37 @@ supabase.auth.onAuthStateChange((event) => {
   }
 });
 
-// Función de utilidad para probar la conexión
+// Función de utilidad para probar la conexión con tiempos de espera más largos
 export const testSupabaseConnection = async (): Promise<boolean> => {
   try {
+    console.log("Intentando conectar a Supabase con timeout extendido...");
     const startTime = Date.now();
-    // Hacemos una consulta ligera para probar conexión
-    const { error } = await supabase.from('profiles').select('count').limit(1).maybeSingle();
-    const latency = Date.now() - startTime;
     
+    // Timeout manual para prevenir bloqueos
+    const timeoutPromise = new Promise<boolean>((_, reject) => {
+      setTimeout(() => reject(new Error("Timeout manual de conexión alcanzado")), 45000);
+    });
+    
+    // Consulta simple para probar conexión
+    const queryPromise = supabase.from('profiles')
+      .select('count')
+      .limit(1)
+      .maybeSingle()
+      .then(({ error }) => {
+        if (error) {
+          console.error("Error de conexión con Supabase:", error);
+          return false;
+        }
+        return true;
+      });
+    
+    // Usar Promise.race para aplicar timeout manual
+    const isConnected = await Promise.race([queryPromise, timeoutPromise]);
+    
+    const latency = Date.now() - startTime;
     console.log(`Latencia de Supabase: ${latency}ms`);
     
-    if (error) {
-      console.error("Error de conexión con Supabase:", error);
-      return false;
-    }
-    
-    return true;
+    return isConnected;
   } catch (error) {
     console.error("Error al probar conexión con Supabase:", error);
     return false;
