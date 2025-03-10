@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthProvider';
@@ -9,7 +10,6 @@ import { Label } from '@/components/ui/label';
 import { Mail, Lock, LogIn, UserPlus, Loader2, AlertCircle } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useSupabaseConnection } from '@/hooks/useSupabaseConnection';
 
 const LoginForm = () => {
   const [email, setEmail] = useState('');
@@ -20,7 +20,6 @@ const LoginForm = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { status: connectionStatus } = useSupabaseConnection();
 
   useEffect(() => {
     if (currentUser) {
@@ -34,11 +33,6 @@ const LoginForm = () => {
     
     if (!email || !password) {
       setLoginError("Por favor, ingresa tu email y contraseña");
-      return;
-    }
-    
-    if (connectionStatus === 'disconnected') {
-      setLoginError("No hay conexión a Internet. Por favor, verifica tu conexión e intenta nuevamente.");
       return;
     }
     
@@ -94,15 +88,6 @@ const LoginForm = () => {
               <AlertDescription>{loginError}</AlertDescription>
             </Alert>
           )}
-          
-          {connectionStatus === 'disconnected' && (
-            <Alert variant="default" className="bg-amber-50 border-amber-200">
-              <AlertCircle className="h-4 w-4 text-amber-600" />
-              <AlertDescription className="text-amber-700">
-                No hay conexión a Supabase. Verifica tu conexión a Internet.
-              </AlertDescription>
-            </Alert>
-          )}
 
           <div className="space-y-2">
             <Label htmlFor="email">{t('auth.email')}</Label>
@@ -140,7 +125,7 @@ const LoginForm = () => {
           <Button 
             type="submit" 
             className="w-full" 
-            disabled={isSubmitting || isLoading || connectionStatus === 'disconnected'}
+            disabled={isSubmitting || isLoading}
           >
             {isSubmitting ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
