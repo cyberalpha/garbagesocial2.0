@@ -1,10 +1,11 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, ExternalLink } from 'lucide-react';
 import { ConnectionStatus } from '@/hooks/useSupabaseConnection';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { Link } from 'react-router-dom';
 
 interface StatusTooltipContentProps {
   status: ConnectionStatus;
@@ -44,6 +45,26 @@ const StatusTooltipContent = ({
         <p className="text-xs text-gray-500">
           Última verificación: {formatDistanceToNow(lastChecked, { addSuffix: true, locale: es })}
         </p>
+      )}
+      
+      {status === 'disconnected' && (
+        <div className="mt-2 p-2 bg-red-50 rounded-md text-xs">
+          <p className="font-medium mb-1">Posibles soluciones:</p>
+          <ul className="list-disc pl-4 space-y-1 text-gray-600">
+            <li>Verificar conexión a internet</li>
+            <li>Comprobar que el proyecto Supabase esté activo</li>
+            <li>Verificar configuración y credenciales</li>
+          </ul>
+          
+          <Link 
+            to="/supabase-diagnostic" 
+            className="flex items-center mt-2 text-blue-500 hover:text-blue-700"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ExternalLink className="h-3 w-3 mr-1" />
+            Ir a diagnóstico
+          </Link>
+        </div>
       )}
       
       <Button 

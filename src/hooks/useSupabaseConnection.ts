@@ -25,21 +25,24 @@ export const useSupabaseConnection = () => {
     setStatus('connecting');
     
     try {
+      console.log('Verificando conexión a Supabase...');
       const { success, error } = await checkDatabaseConnection();
       
       setIsConnected(success);
       setLastChecked(new Date());
       
       if (!success && error) {
+        console.error('Error de conexión detectado:', error);
         setErrorMessage(typeof error === 'string' ? error : error.message || 'Error desconocido');
         setRetryAttempt(prev => prev + 1);
         setStatus('disconnected');
       } else {
+        console.log('Conexión a Supabase exitosa');
         setRetryAttempt(0);
         setStatus('connected');
       }
     } catch (error: any) {
-      console.error('Error checking Supabase connection:', error);
+      console.error('Error al verificar conexión:', error);
       setIsConnected(false);
       setErrorMessage(error.message || 'Error desconocido');
       setRetryAttempt(prev => prev + 1);
@@ -54,10 +57,10 @@ export const useSupabaseConnection = () => {
     // Comprobar conexión al montar
     checkConnection();
     
-    // Configurar verificaciones periódicas
+    // Configurar verificaciones periódicas cada 30 segundos en lugar de cada minuto
     const interval = setInterval(() => {
       checkConnection();
-    }, 60000); // Comprobar cada minuto
+    }, 30000);
     
     return () => clearInterval(interval);
   }, [checkConnection]);

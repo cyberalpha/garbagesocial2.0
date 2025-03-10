@@ -21,13 +21,14 @@ const SupabaseConnectionAlert = ({ className }: SupabaseConnectionAlertProps) =>
   const handleManualCheck = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    console.log('Verificación manual iniciada');
     checkConnection();
   };
 
   return (
     <div 
       className={cn(
-        "fixed bottom-4 right-16 z-50 transition-all duration-300",
+        "fixed bottom-4 right-4 z-50 transition-all duration-300",
         className
       )}
     >
@@ -38,7 +39,9 @@ const SupabaseConnectionAlert = ({ className }: SupabaseConnectionAlertProps) =>
             size="icon"
             className={cn(
               "p-2 rounded-full shadow-md flex items-center justify-center transition-colors",
-              getStatusColor(status)
+              getStatusColor(status),
+              status === 'connecting' && "animate-pulse",
+              status === 'disconnected' && "animate-bounce"
             )}
             onClick={handleManualCheck}
           >

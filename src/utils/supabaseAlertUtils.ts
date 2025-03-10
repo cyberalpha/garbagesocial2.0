@@ -7,12 +7,12 @@ import { ConnectionStatus } from '@/hooks/useSupabaseConnection';
 export const getStatusColor = (status: ConnectionStatus): string => {
   switch (status) {
     case 'connected':
-      return 'bg-green-100 hover:bg-green-200';
+      return 'bg-green-500 hover:bg-green-600';
     case 'connecting':
-      return 'bg-blue-100 hover:bg-blue-200';
+      return 'bg-blue-500 hover:bg-blue-600';
     case 'disconnected':
-      return 'bg-red-100 hover:bg-red-200';
+      return 'bg-red-500 hover:bg-red-600';
     default:
-      return 'bg-gray-100 hover:bg-gray-200';
+      return 'bg-gray-500 hover:bg-gray-600';
   }
 };
