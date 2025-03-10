@@ -10,7 +10,7 @@ import { offlineMode } from "@/integrations/supabase/client";
  * Get all users from localStorage
  */
 export const getUsers = (): User[] => {
-  if (offlineMode) {
+  if (offlineMode()) {
     // Si estamos en modo offline, intentamos obtener los perfiles de la caché
     const offlineProfiles = getOfflineProfiles();
     if (offlineProfiles && offlineProfiles.length > 0) {

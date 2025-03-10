@@ -1,24 +1,44 @@
 
-import { supabase, testConnection } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { safeTableAccess } from './supabaseMockUtils';
 
 // Función para verificar la conexión a la base de datos
 export const checkDatabaseConnection = async () => {
   try {
     console.log('Verificando conexión a Supabase...');
-    return await testConnection();
+    const startTime = performance.now();
+    const { data, error } = await supabase.from('users').select('count()', { count: 'exact', head: true });
+    const endTime = performance.now();
+    
+    if (error) {
+      console.error('Error al verificar conexión:', error);
+      return { 
+        success: false, 
+        error: error?.message || 'Error inesperado al verificar la conexión',
+        offlineMode: false,
+        latency: null
+      };
+    }
+    
+    return { 
+      success: true, 
+      error: null,
+      offlineMode: false,
+      latency: Math.round(endTime - startTime)
+    };
   } catch (error: any) {
     console.error('Error al verificar conexión:', error);
     return { 
       success: false, 
       error: error?.message || 'Error inesperado al verificar la conexión',
-      offlineMode: false
+      offlineMode: false,
+      latency: null
     };
   }
 };
 
 // Mantener compatibilidad con código existente
-export const testSupabaseConnection = checkDatabaseConnection;
+export const testConnection = checkDatabaseConnection;
 
 // Función para sincronizar perfiles de usuario con localStorage
 export const syncProfilesWithLocalStorage = async () => {

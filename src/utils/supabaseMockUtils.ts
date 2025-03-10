@@ -14,39 +14,38 @@ export const mockTableQuery = (tableName: string) => {
   // Return an object with methods that mimic the Supabase API
   return {
     select: (columns?: string) => ({
-      eq: () => ({
+      eq: (column: string, value: any) => ({
         single: async () => ({ data: null, error: null }),
-        maybeSingle: async () => ({ data: null, error: null })
+        maybeSingle: async () => ({ data: null, error: null }),
+        then: (callback: any) => Promise.resolve(callback({ data: [], error: null }))
       }),
       order: () => ({
         limit: () => ({
-          then: () => Promise.resolve({ data: [], error: null })
+          then: (callback: any) => Promise.resolve(callback({ data: [], error: null }))
         })
       }),
-      then: () => Promise.resolve({ data: [], error: null }),
-      data: null,
-      error: null
+      then: (callback: any) => Promise.resolve(callback({ data: [], error: null }))
     }),
     insert: (values: any) => ({
-      then: () => Promise.resolve({ data: values, error: null }),
+      then: (callback: any) => Promise.resolve(callback({ data: values, error: null })),
       select: () => ({
-        then: () => Promise.resolve({ data: values, error: null })
+        then: (callback: any) => Promise.resolve(callback({ data: values, error: null }))
       })
     }),
     upsert: (values: any) => ({
-      then: () => Promise.resolve({ data: values, error: null })
+      then: (callback: any) => Promise.resolve(callback({ data: values, error: null }))
     }),
     update: (values: any) => ({
-      eq: () => ({
-        then: () => Promise.resolve({ data: values, error: null })
+      eq: (column: string, value: any) => ({
+        then: (callback: any) => Promise.resolve(callback({ data: values, error: null }))
       }),
-      match: () => ({
-        then: () => Promise.resolve({ data: values, error: null })
+      match: (criteria: any) => ({
+        then: (callback: any) => Promise.resolve(callback({ data: values, error: null }))
       })
     }),
     delete: () => ({
-      eq: () => ({
-        then: () => Promise.resolve({ data: null, error: null })
+      eq: (column: string, value: any) => ({
+        then: (callback: any) => Promise.resolve(callback({ data: null, error: null }))
       })
     })
   };
@@ -60,10 +59,11 @@ export const mockTableQuery = (tableName: string) => {
 export const safeTableAccess = (tableName: string) => {
   try {
     // First try to access the table directly
-    return supabase.from(tableName as any);
+    const builder = supabase.from(tableName);
+    return builder;
   } catch (error) {
     console.warn(`Table '${tableName}' doesn't exist yet. Using mock implementation.`);
-    return mockTableQuery(tableName);
+    return mockTableQuery(tableName) as any;
   }
 };
 

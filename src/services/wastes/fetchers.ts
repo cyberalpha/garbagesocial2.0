@@ -11,7 +11,7 @@ import { safeTableAccess } from "@/utils/supabaseMockUtils";
  */
 export const getWastes = async (): Promise<Waste[]> => {
   // En modo offline, siempre usamos localStorage
-  if (offlineMode) {
+  if (offlineMode()) {
     console.log("Modo offline activado, usando datos locales");
     return getFromStorage<Waste[]>(WASTES_STORAGE_KEY, initialWastes);
   }
@@ -49,7 +49,7 @@ export const getAllWastes = getWastes;
  */
 export const getWastesByType = async (type: WasteType): Promise<Waste[]> => {
   // En modo offline, siempre usamos localStorage
-  if (offlineMode) {
+  if (offlineMode()) {
     console.log(`Modo offline activado, usando datos locales para tipo ${type}`);
     const wastes = getFromStorage<Waste[]>(WASTES_STORAGE_KEY, initialWastes);
     return wastes.filter(waste => waste.type === type);
@@ -57,9 +57,11 @@ export const getWastesByType = async (type: WasteType): Promise<Waste[]> => {
   
   try {
     // Intentar obtener datos de Supabase filtrados por tipo
-    const { data, error } = await safeTableAccess('wastes')
+    const result = await safeTableAccess('wastes')
       .select('*')
       .eq('type', type);
+    
+    const { data, error } = result;
     
     if (error) {
       console.error(`Error al obtener residuos de tipo ${type} de Supabase:`, error);
@@ -87,7 +89,7 @@ export const getWastesByType = async (type: WasteType): Promise<Waste[]> => {
  */
 export const getWasteById = async (id: string): Promise<Waste | null> => {
   // En modo offline, siempre usamos localStorage
-  if (offlineMode) {
+  if (offlineMode()) {
     console.log(`Modo offline activado, usando datos locales para ID ${id}`);
     const wastes = getFromStorage<Waste[]>(WASTES_STORAGE_KEY, initialWastes);
     return wastes.find(waste => waste.id === id) || null;
@@ -95,10 +97,12 @@ export const getWasteById = async (id: string): Promise<Waste | null> => {
   
   try {
     // Intentar obtener datos de Supabase
-    const { data, error } = await safeTableAccess('wastes')
+    const result = await safeTableAccess('wastes')
       .select('*')
       .eq('id', id)
       .maybeSingle();
+    
+    const { data, error } = result;
     
     if (error) {
       console.error(`Error al obtener residuo con ID ${id} de Supabase:`, error);

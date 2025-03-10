@@ -1,3 +1,4 @@
+
 import { Waste, WasteStatus } from "@/types";
 import { WASTES_STORAGE_KEY } from "./constants";
 import { getFromStorage, saveToStorage } from "../localStorage";
@@ -25,7 +26,7 @@ const saveWasteLocally = (waste: Waste, operation: 'create' | 'update'): void =>
   saveToStorage(WASTES_STORAGE_KEY, wastes, { syncStatus: 'pending' });
   
   // En modo offline, no agregamos a la cola de sincronización
-  if (!offlineMode) {
+  if (!offlineMode()) {
     // Añadir a la cola de sincronización
     syncQueue.addOperation(operation, 'waste', waste.id, waste);
     
@@ -59,7 +60,7 @@ export const addWaste = async (wasteData: Partial<Waste>): Promise<Waste> => {
   };
   
   // En modo offline, sólo guardamos localmente
-  if (offlineMode) {
+  if (offlineMode()) {
     console.log("Modo offline: guardando residuo sólo localmente");
     saveWasteLocally(newWaste, 'create');
     return newWaste;
@@ -74,8 +75,10 @@ export const addWaste = async (wasteData: Partial<Waste>): Promise<Waste> => {
       const supabaseData = transformWasteForSupabase(newWaste);
       
       // Intentar guardar en Supabase
-      const { error } = await safeTableAccess('wastes')
+      const result = await safeTableAccess('wastes')
         .insert(supabaseData);
+        
+      const { error } = result;
       
       if (error) {
         console.error("Error al insertar residuo en Supabase:", error);
@@ -113,8 +116,10 @@ export const saveWaste = async (waste: Waste): Promise<void> => {
       const supabaseData = transformWasteForSupabase(waste);
       
       // Intentar guardar en Supabase
-      const { error } = await safeTableAccess('wastes')
+      const result = await safeTableAccess('wastes')
         .upsert(supabaseData);
+        
+      const { error } = result;
       
       if (error) {
         console.error("Error al actualizar residuo en Supabase:", error);
@@ -159,9 +164,11 @@ export const deleteWaste = async (id: string): Promise<void> => {
     
     if (isOnline) {
       // Intentar eliminar de Supabase
-      const { error } = await safeTableAccess('wastes')
+      const result = await safeTableAccess('wastes')
         .delete()
         .eq('id', id);
+        
+      const { error } = result;
       
       if (error) {
         console.error(`Error al eliminar residuo con ID ${id} de Supabase:`, error);

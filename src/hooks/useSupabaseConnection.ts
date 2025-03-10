@@ -17,8 +17,8 @@ export const useSupabaseConnection = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [retryAttempt, setRetryAttempt] = useState(0);
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
-  const [status, setStatus] = useState<ConnectionStatus>(offlineMode ? 'offline' : 'unknown');
-  const [isOfflineMode, setIsOfflineMode] = useState(offlineMode);
+  const [status, setStatus] = useState<ConnectionStatus>(offlineMode() ? 'offline' : 'unknown');
+  const [isOfflineMode, setIsOfflineMode] = useState(offlineMode());
   
   // Verificar si el navegador está online
   const isOnline = browserIsOnline();
@@ -91,8 +91,8 @@ export const useSupabaseConnection = () => {
     window.addEventListener('offlinemodechange', handleOfflineModeChange);
     
     // Inicializar con el estado actual
-    setIsOfflineMode(offlineMode);
-    setStatus(offlineMode ? 'offline' : 'unknown');
+    setIsOfflineMode(offlineMode());
+    setStatus(offlineMode() ? 'offline' : 'unknown');
     
     return () => {
       window.removeEventListener('offlinemodechange', handleOfflineModeChange);

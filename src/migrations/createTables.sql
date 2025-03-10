@@ -1,4 +1,5 @@
 
+
 -- Waste table definition
 CREATE TABLE IF NOT EXISTS public.wastes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -47,3 +48,4 @@ CREATE TRIGGER profiles_updated_at
 BEFORE UPDATE ON public.profiles
 FOR EACH ROW
 EXECUTE FUNCTION public.update_updated_at();
+

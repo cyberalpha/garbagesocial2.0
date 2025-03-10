@@ -1,12 +1,11 @@
-
 import { supabase, offlineMode } from '@/integrations/supabase/client';
 import { syncQueue, SyncOperation } from './SyncQueue';
 import { getWastes, saveWaste, deleteWaste } from '../wastes';
 import { getUsers, saveUser, deleteUser } from '../users';
 import { Waste, User } from '@/types';
 import { transformWasteForSupabase } from '../wastes/utils';
+import { safeTableAccess } from '@/utils/supabaseMockUtils';
 
-// Intervalo de sincronización en ms (3 minutos)
 const SYNC_INTERVAL = 3 * 60 * 1000;
 
 /**
@@ -29,13 +28,13 @@ export class DataSynchronizer {
     window.addEventListener('offlinemodechange', this.handleOfflineModeChange);
     
     // Intentar sincronizar inmediatamente si estamos online y no en modo offline
-    if (this.isOnline && !offlineMode) {
+    if (this.isOnline && !offlineMode()) {
       this.sync();
     }
     
     // Configurar intervalo de sincronización
     this.syncInterval = setInterval(() => {
-      if (this.isOnline && !offlineMode) {
+      if (this.isOnline && !offlineMode()) {
         this.sync();
       }
     }, SYNC_INTERVAL);
@@ -63,7 +62,7 @@ export class DataSynchronizer {
   private handleOnline = (): void => {
     console.log('Dispositivo en línea, iniciando sincronización...');
     this.isOnline = true;
-    if (!offlineMode) {
+    if (!offlineMode()) {
       this.sync();
     }
   };
@@ -94,7 +93,7 @@ export class DataSynchronizer {
    * Sincronizar datos con Supabase
    */
   public async sync(): Promise<void> {
-    if (this.isSyncing || !this.isOnline || offlineMode) {
+    if (this.isSyncing || !this.isOnline || offlineMode()) {
       return;
     }
     
@@ -155,9 +154,10 @@ export class DataSynchronizer {
           if (!waste) return false;
           
           const supabaseData = transformWasteForSupabase(waste);
-          const { error } = await supabase
-            .from('wastes')
+          const result = await safeTableAccess('wastes')
             .upsert(supabaseData);
+            
+          const { error } = result;
           
           if (error) {
             console.error(`Error al sincronizar residuo ${waste.id}:`, error);
@@ -167,10 +167,11 @@ export class DataSynchronizer {
           return true;
         }
         case 'delete': {
-          const { error } = await supabase
-            .from('wastes')
+          const result = await safeTableAccess('wastes')
             .delete()
             .eq('id', op.entityId);
+            
+          const { error } = result;
           
           if (error) {
             console.error(`Error al eliminar residuo ${op.entityId}:`, error);
@@ -223,7 +224,7 @@ export class DataSynchronizer {
     return {
       isSyncing: this.isSyncing,
       isOnline: this.isOnline,
-      offlineMode: offlineMode,
+      offlineMode: offlineMode(),
       pendingOperations: syncQueue.getPendingCount()
     };
   }

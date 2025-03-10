@@ -14,9 +14,9 @@ export const useSupabaseConnectionTest = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [connectionDetails, setConnectionDetails] = useState<ConnectionDetails | null>(null);
   
-  const testConnection = useCallback(async (forceTest = false) => {
+  const testConnectionCallback = useCallback(async (forceTest = false) => {
     // Si está en modo offline y no se ha forzado la prueba, no hacer nada
-    if (offlineMode && !forceTest) {
+    if (offlineMode() && !forceTest) {
       console.log('En modo offline, omitiendo prueba de conexión');
       setIsConnected(false);
       setErrorMessage("Modo offline activado");
@@ -57,19 +57,19 @@ export const useSupabaseConnectionTest = () => {
   // Efecto para probar la conexión al montar
   useEffect(() => {
     // Solo probar si no estamos en modo offline
-    if (!offlineMode) {
-      testConnection();
+    if (!offlineMode()) {
+      testConnectionCallback();
     } else {
       setIsConnected(false);
       setErrorMessage("Modo offline activado");
     }
-  }, [offlineMode, testConnection]);
+  }, [offlineMode, testConnectionCallback]);
   
   return { 
     isConnected, 
     isLoading, 
     errorMessage, 
-    testConnection,
+    testConnection: testConnectionCallback,
     connectionDetails
   };
 };
