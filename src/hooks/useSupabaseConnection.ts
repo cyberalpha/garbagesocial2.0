@@ -1,13 +1,14 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { checkDatabaseConnection } from '@/utils/supabaseConnectionUtils';
+import { supabase } from '@/integrations/supabase/client';
 
 // Tipo para el estado de conexión
 export type ConnectionStatus = 'connected' | 'disconnected' | 'connecting' | 'unknown';
 
 // Función auxiliar para calcular el tiempo de reintento
 const calculateNextRetryDelay = (attempt: number, baseDelay = 2000, maxDelay = 30000) => {
-  const delay = Math.min(baseDelay * Math.pow(2, attempt - 1), maxDelay);
+  const delay = Math.min(baseDelay * Math.pow(1.5, attempt - 1), maxDelay);
   return delay;
 };
 
@@ -19,13 +20,27 @@ export const useSupabaseConnection = () => {
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
   const [status, setStatus] = useState<ConnectionStatus>('unknown');
   
+  // Verificar si el navegador está online
+  const isOnline = typeof navigator !== 'undefined' && navigator.onLine;
+  
   const checkConnection = useCallback(async () => {
+    if (!isOnline) {
+      console.log('El navegador está offline, no se verificará la conexión');
+      setStatus('disconnected');
+      setErrorMessage('Sin conexión a Internet');
+      return;
+    }
+    
     setIsLoading(true);
     setErrorMessage(null);
     setStatus('connecting');
     
     try {
-      console.log('Verificando conexión a Supabase...');
+      // Verificar la información básica del proyecto
+      const { data: projectData } = await supabase.rpc('get_project_ref');
+      console.log('Información del proyecto Supabase:', projectData);
+      
+      // Verificar conexión a la base de datos
       const { success, error } = await checkDatabaseConnection();
       
       setIsConnected(success);
@@ -51,20 +66,41 @@ export const useSupabaseConnection = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [isOnline]);
 
+  // Efecto para verificar la conexión al montar el componente
   useEffect(() => {
     // Comprobar conexión al montar
     checkConnection();
     
-    // Configurar verificaciones periódicas cada 30 segundos en lugar de cada minuto
+    // Configurar verificaciones periódicas cada 30 segundos
     const interval = setInterval(() => {
       checkConnection();
     }, 30000);
     
-    return () => clearInterval(interval);
+    // Escuchar eventos online/offline del navegador
+    const handleOnline = () => {
+      console.log('Navegador online, verificando conexión...');
+      checkConnection();
+    };
+    
+    const handleOffline = () => {
+      console.log('Navegador offline, actualizando estado...');
+      setStatus('disconnected');
+      setErrorMessage('Sin conexión a Internet');
+    };
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, [checkConnection]);
 
+  // Efecto para reintentar la conexión si falló anteriormente
   useEffect(() => {
     // Solo reintentar si no hay conexión y hay un error
     if (isConnected === false && errorMessage && retryAttempt > 0) {

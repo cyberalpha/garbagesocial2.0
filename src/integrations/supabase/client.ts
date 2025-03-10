@@ -12,18 +12,42 @@ export const SUPABASE_CONFIG = {
   key: SUPABASE_PUBLISHABLE_KEY
 };
 
+// Configuración de opciones para el cliente de Supabase
+const supabaseOptions = {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true
+  }
+};
+
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, supabaseOptions);
 
 // Test connection function for diagnostics
 export const testSupabaseConnection = async () => {
   try {
-    const { data, error } = await supabase.from('profiles').select('count').limit(1);
-    if (error) throw error;
+    // Intentar una operación simple con un timeout más largo
+    const { data, error } = await supabase.from('profiles')
+      .select('count')
+      .limit(1)
+      .timeout(5000);
+      
+    if (error) {
+      console.error('Error en prueba de conexión:', error);
+      throw error;
+    }
+    
+    console.log('Prueba de conexión exitosa:', data);
     return { success: true };
   } catch (error) {
     console.error('Supabase connection test failed:', error);
     return { success: false, error };
   }
+};
+
+// Agregar función para verificar si el navegador está conectado a internet
+export const isOnline = () => {
+  return typeof navigator !== 'undefined' && navigator.onLine;
 };

@@ -7,15 +7,35 @@ export const testSupabaseConnection = async () => {
 
 export const checkDatabaseConnection = async () => {
   try {
-    // Intentamos una consulta simple para verificar la conexión
-    const { data, error } = await supabase.from('profiles').select('count');
+    console.log('Intentando verificar conexión a Supabase...');
+    
+    // Primero usamos un método simple para verificar la conexión
+    const { data, error } = await supabase.from('profiles').select('count').limit(1);
     
     if (error) {
       console.error('Error de conexión a Supabase:', error);
-      return { 
-        success: false, 
-        error: error.message || 'Error al conectar con la base de datos'
-      };
+      
+      // Intento alternativo con una consulta más básica
+      try {
+        console.log('Intentando verificación alternativa...');
+        const { data: healthData, error: healthError } = await supabase.rpc('pg_stat_database_select_health');
+        
+        if (healthError) {
+          return { 
+            success: false, 
+            error: error.message || 'Error al conectar con la base de datos'
+          };
+        }
+        
+        console.log('Verificación alternativa exitosa');
+        return { success: true };
+      } catch (innerError) {
+        console.error('Error en verificación alternativa:', innerError);
+        return { 
+          success: false, 
+          error: error.message || 'Error al conectar con la base de datos'
+        };
+      }
     }
     
     // Si llegamos aquí, la conexión fue exitosa
