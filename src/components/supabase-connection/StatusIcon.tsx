@@ -1,23 +1,26 @@
 
 import React from 'react';
-import { Database, CloudOff, RefreshCw } from 'lucide-react';
-import { ConnectionStatus } from '@/hooks/useSupabaseConnection';
+import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 
-interface StatusIconProps {
-  status: ConnectionStatus;
+export interface StatusIconProps {
+  isConnected: boolean | null;
+  isLoading: boolean;
 }
 
-const StatusIcon = ({ status }: StatusIconProps) => {
-  switch (status) {
-    case 'connected':
-      return <Database className="h-5 w-5 text-white" />;
-    case 'disconnected':
-      return <CloudOff className="h-5 w-5 text-white" />;
-    case 'connecting':
-      return <RefreshCw className="h-5 w-5 text-white animate-spin" />;
-    default:
-      return <CloudOff className="h-5 w-5 text-white" />;
+const StatusIcon = ({ isConnected, isLoading }: StatusIconProps) => {
+  if (isLoading) {
+    return <Loader2 className="h-4 w-4 text-primary animate-spin" />;
   }
+
+  if (isConnected === null) {
+    return <div className="h-4 w-4 rounded-full bg-gray-300"></div>;
+  }
+
+  if (isConnected) {
+    return <CheckCircle className="h-4 w-4 text-green-500" />;
+  }
+
+  return <XCircle className="h-4 w-4 text-red-500" />;
 };
 
 export default StatusIcon;

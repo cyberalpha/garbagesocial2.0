@@ -1,144 +1,76 @@
 
-import { useState, useEffect, useRef } from 'react';
-import { useToast } from '@/components/ui/use-toast';
-import { 
-  calculateNextRetryDelay,
-  checkSupabaseConnection
-} from '@/utils/supabaseConnectionUtils';
+import { useState, useEffect, useCallback } from 'react';
+import { checkDatabaseConnection } from '@/utils/supabaseConnectionUtils';
 
-export type ConnectionStatus = 'connected' | 'disconnected' | 'connecting';
+// Función auxiliar para calcular el tiempo de reintento
+const calculateNextRetryDelay = (attempt: number, baseDelay = 2000, maxDelay = 30000) => {
+  const delay = Math.min(baseDelay * Math.pow(2, attempt - 1), maxDelay);
+  return delay;
+};
 
-interface UseSupabaseConnectionResult {
-  status: ConnectionStatus;
-  lastChecked: Date | null;
-  error: string | null;
-  checkConnection: () => Promise<void>;
-}
-
-/**
- * Hook personalizado para monitorear la conexión con Supabase
- * @returns Un objeto con el estado actual de la conexión a Supabase
- */
-export const useSupabaseConnection = (): UseSupabaseConnectionResult => {
-  const [status, setStatus] = useState<ConnectionStatus>('connecting');
-  const [lastChecked, setLastChecked] = useState<Date | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
+export const useSupabaseConnection = () => {
+  const [isConnected, setIsConnected] = useState<boolean | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [retryAttempt, setRetryAttempt] = useState(0);
   
-  // Referencias para el control de la conexión
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isFirstCheck = useRef(true);
-  const retryDelayRef = useRef(2000); // Comenzar con 2 segundos para ser más reactivo
-  const connectionAttemptsRef = useRef(0);
-  const previousStatusRef = useRef<ConnectionStatus | null>(null);
-  
-  // Configuración para el backoff exponencial
-  const retryConfig = {
-    initialDelay: 2000,
-    maxRetryDelay: 30000, // Máximo 30 segundos entre intentos
-    maxConsecutiveFailures: 5 // Reiniciar después de 5 fallos consecutivos
-  };
-
-  // Función para resetear el backoff
-  const resetBackoff = () => {
-    retryDelayRef.current = retryConfig.initialDelay;
-    connectionAttemptsRef.current = 0;
-  };
-
-  // Programar próxima verificación utilizando backoff exponencial
-  const scheduleNextCheck = () => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
+  const checkConnection = useCallback(async () => {
+    setIsLoading(true);
+    setErrorMessage(null);
+    
+    try {
+      const { success, error } = await checkDatabaseConnection();
+      
+      setIsConnected(success);
+      
+      if (!success && error) {
+        setErrorMessage(typeof error === 'string' ? error : error.message || 'Error desconocido');
+        setRetryAttempt(prev => prev + 1);
+      } else {
+        setRetryAttempt(0);
+      }
+    } catch (error: any) {
+      console.error('Error checking Supabase connection:', error);
+      setIsConnected(false);
+      setErrorMessage(error.message || 'Error desconocido');
+      setRetryAttempt(prev => prev + 1);
+    } finally {
+      setIsLoading(false);
     }
-    
-    timeoutRef.current = setTimeout(() => {
-      checkConnection();
-    }, retryDelayRef.current);
-    
-    console.log(`Próximo intento de conexión en ${retryDelayRef.current / 1000} segundos`);
-    
-    retryDelayRef.current = calculateNextRetryDelay(
-      retryDelayRef.current, 
-      connectionAttemptsRef.current,
-      retryConfig
-    );
-  };
+  }, []);
 
-  // Verificar conexión con Supabase
-  const checkConnection = async () => {
-    // Limpiamos cualquier timeout anterior
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
-    
-    // Guardamos el estado anterior para referencia
-    previousStatusRef.current = status;
-    
-    const connected = await checkSupabaseConnection(
-      setStatus,
-      setError,
-      setLastChecked,
-      isFirstCheck.current,
-      connectionAttemptsRef.current,
-      toast,
-      previousStatusRef.current
-    );
-    
-    // Actualizamos los contadores y programamos siguiente comprobación si es necesario
-    if (connected) {
-      resetBackoff();
-    } else {
-      connectionAttemptsRef.current++;
-      scheduleNextCheck();
-    }
-    
-    isFirstCheck.current = false;
-  };
-
-  // Efecto para iniciar la verificación de conexión y programar comprobaciones periódicas
   useEffect(() => {
+    // Comprobar conexión al montar
     checkConnection();
     
-    // Comprobamos la conexión cada 30 segundos si estamos conectados
-    const intervalId = setInterval(() => {
-      if (status === 'connected') {
-        checkConnection();
-      }
-    }, 30000);
-    
-    // Manejadores para eventos del navegador
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        console.log("Ventana visible de nuevo, verificando conexión...");
-        checkConnection();
-      }
-    };
-    
-    const handleOnline = () => {
-      console.log("Navegador reporta conexión online, verificando Supabase...");
+    // Configurar verificaciones periódicas
+    const interval = setInterval(() => {
       checkConnection();
-    };
+    }, 60000); // Comprobar cada minuto
     
-    // Añadimos los event listeners
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('online', handleOnline);
-    
-    // Limpiamos los recursos al desmontar
-    return () => {
-      clearInterval(intervalId);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('online', handleOnline);
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, [status]);
+    return () => clearInterval(interval);
+  }, [checkConnection]);
+
+  useEffect(() => {
+    // Solo reintentar si no hay conexión y hay un error
+    if (isConnected === false && errorMessage && retryAttempt > 0) {
+      const retryDelay = calculateNextRetryDelay(retryAttempt);
+      
+      const retryTimeout = setTimeout(() => {
+        console.log(`Reintentando conexión (intento ${retryAttempt})...`);
+        checkConnection();
+      }, retryDelay);
+      
+      return () => clearTimeout(retryTimeout);
+    }
+  }, [isConnected, errorMessage, retryAttempt, checkConnection]);
 
   return {
-    status,
-    lastChecked,
-    error,
+    isConnected,
+    isLoading,
+    errorMessage,
     checkConnection
   };
 };
+
+export default useSupabaseConnection;
