@@ -1,3 +1,4 @@
+
 import { useAuthState } from './useAuthState';
 import { useAuthActions } from './useAuthActions';
 import { useProfileActions } from './useProfileActions';
@@ -17,6 +18,7 @@ export const useAuthProvider = () => {
   const initializeFromSupabase = async () => {
     try {
       if (!currentUser) {
+        setIsLoading(true);
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
           console.log('Usuario restaurado desde sesión de Supabase:', session.user);
@@ -53,7 +55,8 @@ export const useAuthProvider = () => {
             };
             setCurrentUser(user);
           } else {
-            // Si aún no existe un perfil pero el usuario está autenticado
+            // Si aún no existe un perfil pero el usuario está autenticado, crearlo
+            console.log('Creando perfil para usuario autenticado sin perfil');
             const user = {
               id: session.user.id,
               name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || '',
@@ -65,7 +68,7 @@ export const useAuthProvider = () => {
               active: true
             };
             
-            // Crear el perfil en Supabase
+            // Crear el perfil en Supabase de manera explícita
             const { error: createError } = await supabase
               .from('profiles')
               .upsert({
@@ -98,7 +101,6 @@ export const useAuthProvider = () => {
 
   // Inicializar desde Supabase cuando se carga el componente
   if (!currentUser && !isLoading) {
-    setIsLoading(true);
     initializeFromSupabase();
   }
 
@@ -109,10 +111,7 @@ export const useAuthProvider = () => {
     logout
   } = useAuthActions(
     currentUser,
-    (user) => {
-      setCurrentUser(user);
-      // No localStorage operations
-    },
+    setCurrentUser,
     setIsLoading,
     setPendingVerification
   );
@@ -125,10 +124,7 @@ export const useAuthProvider = () => {
     handleResendVerificationEmail
   } = useProfileActions(
     currentUser,
-    (user) => {
-      setCurrentUser(user);
-      // No localStorage operations
-    },
+    setCurrentUser,
     setIsLoading,
     logout
   );

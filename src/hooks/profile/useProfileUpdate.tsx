@@ -26,6 +26,17 @@ export const useProfileUpdate = (
 
       console.log('Intentando actualizar perfil en Supabase:', currentUser.id, userData);
       
+      // Ensure the user ID is a valid UUID
+      if (!currentUser.id || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(currentUser.id)) {
+        console.error('ID de usuario inválido:', currentUser.id);
+        toast({
+          title: t('general.error'),
+          description: "ID de usuario inválido",
+          variant: "destructive"
+        });
+        return null;
+      }
+      
       // Update the user in Supabase
       const { data: supabaseData, error: supabaseError } = await supabase
         .from('profiles')

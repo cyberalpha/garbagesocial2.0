@@ -1,7 +1,5 @@
 
 import { User, Waste } from "@/types";
-import { USERS_STORAGE_KEY, initialUsers } from "./constants";
-import { getWastes } from "../wastes";
 import { getOfflineProfiles } from "@/utils/supabaseConnectionUtils";
 import { offlineMode } from "@/integrations/supabase/client";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,9 +7,9 @@ import { safeTableAccess } from "@/utils/supabaseMockUtils";
 import { transformSupabaseWaste } from "../wastes/utils";
 
 /**
- * Get all users from localStorage
+ * Get all users from localStorage or Supabase
  */
-export const getUsers = (): User[] => {
+export const getUsers = async (): Promise<User[]> => {
   if (offlineMode()) {
     // Si estamos en modo offline, intentamos obtener los perfiles de la caché
     const offlineProfiles = getOfflineProfiles();
@@ -29,9 +27,36 @@ export const getUsers = (): User[] => {
         active: true
       }));
     }
+    return [];
   }
   
-  // If not offline mode, try to get users from Supabase
+  // If not offline mode, get users from Supabase
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*');
+    
+    if (error) {
+      console.error('Error fetching profiles from Supabase:', error);
+      return [];
+    }
+    
+    if (data) {
+      return data.map(profile => ({
+        id: profile.id,
+        name: profile.name || '',
+        email: profile.email || '',
+        isOrganization: profile.is_organization || false,
+        averageRating: profile.average_rating || 0,
+        profileImage: profile.profile_image || '',
+        emailVerified: true,
+        active: !profile.name?.startsWith('DELETED_')
+      }));
+    }
+  } catch (error) {
+    console.error('Error fetching users:', error);
+  }
+  
   return [];
 };
 
@@ -43,6 +68,15 @@ export const getUserById = async (id: string): Promise<User | null> => {
   
   if (!id) {
     console.error('ID de usuario inválido:', id);
+    return null;
+  }
+  
+  // Check if ID is valid UUID format for Supabase
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  const isValidUuid = uuidRegex.test(id);
+  
+  if (!isValidUuid) {
+    console.error('ID no tiene formato de UUID válido:', id);
     return null;
   }
   
@@ -85,13 +119,22 @@ export const getUserById = async (id: string): Promise<User | null> => {
   
   // Si estamos en modo offline, buscar en caché
   if (offlineMode()) {
-    const users = getUsers();
-    console.log('Usuarios en modo offline:', users);
-    const user = users.find(user => user.id === id);
+    const offlineProfiles = getOfflineProfiles();
+    console.log('Perfiles en modo offline:', offlineProfiles);
+    const profile = offlineProfiles.find((profile: any) => profile.id === id);
     
-    if (user) {
-      console.log('Usuario encontrado en caché offline:', user);
-      return user;
+    if (profile) {
+      console.log('Usuario encontrado en caché offline:', profile);
+      return {
+        id: profile.id,
+        name: profile.name || 'Usuario',
+        email: profile.email || '',
+        isOrganization: profile.is_organization || false,
+        averageRating: profile.average_rating || 0,
+        profileImage: profile.profile_image || '',
+        emailVerified: true,
+        active: true
+      };
     }
   }
   
@@ -105,6 +148,15 @@ export const getUserById = async (id: string): Promise<User | null> => {
 export const getWastesByUserId = async (userId: string): Promise<Waste[]> => {
   try {
     console.log('getWastesByUserId llamado con userId:', userId);
+    
+    // Check if ID is valid UUID format for Supabase
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    const isValidUuid = uuidRegex.test(userId);
+    
+    if (!isValidUuid) {
+      console.error('ID no tiene formato de UUID válido:', userId);
+      return [];
+    }
     
     // Try to get wastes from Supabase first
     if (!offlineMode()) {
@@ -127,11 +179,7 @@ export const getWastesByUserId = async (userId: string): Promise<Waste[]> => {
     }
     
     // Fallback to local wastes
-    const allWastes = await getWastes();
-    console.log('Todos los residuos (local):', allWastes);
-    const filteredWastes = allWastes.filter(waste => waste.userId === userId);
-    console.log('Residuos filtrados (local):', filteredWastes);
-    return filteredWastes;
+    return [];
   } catch (error) {
     console.error(`Error al obtener residuos para el usuario ${userId}:`, error);
     return [];
@@ -144,6 +192,15 @@ export const getWastesByUserId = async (userId: string): Promise<Waste[]> => {
 export const saveUser = async (user: User): Promise<void> => {
   try {
     console.log('Guardando usuario en Supabase:', user);
+    
+    // Check if ID is valid UUID format for Supabase
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    const isValidUuid = uuidRegex.test(user.id);
+    
+    if (!isValidUuid) {
+      console.error('ID no tiene formato de UUID válido:', user.id);
+      return;
+    }
     
     const { error } = await supabase
       .from('profiles')
@@ -174,6 +231,15 @@ export const saveUser = async (user: User): Promise<void> => {
 export const deleteUser = async (id: string): Promise<void> => {
   try {
     console.log('Desactivando usuario en Supabase:', id);
+    
+    // Check if ID is valid UUID format for Supabase
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    const isValidUuid = uuidRegex.test(id);
+    
+    if (!isValidUuid) {
+      console.error('ID no tiene formato de UUID válido:', id);
+      return;
+    }
     
     // Actualizar el nombre para marcar como eliminado en lugar de usar un flag "active"
     const { error } = await supabase
