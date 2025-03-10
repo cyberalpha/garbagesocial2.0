@@ -1,3 +1,4 @@
+
 import { Waste, WasteStatus } from "@/types";
 import { WASTES_STORAGE_KEY } from "./constants";
 import { getFromStorage, saveToStorage } from "../localStorage";
@@ -23,6 +24,7 @@ const saveWasteLocally = (waste: Waste, operation: 'create' | 'update'): void =>
   }
   
   saveToStorage(WASTES_STORAGE_KEY, wastes, { syncStatus: 'pending' });
+  console.log(`Residuo guardado localmente (${operation}):`, waste);
   
   // En modo offline, no agregamos a la cola de sincronización
   if (!offlineMode()) {
@@ -58,6 +60,8 @@ export const addWaste = async (wasteData: Partial<Waste>): Promise<Waste> => {
     pickupCommitment: wasteData.pickupCommitment
   };
   
+  console.log("Generando nuevo residuo con ID:", newId);
+  
   // En modo offline, sólo guardamos localmente
   if (offlineMode()) {
     console.log("Modo offline: guardando residuo sólo localmente");
@@ -72,6 +76,7 @@ export const addWaste = async (wasteData: Partial<Waste>): Promise<Waste> => {
     if (isOnline) {
       // Transformar para Supabase y guardar
       const supabaseData = transformWasteForSupabase(newWaste);
+      console.log("Datos transformados para Supabase:", supabaseData);
       
       // Intentar guardar en Supabase
       const result = await safeTableAccess('wastes')
@@ -92,6 +97,7 @@ export const addWaste = async (wasteData: Partial<Waste>): Promise<Waste> => {
       }
     } else {
       // Sin conexión, guardar localmente y agregar a la cola
+      console.log("Sin conexión, guardando localmente");
       saveWasteLocally(newWaste, 'create');
     }
   } catch (error) {

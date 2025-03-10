@@ -48,14 +48,21 @@ export const useAuthProvider = () => {
       // Guardamos el usuario en localStorage cuando se actualiza
       if (user) {
         console.log('Guardando usuario en localStorage:', user);
+        // Usar el servicio personalizado de storage
         saveToStorage(AUTH_USER_STORAGE_KEY, user, { expiration: 7 * 24 * 60 * 60 * 1000 }); // 7 días
         
         // También guardamos en el localStorage estándar para asegurar compatibilidad
         localStorage.setItem(AUTH_USER_STORAGE_KEY, JSON.stringify(user));
+        
+        // Guardar también el ID por separado para una recuperación más fácil
+        if (user.id) {
+          localStorage.setItem('auth_user_id', user.id);
+        }
       } else {
         // Si el usuario es null (logout), eliminamos del localStorage
         console.log('Eliminando usuario de localStorage');
         localStorage.removeItem(AUTH_USER_STORAGE_KEY);
+        localStorage.removeItem('auth_user_id');
       }
     },
     setIsLoading,
@@ -75,10 +82,16 @@ export const useAuthProvider = () => {
       // Actualizamos el usuario en localStorage
       if (user) {
         console.log('Actualizando usuario en localStorage:', user);
+        // Usar el servicio personalizado de storage
         saveToStorage(AUTH_USER_STORAGE_KEY, user, { expiration: 7 * 24 * 60 * 60 * 1000 });
         
         // También en localStorage estándar
         localStorage.setItem(AUTH_USER_STORAGE_KEY, JSON.stringify(user));
+        
+        // Guardar también el ID por separado
+        if (user.id) {
+          localStorage.setItem('auth_user_id', user.id);
+        }
       }
     },
     setIsLoading,
