@@ -2,7 +2,7 @@
 import { createContext } from 'react';
 import { User } from '@/types';
 
-// Definimos el formato de respuesta de autenticación para nuestra implementación sin Supabase
+// Definimos el formato de respuesta de autenticación que es compatible con Supabase
 export interface AuthResponseData {
   data?: {
     user: User | null;
