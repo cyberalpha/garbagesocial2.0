@@ -59,8 +59,8 @@ const PublishWaste = () => {
         description: "Tu residuo ha sido publicado correctamente",
       });
       
-      // Redirigir a la página principal
-      navigate('/');
+      // Redirigir al perfil del usuario en lugar de la página principal
+      navigate(`/profile/${currentUser.id}`);
     } catch (error) {
       // Mostrar mensaje de error
       toast({

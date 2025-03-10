@@ -37,8 +37,34 @@ export const getUsers = (): User[] => {
  * Get user by ID
  */
 export const getUserById = (id: string): User | null => {
+  console.log('getUserById called with id:', id);
   const users = getUsers();
-  return users.find(user => user.id === id) || null;
+  console.log('All users:', users);
+  
+  // Primero buscar en los usuarios obtenidos
+  const user = users.find(user => user.id === id);
+  
+  if (user) {
+    console.log('User found in users array:', user);
+    return user;
+  }
+  
+  // Si el usuario no se encuentra pero tenemos el ID actual en localStorage
+  const authUserData = localStorage.getItem('auth_user_data');
+  if (authUserData) {
+    try {
+      const authUser = JSON.parse(authUserData);
+      if (authUser && authUser.id === id) {
+        console.log('User found in auth_user_data:', authUser);
+        return authUser;
+      }
+    } catch (error) {
+      console.error('Error parsing auth_user_data:', error);
+    }
+  }
+  
+  console.log('No user found with id:', id);
+  return null;
 };
 
 /**
@@ -46,8 +72,12 @@ export const getUserById = (id: string): User | null => {
  */
 export const getWastesByUserId = async (userId: string): Promise<Waste[]> => {
   try {
+    console.log('getWastesByUserId called with userId:', userId);
     const allWastes = await getWastes();
-    return allWastes.filter(waste => waste.userId === userId);
+    console.log('All wastes:', allWastes);
+    const filteredWastes = allWastes.filter(waste => waste.userId === userId);
+    console.log('Filtered wastes:', filteredWastes);
+    return filteredWastes;
   } catch (error) {
     console.error(`Error al obtener residuos para el usuario ${userId}:`, error);
     return [];

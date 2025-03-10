@@ -8,7 +8,8 @@ import { ArrowLeft } from "lucide-react";
 import { getUserById, getWastesByUserId } from "@/services/users";
 import WasteCard from "@/components/WasteCard";
 import UserProfile from "@/components/UserProfile";
-import { useAuth } from "@/components/AuthProvider";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "@/hooks/use-toast";
 
 const Profile = () => {
   const { id } = useParams<{ id: string }>();
@@ -28,28 +29,49 @@ const Profile = () => {
     setLoading(true);
     
     const loadProfileData = async () => {
-      // Si no hay ID, usar el usuario actual (si está autenticado)
-      if (!id && currentUser) {
-        setUser(currentUser);
-        const userWastes = await getWastesByUserId(currentUser.id);
-        setWastes(userWastes);
-        setLoading(false);
-        return;
-      }
-      
-      // Si hay ID, buscar el usuario
-      if (id) {
-        const userData = getUserById(id);
-        if (userData) {
-          setUser(userData);
-          
-          // Get user's wastes
-          const userWastes = await getWastesByUserId(id);
+      try {
+        // Si no hay ID, usar el usuario actual (si está autenticado)
+        if (!id && currentUser) {
+          console.log('Using current user data:', currentUser);
+          setUser(currentUser);
+          const userWastes = await getWastesByUserId(currentUser.id);
           setWastes(userWastes);
+          setLoading(false);
+          return;
         }
+        
+        // Si hay ID, buscar el usuario
+        if (id) {
+          console.log('Fetching user data for ID:', id);
+          const userData = getUserById(id);
+          
+          if (userData) {
+            console.log('User data found:', userData);
+            setUser(userData);
+            
+            // Get user's wastes
+            const userWastes = await getWastesByUserId(id);
+            console.log('User wastes found:', userWastes);
+            setWastes(userWastes);
+          } else {
+            console.log('No user data found for ID:', id);
+            toast({
+              title: "Error",
+              description: "Usuario no encontrado",
+              variant: "destructive"
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error loading profile data:', error);
+        toast({
+          title: "Error",
+          description: "Error al cargar los datos del perfil",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
       }
-      
-      setLoading(false);
     };
     
     loadProfileData();
