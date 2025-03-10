@@ -28,8 +28,8 @@ export const checkDatabaseConnection = async () => {
       // Intento alternativo con una consulta más básica
       try {
         console.log('Intentando verificación alternativa...');
-        // Cambiamos la llamada a rpc para evitar el error de tipo
-        const { data: healthData, error: healthError } = await supabase.rpc('pg_stat_database', {});
+        // Eliminamos completamente la llamada a rpc que causa el error y usamos otra consulta
+        const { error: healthError } = await supabase.auth.getSession();
         
         if (healthError) {
           return { 
