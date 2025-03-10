@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthProvider';
@@ -38,7 +37,6 @@ const LoginForm = () => {
       return;
     }
     
-    // Verificar si estamos conectados antes de intentar login
     if (connectionStatus === 'disconnected') {
       setLoginError("No hay conexión a Internet. Por favor, verifica tu conexión e intenta nuevamente.");
       return;
@@ -50,11 +48,9 @@ const LoginForm = () => {
       console.log(`Intentando iniciar sesión con: ${email}`);
       const response = await login(email, password);
       
-      // Si hay un error en la respuesta, mostrar mensaje de error
       if (response.error) {
         console.error("Error de login:", response.error);
         
-        // Manejar diferentes tipos de errores de autenticación
         if (response.error.message.includes('Invalid login credentials')) {
           setLoginError("Credenciales inválidas. Por favor verifica tu email y contraseña.");
         } else if (response.error.message.includes('Email not confirmed')) {
@@ -65,7 +61,6 @@ const LoginForm = () => {
         return;
       }
       
-      // El useEffect que observa currentUser manejará la redirección
       toast({
         title: t('general.success'),
         description: "Has iniciado sesión correctamente.",
@@ -101,7 +96,7 @@ const LoginForm = () => {
           )}
           
           {connectionStatus === 'disconnected' && (
-            <Alert variant="warning" className="bg-amber-50 border-amber-200">
+            <Alert variant="default" className="bg-amber-50 border-amber-200">
               <AlertCircle className="h-4 w-4 text-amber-600" />
               <AlertDescription className="text-amber-700">
                 No hay conexión a Supabase. Verifica tu conexión a Internet.
