@@ -3,6 +3,8 @@ import { useAuthState } from './useAuthState';
 import { useAuthActions } from './useAuthActions';
 import { useProfileActions } from './useProfileActions';
 import { getFromStorage, saveToStorage } from '@/services/localStorage';
+import { getOfflineProfiles } from '@/utils/supabaseConnectionUtils';
+import { offlineMode } from '@/integrations/supabase/client';
 
 // Clave para almacenar el usuario en localStorage
 const AUTH_USER_STORAGE_KEY = 'auth_user_data';
