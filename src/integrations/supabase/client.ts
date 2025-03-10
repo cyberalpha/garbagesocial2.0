@@ -19,7 +19,8 @@ export const SUPABASE_CONFIG = {
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
 // Offline mode functionality
-let _offlineMode = false;
+// Inicializar en true para trabajar en modo offline por defecto
+let _offlineMode = true;
 
 export const offlineMode = () => _offlineMode;
 export const setOfflineMode = (mode: boolean) => {
@@ -50,6 +51,17 @@ export interface ConnectionTestResult {
 // Supabase connection test
 export const testConnection = async (): Promise<ConnectionTestResult> => {
   try {
+    // Si estamos en modo offline, retornamos un resultado fallido simulado
+    if (_offlineMode) {
+      console.log('Modo offline activado, saltando test de conexión real');
+      return {
+        success: false,
+        error: "Modo offline activado",
+        latency: null,
+        version: null
+      };
+    }
+    
     // Simple ping test to Supabase usando la tabla profiles en lugar de users
     const startTime = performance.now();
     const { data, error } = await supabase.from('profiles').select('count()', { count: 'exact', head: true });

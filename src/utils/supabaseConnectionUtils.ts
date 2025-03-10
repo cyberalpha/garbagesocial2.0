@@ -1,9 +1,20 @@
 
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, offlineMode } from '@/integrations/supabase/client';
 import { safeTableAccess } from './supabaseMockUtils';
 
 // Función para verificar la conexión a la base de datos
 export const checkDatabaseConnection = async () => {
+  // Si estamos en modo offline, retornamos un estado offline simulado
+  if (offlineMode()) {
+    console.log('Modo offline activado, saltando verificación de conexión real');
+    return { 
+      success: false, 
+      error: "Modo offline activado", 
+      offlineMode: true,
+      latency: null
+    };
+  }
+  
   try {
     console.log('Verificando conexión a Supabase...');
     const startTime = performance.now();
