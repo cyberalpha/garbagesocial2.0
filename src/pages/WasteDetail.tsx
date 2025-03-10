@@ -31,17 +31,25 @@ const WasteDetail = () => {
           
           // Get publisher data
           if (wasteData.userId) {
-            const publisherData = getUserById(wasteData.userId);
-            if (publisherData) {
-              setPublisher(publisherData);
+            try {
+              const publisherData = await getUserById(wasteData.userId);
+              if (publisherData) {
+                setPublisher(publisherData);
+              }
+            } catch (error) {
+              console.error("Error al cargar datos del publicador:", error);
             }
           }
           
           // Get recycler data if available
           if (wasteData.pickupCommitment?.recyclerId) {
-            const recyclerData = getUserById(wasteData.pickupCommitment.recyclerId);
-            if (recyclerData) {
-              setRecycler(recyclerData);
+            try {
+              const recyclerData = await getUserById(wasteData.pickupCommitment.recyclerId);
+              if (recyclerData) {
+                setRecycler(recyclerData);
+              }
+            } catch (error) {
+              console.error("Error al cargar datos del reciclador:", error);
             }
           }
         }
@@ -72,9 +80,13 @@ const WasteDetail = () => {
         
         // Get recycler data
         if (updatedWaste.pickupCommitment?.recyclerId) {
-          const recyclerData = getUserById(updatedWaste.pickupCommitment.recyclerId);
-          if (recyclerData) {
-            setRecycler(recyclerData);
+          try {
+            const recyclerData = await getUserById(updatedWaste.pickupCommitment.recyclerId);
+            if (recyclerData) {
+              setRecycler(recyclerData);
+            }
+          } catch (error) {
+            console.error("Error al cargar datos del reciclador actualizado:", error);
           }
         }
         
