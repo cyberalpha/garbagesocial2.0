@@ -39,8 +39,16 @@ export const setOfflineMode = (mode: boolean) => {
 // Browser online status
 export const isOnline = () => typeof navigator !== 'undefined' && navigator.onLine;
 
+// Supabase connection test result interface
+export interface ConnectionTestResult {
+  success: boolean;
+  error: any | null;
+  latency: number | null;
+  version: string | null;
+}
+
 // Supabase connection test
-export const testConnection = async () => {
+export const testConnection = async (): Promise<ConnectionTestResult> => {
   try {
     // Simple ping test to Supabase
     const startTime = performance.now();

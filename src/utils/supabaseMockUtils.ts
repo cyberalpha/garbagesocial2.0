@@ -3,6 +3,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { Json } from '@/integrations/supabase/types';
 import { WasteType, WasteStatus } from '@/types';
 
+// Tipos de tablas permitidas
+type ValidTableName = 'wastes' | 'profiles' | 'users';
+
 // This utility provides mock implementations for Supabase operations
 // on tables that don't exist yet in our database schema
 
@@ -56,10 +59,11 @@ export const mockTableQuery = (tableName: string) => {
  * if the table doesn't exist.
  * @param tableName The name of the table to access
  */
-export const safeTableAccess = (tableName: string) => {
+export const safeTableAccess = (tableName: ValidTableName | string) => {
   try {
     // First try to access the table directly
-    const builder = supabase.from(tableName);
+    // Cast to any to avoid TypeScript errors when table doesn't exist yet
+    const builder = supabase.from(tableName as ValidTableName);
     return builder;
   } catch (error) {
     console.warn(`Table '${tableName}' doesn't exist yet. Using mock implementation.`);

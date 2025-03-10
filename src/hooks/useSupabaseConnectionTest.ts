@@ -16,7 +16,7 @@ export const useSupabaseConnectionTest = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [connectionDetails, setConnectionDetails] = useState<ConnectionDetails | null>(null);
 
-  const testConnection = useCallback(async (forceTest: boolean = false) => {
+  const testConnectionFunc = useCallback(async (forceTest: boolean = false) => {
     // Si estamos en modo offline y no es un test forzado, no ejecutamos la prueba
     if (offlineMode() && !forceTest) {
       console.log('En modo offline, no se realizará la prueba de conexión');
@@ -33,19 +33,19 @@ export const useSupabaseConnectionTest = () => {
       const result = await testConnection();
       const timestamp = Date.now();
       
-      if (result.success) {
+      if (result && result.success) {
         setIsConnected(true);
         setConnectionDetails({
           success: true,
           timestamp,
-          latency: result.latency,
-          supabaseVersion: result.version
+          latency: result.latency || null,
+          supabaseVersion: result.version || null
         });
-      } else if (result.error) {
+      } else if (result && result.error) {
         setIsConnected(false);
         setErrorMessage(typeof result.error === 'string' 
           ? result.error 
-          : result.error.message || 'Error desconocido');
+          : (result.error && result.error.message) || 'Error desconocido');
         console.error('Error al verificar conexión:', result.error);
       } else {
         setIsConnected(false);
@@ -64,7 +64,7 @@ export const useSupabaseConnectionTest = () => {
     isConnected,
     isLoading,
     errorMessage,
-    testConnection,
+    testConnection: testConnectionFunc,
     connectionDetails
   };
 };
