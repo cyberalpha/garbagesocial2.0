@@ -1,3 +1,4 @@
+
 import { User } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
 import { useLanguage } from '@/components/LanguageContext';
@@ -95,10 +96,14 @@ export const useProfileActions = (
 
       console.log('Attempting to delete profile from Supabase:', currentUser.id);
       
-      // In a real application, we might set a "deleted" flag rather than actually deleting
+      // Instead of using "active" which doesn't exist in the table type,
+      // we'll just mark deleted profiles in a different way
       const { error: supabaseError } = await supabase
         .from('profiles')
-        .update({ active: false })
+        .update({ 
+          name: `DELETED_${currentUser.name}`,
+          profile_image: null 
+        })
         .eq('id', currentUser.id);
       
       if (supabaseError) {

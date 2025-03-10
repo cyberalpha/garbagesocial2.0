@@ -9,6 +9,7 @@ import UserProfile from "@/components/UserProfile";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
+import { transformSupabaseWaste } from '@/services/wastes/utils';
 
 const Profile = () => {
   const { id } = useParams<{ id: string }>();
@@ -120,7 +121,9 @@ const Profile = () => {
             setWastes(userWastes);
           } else if (wasteData) {
             console.log('Wastes found in Supabase:', wasteData);
-            setWastes(wasteData);
+            // Transform Supabase waste format to our application's Waste type
+            const transformedWastes = wasteData.map(waste => transformSupabaseWaste(waste));
+            setWastes(transformedWastes);
           }
         } catch (wasteErr) {
           console.error('Error getting wastes:', wasteErr);
@@ -182,7 +185,7 @@ const Profile = () => {
         Volver
       </Button>
       
-      <UserProfile user={user} isEditable={isEditable} wastes={wastes} />
+      <UserProfile user={user} isEditable={currentUser && user?.id === currentUser?.id} wastes={wastes} />
     </div>
   );
 };

@@ -6,6 +6,7 @@ import { getOfflineProfiles } from "@/utils/supabaseConnectionUtils";
 import { offlineMode } from "@/integrations/supabase/client";
 import { supabase } from "@/integrations/supabase/client";
 import { safeTableAccess } from "@/utils/supabaseMockUtils";
+import { transformSupabaseWaste } from "../wastes/utils";
 
 /**
  * Get all users from localStorage
@@ -25,7 +26,7 @@ export const getUsers = (): User[] => {
         averageRating: profile.average_rating || 0,
         profileImage: profile.profile_image,
         emailVerified: true,
-        active: profile.active
+        active: true
       }));
     }
   }
@@ -108,9 +109,10 @@ export const getWastesByUserId = async (userId: string): Promise<Waste[]> => {
         
         if (error) {
           console.error('Error getting wastes from Supabase:', error);
-        } else if (data) {
+        } else if (data && data.length > 0) {
           console.log('Wastes found in Supabase:', data);
-          return data;
+          // Transform the Supabase waste data to our application's format
+          return data.map(waste => transformSupabaseWaste(waste));
         }
       } catch (supabaseError) {
         console.error('Error querying Supabase for wastes:', supabaseError);
@@ -166,9 +168,13 @@ export const deleteUser = async (id: string): Promise<void> => {
   try {
     console.log('Deleting user from Supabase:', id);
     
+    // Update name to mark as deleted instead of using "active" flag which doesn't exist in the table
     const { error } = await supabase
       .from('profiles')
-      .update({ active: false })
+      .update({ 
+        name: 'DELETED_USER',
+        profile_image: null
+      })
       .eq('id', id);
     
     if (error) {
