@@ -1,32 +1,13 @@
 
-// Este archivo re-exporta funciones de los nuevos archivos de servicios
-// para mantener compatibilidad con el código existente
-import { getWastes, getAllWastes, getWasteById, getWastesByType, saveWaste, addWaste, deleteWaste, updateWasteStatus, commitToCollect } from './wastes';
-import { getUsers, getUserById, saveUser, deleteUser, getWastesByUserId } from './users';
+import { User } from '@/types';
+import { getUsers } from './users';
 
-// Re-exportar todas las funciones
-export {
-  getWastes,
-  getAllWastes,
-  getWasteById,
-  getWastesByType,
-  saveWaste,
-  addWaste,
-  deleteWaste,
-  updateWasteStatus,
-  commitToCollect,
-  getUsers,
-  getUserById,
-  saveUser,
-  deleteUser,
-  getWastesByUserId
+export const findUserById = async (id: string): Promise<User | null> => {
+  try {
+    const users = await getUsers();
+    return users.find(user => user.id === id) || null;
+  } catch (error) {
+    console.error('Error finding user:', error);
+    return null;
+  }
 };
-
-// Estas exportaciones están en desuso y eventualmente se eliminarán
-export const getAllUsers = getUsers;
-export const getUserByEmail = (email: string) => {
-  const users = getUsers();
-  return users.find(user => user.email === email) || null;
-};
-export const saveUserData = saveUser;
-export const updateUserData = saveUser;

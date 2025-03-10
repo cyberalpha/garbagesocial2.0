@@ -2,25 +2,20 @@
 import { createContext } from 'react';
 import { User } from '@/types';
 
-// Definimos el formato de respuesta de autenticación que es compatible con Supabase
+// Update the auth response type to match our implementation
 export interface AuthResponseData {
-  data?: {
-    user: User | null;
-    session?: { user: User } | null;
-  };
-  error?: {
-    message: string;
-  };
+  user: User | null;
+  session?: { user: User } | null;
 }
 
 export interface AuthContextType {
   currentUser: User | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<AuthResponseData>;
+  login: (credentials: { email: string; password: string }) => Promise<User | null>;
   register: (userData: Partial<User> & { password?: string }) => Promise<User | null>;
   logout: () => Promise<void>;
   updateProfile: (userData: Partial<User>) => Promise<User | null>;
-  deleteProfile: () => Promise<boolean>;
+  deleteProfile: () => Promise<void>;
   verifyEmail: (token: string) => Promise<boolean>;
   loginWithSocialMedia: (provider: string) => Promise<void>;
   pendingVerification: boolean;

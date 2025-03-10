@@ -4,7 +4,7 @@ import { useAuthProvider } from '@/hooks/useAuthProvider';
 import { useSessionManager } from '@/hooks/useSessionManager';
 import { AuthContext } from '@/contexts/AuthContext';
 
-// Exportar el hook de autenticación
+// Export the auth hook
 export { useAuth } from '@/hooks/useAuth';
 
 interface AuthProviderProps {
@@ -30,7 +30,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     handleResendVerificationEmail
   } = useAuthProvider();
 
-  // Configurar el gestor de sesiones
+  // Set up session manager
   useSessionManager({ 
     handleSessionChange, 
     setIsLoading 

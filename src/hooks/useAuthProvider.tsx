@@ -1,4 +1,3 @@
-
 import { useAuthState } from './useAuthState';
 import { useAuthActions } from './useAuthActions';
 import { useProfileActions } from './useProfileActions';
@@ -99,7 +98,7 @@ export const useAuthProvider = () => {
     }
   };
 
-  // Inicializar desde Supabase cuando se carga el componente
+  // Initialize from Supabase when component loads
   if (!currentUser && !isLoading) {
     initializeFromSupabase();
   }
@@ -126,7 +125,9 @@ export const useAuthProvider = () => {
     currentUser,
     setCurrentUser,
     setIsLoading,
-    logout
+    async () => {
+      await logout();
+    }
   );
 
   return {
