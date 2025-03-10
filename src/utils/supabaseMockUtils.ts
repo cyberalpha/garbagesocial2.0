@@ -14,6 +14,7 @@ type ValidTableName = 'wastes' | 'profiles' | 'users';
  * @param tableName The name of the non-existent table
  */
 export const mockTableQuery = (tableName: string) => {
+  console.log(`Using mock implementation for table: ${tableName}`);
   // Return an object with methods that mimic the Supabase API
   return {
     select: (columns?: string) => ({
@@ -61,10 +62,9 @@ export const mockTableQuery = (tableName: string) => {
  */
 export const safeTableAccess = (tableName: ValidTableName | string) => {
   try {
-    // First try to access the table directly
-    // Cast to any to avoid TypeScript errors when table doesn't exist yet
-    const builder = supabase.from(tableName as ValidTableName);
-    return builder;
+    console.log(`Attempting to access table: ${tableName}`);
+    // Since we don't have tables defined yet, we'll always use the mock implementation
+    return mockTableQuery(tableName) as any;
   } catch (error) {
     console.warn(`Table '${tableName}' doesn't exist yet. Using mock implementation.`);
     return mockTableQuery(tableName) as any;

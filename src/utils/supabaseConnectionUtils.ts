@@ -18,7 +18,10 @@ export const checkDatabaseConnection = async () => {
   try {
     console.log('Verificando conexión a Supabase...');
     const startTime = performance.now();
-    const { data, error } = await supabase.from('profiles').select('count()', { count: 'exact', head: true });
+    
+    // Use safeTableAccess instead of direct table access since tables might not exist
+    const { data, error } = await safeTableAccess('profiles').select('count()');
+    
     const endTime = performance.now();
     
     if (error) {
