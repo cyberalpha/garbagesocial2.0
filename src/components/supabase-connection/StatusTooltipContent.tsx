@@ -1,8 +1,10 @@
 
 import React from 'react';
-import { AlertCircle } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { RefreshCw } from 'lucide-react';
 import { ConnectionStatus } from '@/hooks/useSupabaseConnection';
+import { formatDistanceToNow } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 interface StatusTooltipContentProps {
   status: ConnectionStatus;
@@ -14,53 +16,45 @@ interface StatusTooltipContentProps {
 const StatusTooltipContent = ({ 
   status, 
   error, 
-  lastChecked,
+  lastChecked, 
   onManualCheck 
 }: StatusTooltipContentProps) => {
   const getStatusText = () => {
     switch (status) {
       case 'connected':
-        return "Conectado a Supabase";
-      case 'disconnected':
-        return `Sin conexión a Supabase${error ? `: ${error}` : ''}`;
+        return 'Conectado a Supabase';
       case 'connecting':
-        return "Conectando con Supabase...";
+        return 'Conectando a Supabase...';
+      case 'disconnected':
+        return 'Desconectado de Supabase';
       default:
-        return "Estado de conexión desconocido";
+        return 'Estado desconocido';
     }
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <p className="font-medium">{getStatusText()}</p>
+      
+      {error && (
+        <p className="text-xs text-red-500 mt-1">{error}</p>
+      )}
+      
       {lastChecked && (
-        <p className="text-xs text-muted-foreground">
-          Última comprobación: {lastChecked.toLocaleTimeString()}
+        <p className="text-xs text-gray-500">
+          Última verificación: {formatDistanceToNow(lastChecked, { addSuffix: true, locale: es })}
         </p>
       )}
       
-      {status === 'disconnected' && (
-        <div className="border-t pt-2">
-          <p className="text-xs text-amber-600 flex items-center gap-1 mb-1">
-            <AlertCircle className="h-3 w-3" /> 
-            Posibles soluciones:
-          </p>
-          <ul className="text-xs text-muted-foreground list-disc pl-4 space-y-1">
-            <li>Verificar conexión a internet</li>
-            <li>Comprobar que el proyecto Supabase esté activo</li>
-            <li>Verificar las credenciales de Supabase</li>
-          </ul>
-          <Link 
-            to="/supabase-diagnostic" 
-            className="mt-2 text-xs text-primary hover:underline inline-flex items-center"
-            onClick={(e) => e.stopPropagation()}
-          >
-            Ver herramienta de diagnóstico
-          </Link>
-        </div>
-      )}
-      
-      <p className="text-xs italic">Haz clic para comprobar manualmente</p>
+      <Button 
+        variant="outline" 
+        size="sm" 
+        className="w-full mt-2" 
+        onClick={onManualCheck}
+      >
+        <RefreshCw className="mr-2 h-3 w-3" />
+        Verificar conexión
+      </Button>
     </div>
   );
 };

@@ -1,19 +1,18 @@
 
 import { ConnectionStatus } from '@/hooks/useSupabaseConnection';
-import { cn } from '@/lib/utils';
 
 /**
- * Determina el color del estado de conexión de Supabase
+ * Obtiene el color de fondo para el estado de conexión
  */
 export const getStatusColor = (status: ConnectionStatus): string => {
   switch (status) {
     case 'connected':
-      return "bg-green-500/80 hover:bg-green-500";
-    case 'disconnected':
-      return "bg-destructive/80 hover:bg-destructive animate-pulse";
+      return 'bg-green-100 hover:bg-green-200';
     case 'connecting':
-      return "bg-amber-500/80 hover:bg-amber-500";
+      return 'bg-blue-100 hover:bg-blue-200';
+    case 'disconnected':
+      return 'bg-red-100 hover:bg-red-200';
     default:
-      return "bg-slate-500/80 hover:bg-slate-500";
+      return 'bg-gray-100 hover:bg-gray-200';
   }
 };
