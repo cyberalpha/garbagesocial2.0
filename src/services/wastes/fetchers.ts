@@ -2,13 +2,19 @@
 import { Waste, WasteType } from "@/types";
 import { WASTES_STORAGE_KEY, initialWastes } from "./constants";
 import { getFromStorage } from "../localStorage";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, offlineMode } from "@/integrations/supabase/client";
 import { transformSupabaseWaste } from "./utils";
 
 /**
  * Get all wastes from Supabase or localStorage as fallback
  */
 export const getWastes = async (): Promise<Waste[]> => {
+  // En modo offline, siempre usamos localStorage
+  if (offlineMode) {
+    console.log("Modo offline activado, usando datos locales");
+    return getFromStorage<Waste[]>(WASTES_STORAGE_KEY, initialWastes);
+  }
+  
   try {
     // Intentar obtener datos de Supabase
     const { data, error } = await supabase
@@ -43,6 +49,13 @@ export const getAllWastes = getWastes;
  * Get wastes by type
  */
 export const getWastesByType = async (type: WasteType): Promise<Waste[]> => {
+  // En modo offline, siempre usamos localStorage
+  if (offlineMode) {
+    console.log(`Modo offline activado, usando datos locales para tipo ${type}`);
+    const wastes = getFromStorage<Waste[]>(WASTES_STORAGE_KEY, initialWastes);
+    return wastes.filter(waste => waste.type === type);
+  }
+  
   try {
     // Intentar obtener datos de Supabase filtrados por tipo
     const { data, error } = await supabase
@@ -75,6 +88,13 @@ export const getWastesByType = async (type: WasteType): Promise<Waste[]> => {
  * Get waste by ID
  */
 export const getWasteById = async (id: string): Promise<Waste | null> => {
+  // En modo offline, siempre usamos localStorage
+  if (offlineMode) {
+    console.log(`Modo offline activado, usando datos locales para ID ${id}`);
+    const wastes = getFromStorage<Waste[]>(WASTES_STORAGE_KEY, initialWastes);
+    return wastes.find(waste => waste.id === id) || null;
+  }
+  
   try {
     // Intentar obtener datos de Supabase
     const { data, error } = await supabase

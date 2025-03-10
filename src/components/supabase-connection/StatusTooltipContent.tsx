@@ -1,17 +1,17 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, ExternalLink } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle, WifiOff } from 'lucide-react';
 import { ConnectionStatus } from '@/hooks/useSupabaseConnection';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Link } from 'react-router-dom';
+import OfflineModeToggle from '../OfflineModeToggle';
 
 interface StatusTooltipContentProps {
   status: ConnectionStatus;
   error: string | null;
   lastChecked: Date | null;
-  onManualCheck: (e: React.MouseEvent) => void;
+  onManualCheck: () => void;
 }
 
 const StatusTooltipContent = ({ 
@@ -20,62 +20,92 @@ const StatusTooltipContent = ({
   lastChecked, 
   onManualCheck 
 }: StatusTooltipContentProps) => {
-  const getStatusText = () => {
+  const getStatusContent = () => {
     switch (status) {
+      case 'offline':
+        return (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center text-orange-500">
+              <WifiOff className="mr-2 h-4 w-4" />
+              <span className="font-medium">Modo offline activo</span>
+            </div>
+            <p className="text-sm text-gray-600">
+              La aplicación está operando en modo offline. Los datos se guardan localmente.
+            </p>
+          </div>
+        );
       case 'connected':
-        return 'Conectado a Supabase';
-      case 'connecting':
-        return 'Conectando a Supabase...';
+        return (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center text-green-600">
+              <CheckCircle className="mr-2 h-4 w-4" />
+              <span className="font-medium">Conectado a Supabase</span>
+            </div>
+            <p className="text-sm text-gray-600">
+              {lastChecked ? (
+                <>Última verificación: {formatDistanceToNow(lastChecked, { addSuffix: true, locale: es })}</>
+              ) : (
+                'Conexión verificada'
+              )}
+            </p>
+          </div>
+        );
       case 'disconnected':
-        return 'Desconectado de Supabase';
+        return (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center text-red-500">
+              <AlertCircle className="mr-2 h-4 w-4" />
+              <span className="font-medium">Sin conexión a Supabase</span>
+            </div>
+            {error && (
+              <p className="text-sm text-red-500">{error}</p>
+            )}
+            {lastChecked && (
+              <p className="text-sm text-gray-600">
+                Última verificación: {formatDistanceToNow(lastChecked, { addSuffix: true, locale: es })}
+              </p>
+            )}
+          </div>
+        );
+      case 'connecting':
+        return (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center text-blue-500">
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <span className="font-medium">Verificando conexión...</span>
+            </div>
+          </div>
+        );
       default:
-        return 'Estado desconocido';
+        return (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center text-gray-500">
+              <AlertCircle className="mr-2 h-4 w-4" />
+              <span className="font-medium">Estado desconocido</span>
+            </div>
+          </div>
+        );
     }
   };
 
   return (
-    <div className="space-y-2">
-      <p className="font-medium">{getStatusText()}</p>
+    <div className="w-64 space-y-3">
+      {getStatusContent()}
       
-      {error && (
-        <p className="text-xs text-red-500 mt-1">{error}</p>
+      <div className="pt-2 border-t border-gray-200">
+        <OfflineModeToggle />
+      </div>
+      
+      {status !== 'connecting' && status !== 'offline' && (
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="w-full mt-2"
+          onClick={onManualCheck}
+        >
+          Verificar conexión
+        </Button>
       )}
-      
-      {lastChecked && (
-        <p className="text-xs text-gray-500">
-          Última verificación: {formatDistanceToNow(lastChecked, { addSuffix: true, locale: es })}
-        </p>
-      )}
-      
-      {status === 'disconnected' && (
-        <div className="mt-2 p-2 bg-red-50 rounded-md text-xs">
-          <p className="font-medium mb-1">Posibles soluciones:</p>
-          <ul className="list-disc pl-4 space-y-1 text-gray-600">
-            <li>Verificar conexión a internet</li>
-            <li>Comprobar que el proyecto Supabase esté activo</li>
-            <li>Verificar configuración y credenciales</li>
-          </ul>
-          
-          <Link 
-            to="/supabase-diagnostic" 
-            className="flex items-center mt-2 text-blue-500 hover:text-blue-700"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <ExternalLink className="h-3 w-3 mr-1" />
-            Ir a diagnóstico
-          </Link>
-        </div>
-      )}
-      
-      <Button 
-        variant="outline" 
-        size="sm" 
-        className="w-full mt-2" 
-        onClick={onManualCheck}
-      >
-        <RefreshCw className="mr-2 h-3 w-3" />
-        Verificar conexión
-      </Button>
     </div>
   );
 };

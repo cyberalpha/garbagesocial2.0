@@ -1,5 +1,5 @@
 
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, offlineMode } from '@/integrations/supabase/client';
 import { syncQueue, SyncOperation } from './SyncQueue';
 import { getWastes, saveWaste, deleteWaste } from '../wastes';
 import { getUsers, saveUser, deleteUser } from '../users';
@@ -26,15 +26,16 @@ export class DataSynchronizer {
     // Configurar listeners para el estado de la conexión
     window.addEventListener('online', this.handleOnline);
     window.addEventListener('offline', this.handleOffline);
+    window.addEventListener('offlinemodechange', this.handleOfflineModeChange);
     
-    // Intentar sincronizar inmediatamente si estamos online
-    if (this.isOnline) {
+    // Intentar sincronizar inmediatamente si estamos online y no en modo offline
+    if (this.isOnline && !offlineMode) {
       this.sync();
     }
     
     // Configurar intervalo de sincronización
     this.syncInterval = setInterval(() => {
-      if (this.isOnline) {
+      if (this.isOnline && !offlineMode) {
         this.sync();
       }
     }, SYNC_INTERVAL);
@@ -51,6 +52,7 @@ export class DataSynchronizer {
     
     window.removeEventListener('online', this.handleOnline);
     window.removeEventListener('offline', this.handleOffline);
+    window.removeEventListener('offlinemodechange', this.handleOfflineModeChange);
     
     console.log('Servicio de sincronización detenido');
   }
@@ -61,7 +63,9 @@ export class DataSynchronizer {
   private handleOnline = (): void => {
     console.log('Dispositivo en línea, iniciando sincronización...');
     this.isOnline = true;
-    this.sync();
+    if (!offlineMode) {
+      this.sync();
+    }
   };
   
   /**
@@ -73,10 +77,24 @@ export class DataSynchronizer {
   };
   
   /**
+   * Manejador para cambios en el modo offline
+   */
+  private handleOfflineModeChange = (event: Event): void => {
+    const customEvent = event as CustomEvent;
+    const newOfflineMode = customEvent.detail?.offlineMode || false;
+    console.log(`Modo offline cambiado a: ${newOfflineMode}`);
+    
+    if (!newOfflineMode && this.isOnline) {
+      // Si salimos del modo offline y hay conexión, iniciar sincronización
+      setTimeout(() => this.sync(), 500);
+    }
+  };
+  
+  /**
    * Sincronizar datos con Supabase
    */
   public async sync(): Promise<void> {
-    if (this.isSyncing || !this.isOnline) {
+    if (this.isSyncing || !this.isOnline || offlineMode) {
       return;
     }
     
@@ -199,11 +217,13 @@ export class DataSynchronizer {
   public getSyncState(): {
     isSyncing: boolean;
     isOnline: boolean;
+    offlineMode: boolean;
     pendingOperations: number;
   } {
     return {
       isSyncing: this.isSyncing,
       isOnline: this.isOnline,
+      offlineMode: offlineMode,
       pendingOperations: syncQueue.getPendingCount()
     };
   }

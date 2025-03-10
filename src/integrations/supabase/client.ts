@@ -21,6 +21,28 @@ const supabaseOptions = {
   }
 };
 
+// Estado global para modo offline/online
+export let offlineMode = false;
+
+// Función para cambiar el modo
+export const setOfflineMode = (isOffline: boolean) => {
+  offlineMode = isOffline;
+  // Guardar preferencia en localStorage
+  localStorage.setItem('app_offline_mode', isOffline ? 'true' : 'false');
+  // Disparar evento personalizado para notificar cambios
+  window.dispatchEvent(new CustomEvent('offlinemodechange', { detail: { offlineMode: isOffline } }));
+  console.log(`Modo offline ${isOffline ? 'activado' : 'desactivado'}`);
+};
+
+// Cargar preferencia de localStorage al inicio
+if (typeof window !== 'undefined') {
+  const savedMode = localStorage.getItem('app_offline_mode');
+  if (savedMode !== null) {
+    offlineMode = savedMode === 'true';
+    console.log(`Modo offline cargado desde localStorage: ${offlineMode}`);
+  }
+}
+
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, supabaseOptions);
@@ -32,7 +54,7 @@ export const testSupabaseConnection = async () => {
     const { data, error } = await supabase.from('profiles')
       .select('count')
       .limit(1)
-      .timeout(5000);
+      .abortSignal(AbortSignal.timeout(5000)); // Usando abortSignal en lugar de timeout directo
       
     if (error) {
       console.error('Error en prueba de conexión:', error);

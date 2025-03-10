@@ -5,6 +5,7 @@ import { SUPABASE_CONFIG } from '@/integrations/supabase/client';
 import { useSupabaseConnectionTest } from '@/hooks/useSupabaseConnectionTest';
 import ConnectionStatusDisplay from './supabase-connection/ConnectionStatusDisplay';
 import StatusIcon from './supabase-connection/StatusIcon';
+import OfflineModeToggle from './OfflineModeToggle';
 
 const SupabaseConnectionTest = () => {
   const { 
@@ -21,19 +22,26 @@ const SupabaseConnectionTest = () => {
         <p className="text-sm text-gray-600 mb-4">
           URL: {SUPABASE_CONFIG.url}
         </p>
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium">Estado:</span>
-            <StatusIcon isConnected={isConnected} isLoading={isLoading} />
+        
+        <div className="flex flex-col gap-4">
+          <div className="flex justify-between items-center p-3 bg-gray-50 rounded-md">
+            <OfflineModeToggle />
           </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={testConnection} 
-            disabled={isLoading}
-          >
-            {isLoading ? 'Verificando...' : 'Probar conexión'}
-          </Button>
+          
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium">Estado:</span>
+              <StatusIcon isConnected={isConnected} isLoading={isLoading} />
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={testConnection} 
+              disabled={isLoading}
+            >
+              {isLoading ? 'Verificando...' : 'Probar conexión'}
+            </Button>
+          </div>
         </div>
       </div>
       

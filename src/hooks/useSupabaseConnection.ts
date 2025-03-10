@@ -1,10 +1,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { checkDatabaseConnection } from '@/utils/supabaseConnectionUtils';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, offlineMode, setOfflineMode } from '@/integrations/supabase/client';
 
 // Tipo para el estado de conexión
-export type ConnectionStatus = 'connected' | 'disconnected' | 'connecting' | 'unknown';
+export type ConnectionStatus = 'connected' | 'disconnected' | 'connecting' | 'unknown' | 'offline';
 
 // Función auxiliar para calcular el tiempo de reintento
 const calculateNextRetryDelay = (attempt: number, baseDelay = 2000, maxDelay = 30000) => {
@@ -18,12 +18,22 @@ export const useSupabaseConnection = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [retryAttempt, setRetryAttempt] = useState(0);
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
-  const [status, setStatus] = useState<ConnectionStatus>('unknown');
+  const [status, setStatus] = useState<ConnectionStatus>(offlineMode ? 'offline' : 'unknown');
+  const [isOfflineMode, setIsOfflineMode] = useState(offlineMode);
   
   // Verificar si el navegador está online
   const isOnline = typeof navigator !== 'undefined' && navigator.onLine;
   
   const checkConnection = useCallback(async () => {
+    // Si estamos en modo offline, no intentamos conectar
+    if (isOfflineMode) {
+      console.log('En modo offline, no se verifica conexión');
+      setStatus('offline');
+      setErrorMessage(null);
+      setIsConnected(false);
+      return;
+    }
+    
     if (!isOnline) {
       console.log('El navegador está offline, no se verificará la conexión');
       setStatus('disconnected');
@@ -36,12 +46,8 @@ export const useSupabaseConnection = () => {
     setStatus('connecting');
     
     try {
-      // Verificar la información básica del proyecto
-      const { data: projectData } = await supabase.rpc('get_project_ref');
-      console.log('Información del proyecto Supabase:', projectData);
-      
       // Verificar conexión a la base de datos
-      const { success, error } = await checkDatabaseConnection();
+      const { success, error, offlineMode: resultOffline } = await checkDatabaseConnection();
       
       setIsConnected(success);
       setLastChecked(new Date());
@@ -50,7 +56,7 @@ export const useSupabaseConnection = () => {
         console.error('Error de conexión detectado:', error);
         setErrorMessage(typeof error === 'string' ? error : error.message || 'Error desconocido');
         setRetryAttempt(prev => prev + 1);
-        setStatus('disconnected');
+        setStatus(resultOffline ? 'offline' : 'disconnected');
       } else {
         console.log('Conexión a Supabase exitosa');
         setRetryAttempt(0);
@@ -66,22 +72,62 @@ export const useSupabaseConnection = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [isOnline]);
+  }, [isOnline, isOfflineMode]);
+
+  // Efecto para manejar cambios en el modo offline
+  useEffect(() => {
+    const handleOfflineModeChange = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const newOfflineMode = customEvent.detail?.offlineMode || false;
+      console.log(`Cambio en modo offline detectado: ${newOfflineMode}`);
+      setIsOfflineMode(newOfflineMode);
+      setStatus(newOfflineMode ? 'offline' : 'unknown');
+      
+      if (!newOfflineMode) {
+        // Si pasamos a modo online, verificar conexión
+        checkConnection();
+      }
+    };
+    
+    window.addEventListener('offlinemodechange', handleOfflineModeChange);
+    
+    // Inicializar con el estado actual
+    setIsOfflineMode(offlineMode);
+    setStatus(offlineMode ? 'offline' : 'unknown');
+    
+    return () => {
+      window.removeEventListener('offlinemodechange', handleOfflineModeChange);
+    };
+  }, [checkConnection]);
 
   // Efecto para verificar la conexión al montar el componente
   useEffect(() => {
-    // Comprobar conexión al montar
-    checkConnection();
-    
-    // Configurar verificaciones periódicas cada 30 segundos
-    const interval = setInterval(() => {
+    // Solo verificar si no estamos en modo offline
+    if (!isOfflineMode) {
+      // Comprobar conexión al montar
       checkConnection();
-    }, 30000);
-    
+      
+      // Configurar verificaciones periódicas cada 30 segundos
+      const interval = setInterval(() => {
+        if (!isOfflineMode) {
+          checkConnection();
+        }
+      }, 30000);
+      
+      return () => {
+        clearInterval(interval);
+      };
+    }
+  }, [checkConnection, isOfflineMode]);
+
+  // Evento de cambio online/offline del navegador
+  useEffect(() => {
     // Escuchar eventos online/offline del navegador
     const handleOnline = () => {
       console.log('Navegador online, verificando conexión...');
-      checkConnection();
+      if (!isOfflineMode) {
+        checkConnection();
+      }
     };
     
     const handleOffline = () => {
@@ -94,16 +140,15 @@ export const useSupabaseConnection = () => {
     window.addEventListener('offline', handleOffline);
     
     return () => {
-      clearInterval(interval);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, [checkConnection]);
+  }, [checkConnection, isOfflineMode]);
 
   // Efecto para reintentar la conexión si falló anteriormente
   useEffect(() => {
-    // Solo reintentar si no hay conexión y hay un error
-    if (isConnected === false && errorMessage && retryAttempt > 0) {
+    // Solo reintentar si no estamos en modo offline, no hay conexión y hay un error
+    if (!isOfflineMode && isConnected === false && errorMessage && retryAttempt > 0) {
       const retryDelay = calculateNextRetryDelay(retryAttempt);
       
       const retryTimeout = setTimeout(() => {
@@ -113,7 +158,19 @@ export const useSupabaseConnection = () => {
       
       return () => clearTimeout(retryTimeout);
     }
-  }, [isConnected, errorMessage, retryAttempt, checkConnection]);
+  }, [isConnected, errorMessage, retryAttempt, checkConnection, isOfflineMode]);
+
+  // Función para toggle modo offline
+  const toggleOfflineMode = useCallback(() => {
+    const newOfflineMode = !isOfflineMode;
+    setOfflineMode(newOfflineMode);
+    setIsOfflineMode(newOfflineMode);
+    setStatus(newOfflineMode ? 'offline' : 'unknown');
+    if (!newOfflineMode) {
+      // Si pasamos a modo online, verificar conexión
+      setTimeout(() => checkConnection(), 100);
+    }
+  }, [isOfflineMode, checkConnection]);
 
   return {
     isConnected,
@@ -122,7 +179,9 @@ export const useSupabaseConnection = () => {
     checkConnection,
     status,
     lastChecked,
-    error: errorMessage
+    error: errorMessage,
+    isOfflineMode,
+    toggleOfflineMode
   };
 };
 

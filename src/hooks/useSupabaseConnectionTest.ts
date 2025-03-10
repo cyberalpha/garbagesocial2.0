@@ -1,45 +1,86 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { SUPABASE_CONFIG } from '@/integrations/supabase/client';
 import { testSupabaseConnection } from '@/utils/supabaseConnectionUtils';
+import { offlineMode } from '@/integrations/supabase/client';
 
 export const useSupabaseConnectionTest = () => {
   const [isConnected, setIsConnected] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
+  
   const testConnection = useCallback(async () => {
+    // Si estamos en modo offline, no intentamos probar la conexión
+    if (offlineMode) {
+      setIsConnected(false);
+      setErrorMessage('Modo offline activado');
+      return;
+    }
+    
     setIsLoading(true);
     setErrorMessage(null);
     
     try {
-      const { success, error } = await testSupabaseConnection();
+      const result = await testSupabaseConnection();
       
-      setIsConnected(success);
+      console.log('Resultado de prueba de conexión:', result);
+      setIsConnected(result.success);
       
-      if (!success && error) {
-        setErrorMessage(typeof error === 'string' ? error : error.message || 'Error desconocido');
+      if (!result.success && result.error) {
+        setErrorMessage(
+          typeof result.error === 'string' 
+            ? result.error 
+            : result.error.message || 'Error al conectar con Supabase'
+        );
       }
     } catch (error: any) {
-      console.error('Error testing Supabase connection:', error);
+      console.error('Error en prueba de conexión:', error);
       setIsConnected(false);
-      setErrorMessage(error.message || 'Error desconocido');
+      setErrorMessage(error.message || 'Error inesperado al probar conexión');
     } finally {
       setIsLoading(false);
     }
   }, []);
-
+  
+  // Efecto para manejar cambios en el modo offline
   useEffect(() => {
-    // Test connection on mount
-    testConnection();
+    const handleOfflineModeChange = () => {
+      if (offlineMode) {
+        setIsConnected(false);
+        setErrorMessage('Modo offline activado');
+      } else {
+        // Cuando se desactiva el modo offline, reiniciamos el estado
+        setIsConnected(null);
+        setErrorMessage(null);
+      }
+    };
+    
+    window.addEventListener('offlinemodechange', handleOfflineModeChange);
+    
+    // Inicializamos el estado según el modo actual
+    if (offlineMode) {
+      setIsConnected(false);
+      setErrorMessage('Modo offline activado');
+    }
+    
+    return () => {
+      window.removeEventListener('offlinemodechange', handleOfflineModeChange);
+    };
+  }, []);
+  
+  // Efecto para probar la conexión al montar el componente
+  useEffect(() => {
+    // Solo probamos la conexión si no estamos en modo offline
+    if (!offlineMode) {
+      testConnection();
+    }
   }, [testConnection]);
-
+  
   return {
     isConnected,
     isLoading,
     errorMessage,
-    testConnection,
-    url: SUPABASE_CONFIG.url
+    testConnection
   };
 };
+
+export default useSupabaseConnectionTest;
