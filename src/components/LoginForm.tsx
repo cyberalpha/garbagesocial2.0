@@ -1,150 +1,143 @@
 
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthProvider';
 import { useLanguage } from './LanguageContext';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Mail, Lock, LogIn, UserPlus, Loader2, AlertCircle } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Eye, EyeOff, AlertCircle } from "lucide-react";
+import { Link } from 'react-router-dom';
+import GoogleSignInButton from './GoogleSignInButton';
+import OfflineModeToggle from './OfflineModeToggle';
 
 const LoginForm = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [loginError, setLoginError] = useState<string | null>(null);
-  const { login, currentUser, isLoading } = useAuth();
+  const { login, isLoading } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
-  const { toast } = useToast();
-
-  useEffect(() => {
-    if (currentUser) {
-      navigate('/');
-    }
-  }, [currentUser, navigate]);
-
+  
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoginError(null);
-    
-    if (!email || !password) {
-      setLoginError("Por favor, ingresa tu email y contraseña");
-      return;
-    }
-    
+    setError(null);
     setIsSubmitting(true);
     
     try {
-      console.log(`Intentando iniciar sesión con: ${email}`);
-      const response = await login(email, password);
+      console.log("Attempting login with:", email);
+      const result = await login(email, password);
       
-      if (response.error) {
-        console.error("Error de login:", response.error);
-        
-        if (response.error.message.includes('Invalid login credentials')) {
-          setLoginError("Credenciales inválidas. Por favor verifica tu email y contraseña.");
-        } else if (response.error.message.includes('Email not confirmed')) {
-          setLoginError("Tu email no ha sido confirmado. Por favor revisa tu bandeja de entrada.");
-        } else {
-          setLoginError(response.error.message || "Error al iniciar sesión");
-        }
+      if (result.error) {
+        console.error("Login error:", result.error);
+        setError(result.error.message || t('auth.genericError'));
+      } else if (result.data?.user) {
+        console.log("Login successful, navigating to home");
+        navigate('/');
       } else {
-        toast({
-          title: t('general.success'),
-          description: "Has iniciado sesión correctamente.",
-        });
+        console.error("Unknown login result:", result);
+        setError(t('auth.genericError'));
       }
-      
-    } catch (error: any) {
-      console.error('Error durante el inicio de sesión:', error);
-      setLoginError(error.message || "Error al iniciar sesión. Por favor verifica tus credenciales.");
+    } catch (err: any) {
+      console.error("Unexpected error during login:", err);
+      setError(err.message || t('auth.genericError'));
     } finally {
       setIsSubmitting(false);
     }
   };
-
-  const goToRegister = () => {
-    navigate('/register');
+  
+  const toggleShowPassword = () => {
+    setShowPassword(prev => !prev);
   };
-
+  
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle className="text-2xl">{t('auth.login')}</CardTitle>
-        <CardDescription>
-          {t('auth.loginExplanation')}
-        </CardDescription>
-      </CardHeader>
-      <form onSubmit={handleSubmit}>
-        <CardContent className="space-y-4">
-          {loginError && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{loginError}</AlertDescription>
-            </Alert>
-          )}
-
-          <div className="space-y-2">
-            <Label htmlFor="email">{t('auth.email')}</Label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="email"
-                type="email"
-                placeholder="tu@email.com"
-                className="pl-10"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={isSubmitting}
-              />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">{t('auth.password')}</Label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="password"
-                type="password"
-                placeholder="********"
-                className="pl-10"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={isSubmitting}
-              />
-            </div>
-          </div>
-          
-          <Button 
-            type="submit" 
-            className="w-full" 
+    <Card className="p-6">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="email">{t('auth.email')}</Label>
+          <Input
+            id="email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder={t('auth.emailPlaceholder')}
+            required
             disabled={isSubmitting}
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="password">{t('auth.password')}</Label>
+          <div className="relative">
+            <Input
+              id="password"
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder={t('auth.passwordPlaceholder')}
+              required
+              disabled={isSubmitting}
+            />
+            <Button 
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="absolute right-0 top-0 h-full px-3"
+              onClick={toggleShowPassword}
+              disabled={isSubmitting}
+            >
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </Button>
+          </div>
+        </div>
+        
+        {error && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+        
+        <Button 
+          type="submit" 
+          className="w-full" 
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? t('auth.loggingIn') : t('auth.login')}
+        </Button>
+        
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-background px-2 text-muted-foreground">
+              {t('auth.orContinueWith')}
+            </span>
+          </div>
+        </div>
+        
+        <GoogleSignInButton disabled={isSubmitting} />
+        
+        <div className="mt-4 text-center text-sm">
+          <span>{t('auth.dontHaveAccount')} </span>
+          <Link 
+            to="/register" 
+            className="font-semibold text-primary hover:underline"
           >
-            {isSubmitting ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <LogIn className="mr-2 h-4 w-4" />
-            )}
-            {isSubmitting ? t('general.loading') : t('auth.login')}
-          </Button>
-          
-          <Button 
-            type="button" 
-            variant="outline" 
-            className="w-full bg-primary/5" 
-            onClick={goToRegister}
-            disabled={isSubmitting}
-          >
-            <UserPlus className="mr-2 h-4 w-4" />
-            {t('auth.noAccount')}
-          </Button>
-        </CardContent>
+            {t('auth.register')}
+          </Link>
+        </div>
+        
+        <div className="mt-6 pt-4 border-t border-muted">
+          <OfflineModeToggle />
+        </div>
       </form>
     </Card>
   );

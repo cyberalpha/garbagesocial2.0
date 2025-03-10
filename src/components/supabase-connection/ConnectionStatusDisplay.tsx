@@ -1,14 +1,27 @@
 
 import React from 'react';
-import { Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle, WifiOff } from 'lucide-react';
 
 interface ConnectionStatusDisplayProps {
   isConnected: boolean | null;
   isLoading: boolean;
   errorMessage: string | null;
+  isOfflineMode?: boolean;
 }
 
-const ConnectionStatusDisplay = ({ isConnected, isLoading, errorMessage }: ConnectionStatusDisplayProps) => {
+const ConnectionStatusDisplay = ({ isConnected, isLoading, errorMessage, isOfflineMode = false }: ConnectionStatusDisplayProps) => {
+  if (isOfflineMode) {
+    return (
+      <div className="flex flex-col items-center gap-2 text-orange-600">
+        <WifiOff className="h-12 w-12" />
+        <p className="text-lg font-medium">Modo offline activado</p>
+        <p className="text-sm text-center mt-2 max-w-xs">
+          La aplicación está funcionando en modo offline. Los datos se almacenan localmente.
+        </p>
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center gap-2">
@@ -55,8 +68,7 @@ const TroubleshootingPanel = () => (
       <li>Limpiar el caché y cookies del navegador</li>
       <li>Verificar problemas de CORS (para desarrollo local)</li>
       <li>Confirmar que la URL y clave de Supabase sean correctas</li>
-      <li>Asegurar que la tabla 'profiles' exista en Supabase</li>
-      <li>Verificar que el usuario esté autenticado (si es necesario)</li>
+      <li>Activar el modo offline si el problema persiste</li>
     </ul>
   </div>
 );

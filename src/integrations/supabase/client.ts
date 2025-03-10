@@ -55,20 +55,33 @@ export const isOnline = () => {
 
 // Función simplificada para probar la conexión
 export const testConnection = async () => {
+  if (!isOnline()) {
+    console.log('Dispositivo sin conexión a internet');
+    return { success: false, error: 'Sin conexión a internet' };
+  }
+
   try {
     console.log('Probando conexión a Supabase...');
-    const { data, error } = await supabase.from('profiles').select('count').limit(1);
+    const startTime = Date.now();
+    // Intentamos una operación simple para comprobar la conectividad
+    const { error } = await supabase.from('profiles').select('count').limit(1).maybeSingle();
+    const endTime = Date.now();
     
     if (error) {
+      if (error.code === 'PGRST116') {
+        // Este es un error de permisos, pero significa que la conexión funciona
+        console.log('Conexión a Supabase exitosa (error de permisos pero conexión activa)');
+        return { success: true, latency: endTime - startTime };
+      }
+      
       console.error('Error en prueba de conexión:', error);
       return { success: false, error: error.message };
     }
     
-    console.log('Conexión a Supabase exitosa');
-    return { success: true };
+    console.log(`Conexión a Supabase exitosa (${endTime - startTime}ms)`);
+    return { success: true, latency: endTime - startTime };
   } catch (error: any) {
     console.error('Error inesperado en prueba de conexión:', error);
     return { success: false, error: error?.message || 'Error desconocido' };
   }
 };
-

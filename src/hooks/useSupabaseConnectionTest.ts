@@ -1,18 +1,25 @@
 
-import { useState, useEffect, useCallback } from 'react';
-import { checkDatabaseConnection } from '@/utils/supabaseConnectionUtils';
-import { offlineMode } from '@/integrations/supabase/client';
+import { useState, useCallback, useEffect } from 'react';
+import { testConnection as testSupabaseConnection, offlineMode } from '@/integrations/supabase/client';
+
+interface ConnectionDetails {
+  latency?: number;
+  timestamp?: number;
+  supabaseVersion?: string;
+}
 
 export const useSupabaseConnectionTest = () => {
   const [isConnected, setIsConnected] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [connectionDetails, setConnectionDetails] = useState<ConnectionDetails | null>(null);
   
-  const testConnection = useCallback(async () => {
-    // Si estamos en modo offline, no intentamos probar la conexión
-    if (offlineMode) {
+  const testConnection = useCallback(async (forceTest = false) => {
+    // Si está en modo offline y no se ha forzado la prueba, no hacer nada
+    if (offlineMode && !forceTest) {
+      console.log('En modo offline, omitiendo prueba de conexión');
       setIsConnected(false);
-      setErrorMessage('Modo offline activado');
+      setErrorMessage("Modo offline activado");
       return;
     }
     
@@ -20,66 +27,49 @@ export const useSupabaseConnectionTest = () => {
     setErrorMessage(null);
     
     try {
-      const result = await checkDatabaseConnection();
+      console.log('Iniciando prueba de conexión a Supabase...');
+      const result = await testSupabaseConnection();
       
-      console.log('Resultado de prueba de conexión:', result);
       setIsConnected(result.success);
+      setConnectionDetails({
+        latency: result.latency,
+        timestamp: Date.now(),
+        supabaseVersion: result.version || 'Desconocida'
+      });
       
       if (!result.success && result.error) {
-        setErrorMessage(
-          typeof result.error === 'string' 
-            ? result.error 
-            : result.error.message || 'Error al conectar con Supabase'
-        );
+        console.error('Error de conexión:', result.error);
+        setErrorMessage(result.error);
+      } else if (result.success) {
+        console.log('Conexión exitosa a Supabase');
+        setErrorMessage(null);
       }
     } catch (error: any) {
-      console.error('Error en prueba de conexión:', error);
+      console.error('Error inesperado durante prueba de conexión:', error);
       setIsConnected(false);
-      setErrorMessage(error.message || 'Error inesperado al probar conexión');
+      setErrorMessage(error.message || 'Error desconocido');
     } finally {
       setIsLoading(false);
     }
   }, []);
-  
-  // Efecto para manejar cambios en el modo offline
+
+  // Efecto para probar la conexión al montar
   useEffect(() => {
-    const handleOfflineModeChange = () => {
-      if (offlineMode) {
-        setIsConnected(false);
-        setErrorMessage('Modo offline activado');
-      } else {
-        // Cuando se desactiva el modo offline, reiniciamos el estado
-        setIsConnected(null);
-        setErrorMessage(null);
-      }
-    };
-    
-    window.addEventListener('offlinemodechange', handleOfflineModeChange);
-    
-    // Inicializamos el estado según el modo actual
-    if (offlineMode) {
-      setIsConnected(false);
-      setErrorMessage('Modo offline activado');
-    }
-    
-    return () => {
-      window.removeEventListener('offlinemodechange', handleOfflineModeChange);
-    };
-  }, []);
-  
-  // Efecto para probar la conexión al montar el componente
-  useEffect(() => {
-    // Solo probamos la conexión si no estamos en modo offline
+    // Solo probar si no estamos en modo offline
     if (!offlineMode) {
       testConnection();
+    } else {
+      setIsConnected(false);
+      setErrorMessage("Modo offline activado");
     }
-  }, [testConnection]);
+  }, [offlineMode, testConnection]);
   
-  return {
-    isConnected,
-    isLoading,
-    errorMessage,
-    testConnection
+  return { 
+    isConnected, 
+    isLoading, 
+    errorMessage, 
+    testConnection,
+    connectionDetails
   };
 };
 
