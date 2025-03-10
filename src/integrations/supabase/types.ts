@@ -9,75 +9,33 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      profiles: {
+      users: {
         Row: {
           active: boolean
-          average_rating: number | null
-          created_at: string | null
+          created_at: string
           email: string
+          first_name: string
           id: string
-          is_organization: boolean
-          name: string
-          profile_image: string | null
-          updated_at: string | null
+          last_name: string
+          updated_at: string
         }
         Insert: {
           active?: boolean
-          average_rating?: number | null
-          created_at?: string | null
+          created_at?: string
           email: string
-          id: string
-          is_organization?: boolean
-          name: string
-          profile_image?: string | null
-          updated_at?: string | null
+          first_name: string
+          id?: string
+          last_name: string
+          updated_at?: string
         }
         Update: {
           active?: boolean
-          average_rating?: number | null
-          created_at?: string | null
+          created_at?: string
           email?: string
+          first_name?: string
           id?: string
-          is_organization?: boolean
-          name?: string
-          profile_image?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      wastes: {
-        Row: {
-          description: string
-          id: string
-          image_url: string | null
-          location: Json
-          pickup_commitment: Json | null
-          publication_date: string | null
-          status: string
-          type: string
-          user_id: string
-        }
-        Insert: {
-          description: string
-          id?: string
-          image_url?: string | null
-          location: Json
-          pickup_commitment?: Json | null
-          publication_date?: string | null
-          status: string
-          type: string
-          user_id: string
-        }
-        Update: {
-          description?: string
-          id?: string
-          image_url?: string | null
-          location?: Json
-          pickup_commitment?: Json | null
-          publication_date?: string | null
-          status?: string
-          type?: string
-          user_id?: string
+          last_name?: string
+          updated_at?: string
         }
         Relationships: []
       }
