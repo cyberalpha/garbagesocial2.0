@@ -57,7 +57,7 @@ const GeolocationAlert = ({ className }: GeolocationAlertProps) => {
   return (
     <div 
       className={cn(
-        "fixed bottom-12 right-4 z-50 transition-all duration-300", // Cambiado de bottom-4 right-28 a bottom-12 right-4
+        "fixed bottom-4 right-28 z-50 transition-all duration-300",
         className
       )}
     >

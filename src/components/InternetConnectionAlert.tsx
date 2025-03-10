@@ -18,7 +18,7 @@ const InternetConnectionAlert = ({ className }: InternetConnectionAlertProps) =>
   return (
     <div 
       className={cn(
-        "fixed bottom-4 right-4 z-50 transition-all duration-300",
+        "fixed bottom-4 right-52 z-50 transition-all duration-300",
         className
       )}
     >
