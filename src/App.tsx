@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,8 +5,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/components/AuthProvider";
 import { LanguageProvider } from "@/components/LanguageContext";
-import InternetConnectionAlert from "@/components/InternetConnectionAlert";
-import SupabaseConnectionAlert from "@/components/SupabaseConnectionAlert";
+import InternetConnectionAlert from './components/InternetConnectionAlert';
+import SupabaseConnectionAlert from './components/SupabaseConnectionAlert';
+import GeolocationAlert from './components/GeolocationAlert';
 import Home from "./pages/Home";
 import MapView from "./pages/MapView";
 import PublishWaste from "./pages/PublishWaste";
@@ -97,6 +97,7 @@ const App = () => (
           <Sonner />
           <InternetConnectionAlert />
           <SupabaseConnectionAlert />
+          <GeolocationAlert />
           <BrowserRouter>
             <Navbar />
             <main className="pt-16 min-h-[calc(100vh-64px)]">
