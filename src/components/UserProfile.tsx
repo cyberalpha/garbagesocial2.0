@@ -22,15 +22,21 @@ const UserProfile = ({ userId, isEditable = false, user, wastes = [] }: UserProf
   const [isEditing, setIsEditing] = useState(false);
 
   const handleEditClick = () => {
+    console.log('Edit profile clicked');
     setIsEditing(true);
   };
 
   const handleCancelEdit = () => {
+    console.log('Cancel edit profile');
     setIsEditing(false);
   };
 
   if (isEditing && isEditable) {
-    return <ProfileEditForm user={user} onCancel={handleCancelEdit} />;
+    return (
+      <div className="mb-8">
+        <ProfileEditForm user={user} onCancel={handleCancelEdit} />
+      </div>
+    );
   }
 
   return (

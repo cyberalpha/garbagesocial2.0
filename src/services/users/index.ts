@@ -1,7 +1,6 @@
 
 import { User, Waste } from "@/types";
 import { USERS_STORAGE_KEY, initialUsers } from "./constants";
-import { getFromStorage, saveToStorage } from "../localStorage";
 import { getWastes } from "../wastes";
 import { getOfflineProfiles } from "@/utils/supabaseConnectionUtils";
 import { offlineMode } from "@/integrations/supabase/client";
@@ -31,8 +30,8 @@ export const getUsers = (): User[] => {
     }
   }
   
-  // Si no estamos en modo offline o no hay perfiles en caché, usamos el almacenamiento local normal
-  return getFromStorage<User[]>(USERS_STORAGE_KEY, initialUsers);
+  // If not offline mode, try to get users from Supabase
+  return [];
 };
 
 /**
@@ -46,7 +45,37 @@ export const getUserById = async (id: string): Promise<User | null> => {
     return null;
   }
   
-  // Primero verificar en localStorage si estamos en modo offline
+  // Primero intentar obtener de Supabase
+  try {
+    console.log('Intentando obtener usuario de Supabase con ID:', id);
+    const { data, error } = await safeTableAccess('profiles')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+    
+    if (error) {
+      console.error('Error al obtener perfil de Supabase:', error);
+    } else if (data) {
+      console.log('Perfil encontrado en Supabase:', data);
+      // Convertir el formato de Supabase al formato User
+      const user: User = {
+        id: data.id,
+        name: data.name || 'Usuario',
+        email: data.email || '',
+        isOrganization: data.is_organization || false,
+        averageRating: data.average_rating || 0,
+        profileImage: data.profile_image || '',
+        emailVerified: true,
+        active: true
+      };
+      
+      return user;
+    }
+  } catch (error) {
+    console.error('Error al consultar Supabase:', error);
+  }
+  
+  // Si estamos en modo offline, buscar en caché
   if (offlineMode()) {
     const users = getUsers();
     console.log('Usuarios en modo offline:', users);
@@ -55,60 +84,6 @@ export const getUserById = async (id: string): Promise<User | null> => {
     if (user) {
       console.log('Usuario encontrado en caché offline:', user);
       return user;
-    }
-  } else {
-    // Si estamos online, intentar obtener de Supabase
-    try {
-      console.log('Intentando obtener usuario de Supabase con ID:', id);
-      const { data, error } = await safeTableAccess('profiles')
-        .select('*')
-        .eq('id', id)
-        .maybeSingle();
-      
-      if (error) {
-        console.error('Error al obtener perfil de Supabase:', error);
-      } else if (data) {
-        console.log('Perfil encontrado en Supabase:', data);
-        // Convertir el formato de Supabase al formato User
-        const user: User = {
-          id: data.id,
-          name: data.name || 'Usuario',
-          email: data.email || '',
-          isOrganization: data.is_organization || false,
-          averageRating: data.average_rating || 0,
-          profileImage: data.profile_image || '',
-          emailVerified: true,
-          active: true
-        };
-        
-        return user;
-      }
-    } catch (error) {
-      console.error('Error al consultar Supabase:', error);
-    }
-  }
-  
-  // Segundo, buscar en los usuarios locales
-  const users = getUsers();
-  console.log('Todos los usuarios en localStorage:', users);
-  const user = users.find(user => user.id === id);
-  
-  if (user) {
-    console.log('Usuario encontrado en localStorage:', user);
-    return user;
-  }
-  
-  // Si el usuario no se encuentra pero tenemos el ID actual en localStorage
-  const authUserData = localStorage.getItem('auth_user_data');
-  if (authUserData) {
-    try {
-      const authUser = JSON.parse(authUserData);
-      if (authUser && authUser.id === id) {
-        console.log('Usuario encontrado en auth_user_data:', authUser);
-        return authUser;
-      }
-    } catch (error) {
-      console.error('Error al analizar auth_user_data:', error);
     }
   }
   
@@ -122,10 +97,31 @@ export const getUserById = async (id: string): Promise<User | null> => {
 export const getWastesByUserId = async (userId: string): Promise<Waste[]> => {
   try {
     console.log('getWastesByUserId llamado con userId:', userId);
+    
+    // Try to get wastes from Supabase first
+    if (!offlineMode()) {
+      try {
+        const { data, error } = await supabase
+          .from('wastes')
+          .select('*')
+          .eq('user_id', userId);
+        
+        if (error) {
+          console.error('Error getting wastes from Supabase:', error);
+        } else if (data) {
+          console.log('Wastes found in Supabase:', data);
+          return data;
+        }
+      } catch (supabaseError) {
+        console.error('Error querying Supabase for wastes:', supabaseError);
+      }
+    }
+    
+    // Fallback to local wastes
     const allWastes = await getWastes();
-    console.log('Todos los residuos:', allWastes);
+    console.log('Todos los residuos (local):', allWastes);
     const filteredWastes = allWastes.filter(waste => waste.userId === userId);
-    console.log('Residuos filtrados:', filteredWastes);
+    console.log('Residuos filtrados (local):', filteredWastes);
     return filteredWastes;
   } catch (error) {
     console.error(`Error al obtener residuos para el usuario ${userId}:`, error);
@@ -134,26 +130,53 @@ export const getWastesByUserId = async (userId: string): Promise<Waste[]> => {
 };
 
 /**
- * Save user to localStorage
+ * Save user to Supabase
  */
-export const saveUser = (user: User): void => {
-  const users = getUsers();
-  const existingIndex = users.findIndex(u => u.id === user.id);
-  
-  if (existingIndex >= 0) {
-    users[existingIndex] = user;
-  } else {
-    users.push(user);
+export const saveUser = async (user: User): Promise<void> => {
+  try {
+    console.log('Saving user to Supabase:', user);
+    
+    const { error } = await supabase
+      .from('profiles')
+      .upsert({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        is_organization: user.isOrganization,
+        average_rating: user.averageRating,
+        profile_image: user.profileImage
+      }, {
+        onConflict: 'id'
+      });
+    
+    if (error) {
+      console.error('Error saving user to Supabase:', error);
+    } else {
+      console.log('User saved to Supabase successfully');
+    }
+  } catch (error) {
+    console.error('Error saving user:', error);
   }
-  
-  saveToStorage(USERS_STORAGE_KEY, users);
 };
 
 /**
  * Delete user by ID
  */
-export const deleteUser = (id: string): void => {
-  const users = getUsers();
-  const filteredUsers = users.filter(user => user.id !== id);
-  saveToStorage(USERS_STORAGE_KEY, filteredUsers);
+export const deleteUser = async (id: string): Promise<void> => {
+  try {
+    console.log('Deleting user from Supabase:', id);
+    
+    const { error } = await supabase
+      .from('profiles')
+      .update({ active: false })
+      .eq('id', id);
+    
+    if (error) {
+      console.error('Error deactivating user in Supabase:', error);
+    } else {
+      console.log('User deactivated in Supabase successfully');
+    }
+  } catch (error) {
+    console.error('Error deleting user:', error);
+  }
 };

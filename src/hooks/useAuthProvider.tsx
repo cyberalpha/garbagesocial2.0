@@ -2,10 +2,7 @@
 import { useAuthState } from './useAuthState';
 import { useAuthActions } from './useAuthActions';
 import { useProfileActions } from './useProfileActions';
-import { getFromStorage, saveToStorage } from '@/services/localStorage';
-
-// Clave para almacenar el usuario en localStorage
-const AUTH_USER_STORAGE_KEY = 'auth_user_data';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useAuthProvider = () => {
   const {
@@ -17,23 +14,60 @@ export const useAuthProvider = () => {
     setPendingVerification
   } = useAuthState();
 
-  // Inicializamos el estado con el usuario del localStorage si existe
-  const initializeFromLocalStorage = () => {
+  // Initialize from Supabase session instead of localStorage
+  const initializeFromSupabase = async () => {
     try {
-      const savedUser = getFromStorage(AUTH_USER_STORAGE_KEY, null);
-      if (savedUser && !currentUser) {
-        console.log('Restaurando usuario desde localStorage:', savedUser);
-        setCurrentUser(savedUser);
+      if (!currentUser) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          console.log('Restored user from Supabase session:', session.user);
+          
+          // Get user profile data from Supabase
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .maybeSingle();
+          
+          if (profileData) {
+            const user = {
+              id: profileData.id,
+              name: profileData.name || session.user.email?.split('@')[0] || '',
+              email: session.user.email || '',
+              isOrganization: profileData.is_organization || false,
+              averageRating: profileData.average_rating || 0,
+              profileImage: profileData.profile_image || '',
+              emailVerified: session.user.email_confirmed_at ? true : false,
+              active: true
+            };
+            setCurrentUser(user);
+          } else {
+            // If no profile exists yet but user is authenticated
+            const user = {
+              id: session.user.id,
+              name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || '',
+              email: session.user.email || '',
+              isOrganization: session.user.user_metadata?.isOrganization || false,
+              averageRating: 0,
+              profileImage: session.user.user_metadata?.profileImage || `https://api.dicebear.com/7.x/initials/svg?seed=${session.user.email}`,
+              emailVerified: session.user.email_confirmed_at ? true : false,
+              active: true
+            };
+            setCurrentUser(user);
+          }
+        }
         setIsLoading(false);
       }
     } catch (error) {
-      console.error('Error al inicializar desde localStorage:', error);
+      console.error('Error initializing from Supabase:', error);
+      setIsLoading(false);
     }
   };
 
-  // Inicializamos el estado al montar el componente
-  if (!currentUser) {
-    initializeFromLocalStorage();
+  // Initialize from Supabase when component loads
+  if (!currentUser && !isLoading) {
+    setIsLoading(true);
+    initializeFromSupabase();
   }
 
   const {
@@ -45,25 +79,7 @@ export const useAuthProvider = () => {
     currentUser,
     (user) => {
       setCurrentUser(user);
-      // Guardamos el usuario en localStorage cuando se actualiza
-      if (user) {
-        console.log('Guardando usuario en localStorage:', user);
-        // Usar el servicio personalizado de storage
-        saveToStorage(AUTH_USER_STORAGE_KEY, user, { expiration: 7 * 24 * 60 * 60 * 1000 }); // 7 días
-        
-        // También guardamos en el localStorage estándar para asegurar compatibilidad
-        localStorage.setItem(AUTH_USER_STORAGE_KEY, JSON.stringify(user));
-        
-        // Guardar también el ID por separado para una recuperación más fácil
-        if (user.id) {
-          localStorage.setItem('auth_user_id', user.id);
-        }
-      } else {
-        // Si el usuario es null (logout), eliminamos del localStorage
-        console.log('Eliminando usuario de localStorage');
-        localStorage.removeItem(AUTH_USER_STORAGE_KEY);
-        localStorage.removeItem('auth_user_id');
-      }
+      // No localStorage operations
     },
     setIsLoading,
     setPendingVerification
@@ -79,20 +95,7 @@ export const useAuthProvider = () => {
     currentUser,
     (user) => {
       setCurrentUser(user);
-      // Actualizamos el usuario en localStorage
-      if (user) {
-        console.log('Actualizando usuario en localStorage:', user);
-        // Usar el servicio personalizado de storage
-        saveToStorage(AUTH_USER_STORAGE_KEY, user, { expiration: 7 * 24 * 60 * 60 * 1000 });
-        
-        // También en localStorage estándar
-        localStorage.setItem(AUTH_USER_STORAGE_KEY, JSON.stringify(user));
-        
-        // Guardar también el ID por separado
-        if (user.id) {
-          localStorage.setItem('auth_user_id', user.id);
-        }
-      }
+      // No localStorage operations
     },
     setIsLoading,
     logout

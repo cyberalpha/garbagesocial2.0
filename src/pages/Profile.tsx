@@ -1,15 +1,14 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { User, Waste } from "@/types";
 import { ArrowLeft } from "lucide-react";
 import { getUserById, getWastesByUserId } from "@/services/users";
-import WasteCard from "@/components/WasteCard";
 import UserProfile from "@/components/UserProfile";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from '@/integrations/supabase/client';
 
 const Profile = () => {
   const { id } = useParams<{ id: string }>();
@@ -40,54 +39,96 @@ const Profile = () => {
       return;
     }
     
-    // También verificar si hay un usuario en el localStorage
-    const storedUserData = localStorage.getItem('auth_user_data');
-    let storedUser: User | null = null;
-    
-    if (storedUserData) {
-      try {
-        storedUser = JSON.parse(storedUserData);
-        console.log("Usuario encontrado en localStorage:", storedUser);
-      } catch (error) {
-        console.error("Error al parsear usuario del localStorage:", error);
-      }
-    }
-    
     setLoading(true);
 
     const loadProfileData = async () => {
       try {
         console.log('Obteniendo datos del usuario con ID:', userId);
         
-        // Si el ID del perfil corresponde al usuario actual o al usuario almacenado, usarlo directamente
+        // Si el ID del perfil corresponde al usuario actual, usarlo directamente
         if (currentUser && currentUser.id === userId) {
           console.log('Usando datos del usuario actual:', currentUser);
           setUser(currentUser);
-        } else if (storedUser && storedUser.id === userId) {
-          console.log('Usando datos del usuario almacenado:', storedUser);
-          setUser(storedUser);
         } else {
-          // Si no, obtener los datos del usuario desde el servicio
-          const userData = await getUserById(userId);
+          // Try to get user data directly from Supabase
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', userId)
+            .maybeSingle();
           
-          if (userData) {
-            console.log('Datos del usuario encontrados:', userData);
+          if (profileError) {
+            console.error('Error fetching profile from Supabase:', profileError);
+            // Fallback to our service
+            const userData = await getUserById(userId);
+            
+            if (userData) {
+              console.log('Datos del usuario encontrados desde servicio:', userData);
+              setUser(userData);
+            } else {
+              console.error('No se encontraron datos para el usuario con ID:', userId);
+              toast({
+                title: "Error",
+                description: "Usuario no encontrado",
+                variant: "destructive"
+              });
+            }
+          } else if (profileData) {
+            console.log('Profile found in Supabase:', profileData);
+            // Convert Supabase profile to User format
+            const userData: User = {
+              id: profileData.id,
+              name: profileData.name || 'Usuario',
+              email: profileData.email || '',
+              isOrganization: profileData.is_organization || false,
+              averageRating: profileData.average_rating || 0,
+              profileImage: profileData.profile_image || '',
+              emailVerified: true,
+              active: true
+            };
             setUser(userData);
           } else {
-            console.error('No se encontraron datos para el usuario con ID:', userId);
-            toast({
-              title: "Error",
-              description: "Usuario no encontrado",
-              variant: "destructive"
-            });
+            // Fallback to our service if no profile found in Supabase
+            const userData = await getUserById(userId);
+            
+            if (userData) {
+              console.log('Datos del usuario encontrados desde servicio:', userData);
+              setUser(userData);
+            } else {
+              console.error('No se encontraron datos para el usuario con ID:', userId);
+              toast({
+                title: "Error",
+                description: "Usuario no encontrado",
+                variant: "destructive"
+              });
+            }
           }
         }
         
-        // Get user's wastes
-        console.log('Buscando residuos del usuario con ID:', userId);
-        const userWastes = await getWastesByUserId(userId);
-        console.log('Residuos del usuario encontrados:', userWastes);
-        setWastes(userWastes);
+        // Get user's wastes from Supabase
+        try {
+          const { data: wasteData, error: wasteError } = await supabase
+            .from('wastes')
+            .select('*')
+            .eq('user_id', userId);
+          
+          if (wasteError) {
+            console.error('Error fetching wastes from Supabase:', wasteError);
+            // Fallback to our service
+            const userWastes = await getWastesByUserId(userId);
+            console.log('Residuos del usuario encontrados desde servicio:', userWastes);
+            setWastes(userWastes);
+          } else if (wasteData) {
+            console.log('Wastes found in Supabase:', wasteData);
+            setWastes(wasteData);
+          }
+        } catch (wasteErr) {
+          console.error('Error getting wastes:', wasteErr);
+          // Fallback to our service
+          const userWastes = await getWastesByUserId(userId);
+          console.log('Residuos del usuario encontrados desde servicio:', userWastes);
+          setWastes(userWastes);
+        }
       } catch (error) {
         console.error('Error al cargar los datos del perfil:', error);
         toast({
