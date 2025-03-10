@@ -159,7 +159,7 @@ export const useAuthActions = (
             toast({
               title: "Modo offline activado",
               description: "No se pudo conectar a Supabase, usando modo offline",
-              variant: "warning"
+              variant: "default" // Changed from "warning" to "default"
             });
           }
         } catch (connectionError) {
@@ -280,7 +280,7 @@ export const useAuthActions = (
             toast({
               title: "Modo offline activado",
               description: "No se pudo conectar a Supabase, usando modo offline para registro",
-              variant: "warning"
+              variant: "default" // Changed from "warning" to "default"
             });
           }
         } catch (connectionError) {

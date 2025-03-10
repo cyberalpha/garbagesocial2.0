@@ -34,12 +34,13 @@ export const useSupabaseConnectionTest = () => {
       setConnectionDetails({
         latency: result.latency,
         timestamp: Date.now(),
-        supabaseVersion: result.version || 'Desconocida'
+        // Only access version if it exists on the result object
+        supabaseVersion: 'version' in result ? result.version : 'Desconocida'
       });
       
       if (!result.success && result.error) {
         console.error('Error de conexión:', result.error);
-        setErrorMessage(result.error);
+        setErrorMessage(typeof result.error === 'string' ? result.error : result.error.message || 'Error desconocido');
       } else if (result.success) {
         console.log('Conexión exitosa a Supabase');
         setErrorMessage(null);

@@ -5,9 +5,10 @@ import { useToast } from '@/components/ui/use-toast';
 
 interface GoogleSignInButtonProps {
   className?: string;
+  disabled?: boolean; // Add the disabled prop
 }
 
-const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({ className }) => {
+const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({ className, disabled }) => {
   const buttonRef = useRef<HTMLDivElement>(null);
   const { loginWithSocialMedia } = useAuth();
   const { toast } = useToast();
@@ -67,7 +68,13 @@ const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({ className }) =>
           // Renderizar el botón de Google
           window.google.accounts.id.renderButton(
             buttonRef.current,
-            { theme: 'outline', size: 'large', width: '100%', text: 'continue_with' }
+            { 
+              theme: 'outline', 
+              size: 'large', 
+              width: '100%', 
+              text: 'continue_with',
+              // Add a disabled state if supported (though Google button doesn't support it directly)
+            }
           );
           
           console.log('Google button rendered successfully');
@@ -92,7 +99,11 @@ const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({ className }) =>
   }, [loginWithSocialMedia, toast]);
   
   return (
-    <div id="googleSignInButton" ref={buttonRef} className={className}>
+    <div 
+      id="googleSignInButton" 
+      ref={buttonRef} 
+      className={`${className} ${disabled ? 'opacity-50 pointer-events-none' : ''}`}
+    >
       {/* El botón de Google se renderizará aquí */}
     </div>
   );
