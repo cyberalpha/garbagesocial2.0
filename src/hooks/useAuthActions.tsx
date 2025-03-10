@@ -15,6 +15,10 @@ import {
   getUserProfile
 } from '@/services/authService';
 import { mapProfileToUser } from '@/utils/userUtils';
+import { saveToStorage, getFromStorage, removeItem } from '@/services/localStorage';
+
+const AUTH_USER_STORAGE_KEY = 'auth_user_data';
+const AUTH_SESSION_STORAGE_KEY = 'auth_session_data';
 
 export const useAuthActions = (
   currentUser: User | null,
@@ -29,21 +33,52 @@ export const useAuthActions = (
     try {
       console.log("Session change detected:", session);
       if (session?.user) {
+        // Guardar la sesión en localStorage para recuperarla en caso de error
+        saveToStorage(AUTH_SESSION_STORAGE_KEY, session, { expiration: 7 * 24 * 60 * 60 * 1000 });
+        
         const { data: profile, error } = await getUserProfile(session.user.id);
 
         if (error) {
           console.error('Error fetching profile:', error);
-          setCurrentUser(null);
+          // Si hay error pero tenemos un usuario en localStorage, lo mantenemos
+          const savedUser = getFromStorage(AUTH_USER_STORAGE_KEY, null);
+          if (savedUser) {
+            console.log('Usando usuario de respaldo desde localStorage debido a error en perfil');
+            setCurrentUser(savedUser);
+          } else {
+            setCurrentUser(null);
+          }
         } else if (profile) {
           const userProfile = mapProfileToUser(profile);
           setCurrentUser(userProfile);
+          // Guardar el usuario en localStorage
+          saveToStorage(AUTH_USER_STORAGE_KEY, userProfile, { expiration: 7 * 24 * 60 * 60 * 1000 });
         }
       } else {
-        setCurrentUser(null);
+        // Verificar si tenemos usuario en localStorage antes de limpiarlo
+        const savedUser = getFromStorage(AUTH_USER_STORAGE_KEY, null);
+        const savedSession = getFromStorage(AUTH_SESSION_STORAGE_KEY, null);
+        
+        if (!savedSession) {
+          // Si no hay sesión almacenada, limpiar el usuario
+          setCurrentUser(null);
+          removeItem(AUTH_USER_STORAGE_KEY);
+        } else if (savedUser && !session) {
+          // Si hay usuario almacenado pero no hay sesión actual, mantener el usuario
+          console.log('Manteniendo usuario de localStorage a pesar de no tener sesión activa');
+          setCurrentUser(savedUser);
+        }
       }
     } catch (error) {
       console.error('Error in session change:', error);
-      setCurrentUser(null);
+      // Si hay error pero tenemos un usuario en localStorage, lo mantenemos
+      const savedUser = getFromStorage(AUTH_USER_STORAGE_KEY, null);
+      if (savedUser) {
+        console.log('Usando usuario de respaldo desde localStorage debido a error en cambio de sesión');
+        setCurrentUser(savedUser);
+      } else {
+        setCurrentUser(null);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -60,7 +95,10 @@ export const useAuthActions = (
           description: response.error.message || "Error al iniciar sesión",
           variant: "destructive"
         });
-      } else {
+      } else if (response.data && response.data.user) {
+        // Al iniciar sesión exitosamente, guardamos los datos de la sesión
+        saveToStorage(AUTH_SESSION_STORAGE_KEY, response.data.session, { expiration: 7 * 24 * 60 * 60 * 1000 });
+        
         toast({
           title: t('general.success'),
           description: `${t('auth.login')} exitoso`,
@@ -111,6 +149,12 @@ export const useAuthActions = (
           active: true
         };
         
+        // Guardar usuario y sesión en localStorage
+        saveToStorage(AUTH_USER_STORAGE_KEY, newUser, { expiration: 7 * 24 * 60 * 60 * 1000 });
+        if (data.session) {
+          saveToStorage(AUTH_SESSION_STORAGE_KEY, data.session, { expiration: 7 * 24 * 60 * 60 * 1000 });
+        }
+        
         return newUser;
       }
       
@@ -142,6 +186,10 @@ export const useAuthActions = (
         });
         return;
       }
+      
+      // Eliminar usuario y sesión de localStorage
+      removeItem(AUTH_USER_STORAGE_KEY);
+      removeItem(AUTH_SESSION_STORAGE_KEY);
       
       toast({
         title: "Sesión cerrada",
