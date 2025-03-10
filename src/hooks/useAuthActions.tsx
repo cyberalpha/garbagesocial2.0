@@ -1,9 +1,9 @@
-
 import { useState } from 'react';
 import { User } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
 import { useLanguage } from '@/components/LanguageContext';
 import { saveToStorage, getFromStorage, removeItem } from '@/services/localStorage';
+import { AuthResponseData } from '@/contexts/AuthContext';
 
 const AUTH_USER_STORAGE_KEY = 'auth_user_data';
 const AUTH_SESSION_STORAGE_KEY = 'auth_session_data';
@@ -64,7 +64,7 @@ export const useAuthActions = (
   };
 
   // Función de login sin Supabase
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<AuthResponseData> => {
     try {
       console.log('Login attempt with email:', email);
       setIsLoading(true);
@@ -100,7 +100,7 @@ export const useAuthActions = (
         description: error.message || "Ocurrió un error durante el inicio de sesión",
         variant: "destructive"
       });
-      return { error };
+      return { error: { message: error.message || "Error desconocido" } };
     } finally {
       setIsLoading(false);
     }

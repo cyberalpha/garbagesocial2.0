@@ -1,12 +1,22 @@
 
 import { createContext } from 'react';
 import { User } from '@/types';
-import { AuthResponse } from '@supabase/supabase-js';
+
+// Definimos el formato de respuesta de autenticación para nuestra implementación sin Supabase
+export interface AuthResponseData {
+  data?: {
+    user: User | null;
+    session?: { user: User } | null;
+  };
+  error?: {
+    message: string;
+  };
+}
 
 export interface AuthContextType {
   currentUser: User | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<AuthResponse>;
+  login: (email: string, password: string) => Promise<AuthResponseData>;
   register: (userData: Partial<User> & { password?: string }) => Promise<User | null>;
   logout: () => Promise<void>;
   updateProfile: (userData: Partial<User>) => Promise<User | null>;
