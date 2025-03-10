@@ -1,29 +1,29 @@
 
 import { User } from '@/types';
-import { supabase, offlineMode } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 
 // Función para iniciar sesión
 export const loginUser = async (email: string, password: string) => {
-  console.log('Attempting login with:', email);
+  console.log('Intentando iniciar sesión con:', email);
   try {
     const response = await supabase.auth.signInWithPassword({
       email,
       password
     });
     
-    // Log the response for debugging
-    console.log('Login response:', response);
+    // Log para depuración
+    console.log('Respuesta de login:', response);
     
     return response;
   } catch (error) {
-    console.error('Authentication error:', error);
+    console.error('Error de autenticación:', error);
     throw error;
   }
 };
 
 // Función para registrar un usuario
 export const registerUser = async (userData: Partial<User> & { password?: string }) => {
-  console.log('Registering user with email:', userData.email);
+  console.log('Registrando usuario con email:', userData.email);
   try {
     const response = await supabase.auth.signUp({
       email: userData.email || '',
@@ -37,8 +37,8 @@ export const registerUser = async (userData: Partial<User> & { password?: string
       }
     });
     
-    // Log the response for debugging
-    console.log('Registration response:', response);
+    // Log para depuración
+    console.log('Respuesta de registro:', response);
     
     if (response.error) {
       throw response.error;
@@ -46,7 +46,7 @@ export const registerUser = async (userData: Partial<User> & { password?: string
     
     return response;
   } catch (error) {
-    console.error('Registration error:', error);
+    console.error('Error de registro:', error);
     throw error;
   }
 };
@@ -54,6 +54,26 @@ export const registerUser = async (userData: Partial<User> & { password?: string
 // Función para cerrar sesión
 export const logoutUser = async () => {
   return await supabase.auth.signOut();
+};
+
+// Función para obtener el perfil del usuario
+export const getUserProfile = async (userId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    
+    if (error) {
+      console.error('Error al obtener perfil:', error);
+    }
+    
+    return { data, error };
+  } catch (error) {
+    console.error('Error inesperado en getUserProfile:', error);
+    return { data: null, error };
+  }
 };
 
 // Función para actualizar el perfil
@@ -90,6 +110,20 @@ export const deactivateProfile = async (userId: string) => {
     .eq('id', userId);
 };
 
+// Verificar la sesión actual
+export const getCurrentSession = async () => {
+  try {
+    const { data, error } = await supabase.auth.getSession();
+    if (error) {
+      console.error('Error al obtener la sesión actual:', error);
+    }
+    return { data, error };
+  } catch (error) {
+    console.error('Error inesperado en getCurrentSession:', error);
+    return { data: null, error };
+  }
+};
+
 // Función para reenviar el email de verificación
 export const resendVerificationEmail = async (email: string) => {
   return await supabase.auth.resend({
@@ -106,38 +140,4 @@ export const loginWithProvider = async (provider: string) => {
       redirectTo: window.location.origin
     }
   });
-};
-
-// Función para obtener el perfil del usuario
-export const getUserProfile = async (userId: string) => {
-  try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
-    
-    if (error) {
-      console.error('Error fetching profile:', error);
-    }
-    
-    return { data, error };
-  } catch (error) {
-    console.error('Unexpected error in getUserProfile:', error);
-    return { data: null, error };
-  }
-};
-
-// Verificar la sesión actual
-export const getCurrentSession = async () => {
-  try {
-    const { data, error } = await supabase.auth.getSession();
-    if (error) {
-      console.error('Error getting current session:', error);
-    }
-    return { data, error };
-  } catch (error) {
-    console.error('Unexpected error in getCurrentSession:', error);
-    return { data: null, error };
-  }
 };

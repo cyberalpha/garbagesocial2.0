@@ -1,6 +1,6 @@
 
 import { useEffect } from 'react';
-import { supabase, offlineMode } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { getFromStorage } from '@/services/localStorage';
 import { syncProfilesWithLocalStorage } from '@/utils/supabaseConnectionUtils';
 
@@ -17,13 +17,13 @@ export const useSessionManager = ({
 }: UseSessionManagerProps) => {
   
   useEffect(() => {
-    // Start in loading state
+    // Iniciar en estado de carga
     setIsLoading(true);
     
     // Configurar el listener de cambio de estado de autenticación
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state changed:', event, session);
+        console.log('Estado de autenticación cambiado:', event, session);
         
         try {
           // Después de un inicio de sesión exitoso, sincronizar perfiles
@@ -34,11 +34,6 @@ export const useSessionManager = ({
           await handleSessionChange(session);
         } catch (error) {
           console.error('Error en handleSessionChange:', error);
-          // Si hay un error, mantenemos el usuario almacenado en localStorage
-          const savedUser = getFromStorage(AUTH_USER_STORAGE_KEY, null);
-          if (savedUser) {
-            console.log('Error handling session change, using saved user from localStorage');
-          }
           setIsLoading(false);
         }
       }
@@ -47,26 +42,17 @@ export const useSessionManager = ({
     // Verificar la sesión actual al cargar
     const checkCurrentSession = async () => {
       try {
-        console.log('Checking current session...');
+        console.log('Verificando sesión actual...');
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
           console.error('Error obteniendo sesión:', error);
-          // Si hay un error, usamos el usuario del localStorage
-          const savedUser = getFromStorage(AUTH_USER_STORAGE_KEY, null);
-          if (savedUser) {
-            console.log('Usando usuario de respaldo desde localStorage:', savedUser);
-          }
           setIsLoading(false);
           return;
         }
         
         if (!session) {
-          // Si no hay sesión pero hay usuario en localStorage, lo mantenemos
-          const savedUser = getFromStorage(AUTH_USER_STORAGE_KEY, null);
-          if (savedUser) {
-            console.log('No hay sesión activa pero se encontró usuario en localStorage');
-          }
+          console.log('No hay sesión activa');
           setIsLoading(false);
           return;
         }
@@ -75,32 +61,22 @@ export const useSessionManager = ({
         try {
           await syncProfilesWithLocalStorage();
         } catch (syncError) {
-          console.error('Error synchronizing profiles:', syncError);
+          console.error('Error sincronizando perfiles:', syncError);
         }
 
         try {
           await handleSessionChange(session);
         } catch (error) {
           console.error('Error en handleSessionChange durante inicialización:', error);
-          // Si hay un error, mantenemos el usuario almacenado en localStorage
-          const savedUser = getFromStorage(AUTH_USER_STORAGE_KEY, null);
-          if (savedUser) {
-            console.log('Usando usuario de respaldo desde localStorage debido a error');
-          }
           setIsLoading(false);
         }
       } catch (error) {
-        console.error('Error checking current session:', error);
-        // En caso de error, usamos el usuario del localStorage
-        const savedUser = getFromStorage(AUTH_USER_STORAGE_KEY, null);
-        if (savedUser) {
-          console.log('Usando usuario de respaldo desde localStorage debido a error general');
-        }
+        console.error('Error verificando sesión actual:', error);
         setIsLoading(false);
       }
     };
 
-    // Check session immediately
+    // Verificar sesión inmediatamente
     checkCurrentSession();
 
     // Limpiar suscripción
