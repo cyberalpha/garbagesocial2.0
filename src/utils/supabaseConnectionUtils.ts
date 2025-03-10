@@ -1,7 +1,8 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
-export const testSupabaseConnection = async () => {
+// Renamed testSupabaseConnection to checkDatabaseConnection to match existing imports
+export const checkDatabaseConnection = async () => {
   try {
     console.log('Intentando verificar conexión a Supabase...');
     
@@ -12,21 +13,26 @@ export const testSupabaseConnection = async () => {
       console.error('Error de conexión a Supabase:', error);
       return { 
         success: false, 
-        error: error.message || 'Error al conectar con la base de datos'
+        error: error.message || 'Error al conectar con la base de datos',
+        offlineMode: false
       };
     }
     
     // Si llegamos aquí, la conexión fue exitosa
     console.log('Conexión a Supabase verificada exitosamente');
-    return { success: true };
+    return { success: true, offlineMode: false };
   } catch (error: any) {
     console.error('Error inesperado al verificar conexión:', error);
     return { 
       success: false, 
-      error: error?.message || 'Error inesperado al verificar la conexión'
+      error: error?.message || 'Error inesperado al verificar la conexión',
+      offlineMode: false
     };
   }
 };
+
+// Mantener testSupabaseConnection como alias por compatibilidad
+export const testSupabaseConnection = checkDatabaseConnection;
 
 // Función para sincronizar perfiles de usuario con localStorage
 export const syncProfilesWithLocalStorage = async () => {
