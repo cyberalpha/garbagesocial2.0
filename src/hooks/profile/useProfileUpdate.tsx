@@ -37,6 +37,31 @@ export const useProfileUpdate = (
         return null;
       }
       
+      // Verificar si el perfil existe
+      const { data: existingProfile, error: checkError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', currentUser.id)
+        .maybeSingle();
+      
+      if (checkError) {
+        console.error('Error al verificar perfil:', checkError);
+      }
+      
+      if (!existingProfile) {
+        console.log('Perfil no encontrado, creando nuevo perfil');
+        const { error: createError } = await supabase.auth.getUser();
+        if (createError) {
+          console.error('Error obteniendo usuario actual:', createError);
+          toast({
+            title: t('general.error'),
+            description: "No se pudo verificar la sesión actual",
+            variant: "destructive"
+          });
+          return null;
+        }
+      }
+      
       // Update the user in Supabase
       const { data: supabaseData, error: supabaseError } = await supabase
         .from('profiles')

@@ -14,7 +14,7 @@ export const useAuthActions = (
   const { t } = useLanguage();
 
   // Handle Supabase session changes
-  const handleSessionChange = (event: any, session: any) => {
+  const handleSessionChange = async (event: any, session: any) => {
     console.log('Evento de sesión detectado:', event, session);
     
     if (event === 'SIGNED_IN') {
@@ -22,17 +22,32 @@ export const useAuthActions = (
       const user = session.user;
       
       if (user) {
-        // No guardar en localStorage, actualizar estado
-        setCurrentUser({
-          id: user.id,
-          name: user.user_metadata?.name || user.email?.split('@')[0] || '',
-          email: user.email || '',
-          isOrganization: user.user_metadata?.isOrganization || false,
-          averageRating: 0,
-          profileImage: user.user_metadata?.profileImage || `https://api.dicebear.com/7.x/initials/svg?seed=${user.email}`,
-          emailVerified: user.email_confirmed_at ? true : false,
-          active: true
-        });
+        try {
+          // Get profile data from Supabase
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .maybeSingle();
+            
+          if (profileError) {
+            console.error('Error fetching profile from Supabase:', profileError);
+          }
+          
+          // Set current user with profile data if available
+          setCurrentUser({
+            id: user.id,
+            name: profileData?.name || user.user_metadata?.name || user.email?.split('@')[0] || '',
+            email: user.email || '',
+            isOrganization: profileData?.is_organization || user.user_metadata?.isOrganization || false,
+            averageRating: profileData?.average_rating || 0,
+            profileImage: profileData?.profile_image || user.user_metadata?.profileImage || `https://api.dicebear.com/7.x/initials/svg?seed=${user.email}`,
+            emailVerified: user.email_confirmed_at ? true : false,
+            active: true
+          });
+        } catch (error) {
+          console.error('Error handling session change:', error);
+        }
       }
       
       setIsLoading(false);
@@ -69,14 +84,11 @@ export const useAuthActions = (
           description: "Inicio de sesión exitoso",
         });
 
-        // No guardar en localStorage, actualizar estado
-        const user = data.user;
-        
-        // Obtener datos del perfil del usuario desde Supabase
+        // Fetch user profile data
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('*')
-          .eq('id', user?.id)
+          .eq('id', data.user?.id)
           .maybeSingle();
         
         if (profileError) {
@@ -84,13 +96,13 @@ export const useAuthActions = (
         }
         
         const userObject: User = {
-          id: user?.id || '',
-          name: profileData?.name || user?.user_metadata?.name || user?.email?.split('@')[0] || '',
-          email: user?.email || '',
-          isOrganization: profileData?.is_organization || user?.user_metadata?.isOrganization || false,
+          id: data.user?.id || '',
+          name: profileData?.name || data.user?.user_metadata?.name || data.user?.email?.split('@')[0] || '',
+          email: data.user?.email || '',
+          isOrganization: profileData?.is_organization || data.user?.user_metadata?.isOrganization || false,
           averageRating: profileData?.average_rating || 0,
-          profileImage: profileData?.profile_image || user?.user_metadata?.profileImage || `https://api.dicebear.com/7.x/initials/svg?seed=${user?.email}`,
-          emailVerified: user?.email_confirmed_at ? true : false,
+          profileImage: profileData?.profile_image || data.user?.user_metadata?.profileImage || `https://api.dicebear.com/7.x/initials/svg?seed=${data.user?.email}`,
+          emailVerified: data.user?.email_confirmed_at ? true : false,
           active: true
         };
         
@@ -163,33 +175,50 @@ export const useAuthActions = (
           setPendingVerification(true);
         }
         
-        // Create profile with service role to bypass RLS
-        const { data: adminClient } = await supabase.auth.getSession();
+        // El perfil será creado automáticamente por el trigger en Supabase
+        // Esperar un momento para que el trigger tenga tiempo de ejecutarse
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
-        // First, create profile as the authenticated user
-        const { error: profileError, data: profileData } = await supabase
+        // Verificar que el perfil haya sido creado
+        const { data: profileData, error: profileError } = await supabase
           .from('profiles')
-          .upsert({
-            id: data.user.id,
-            name: userData.name || userData.email?.split('@')[0] || '',
-            email: userData.email,
-            is_organization: userData.isOrganization || false,
-            profile_image: userData.profileImage || `https://api.dicebear.com/7.x/initials/svg?seed=${userData.email}`,
-            average_rating: 0
-          }, {
-            onConflict: 'id'
-          })
-          .select();
-          
+          .select('*')
+          .eq('id', data.user.id)
+          .maybeSingle();
+        
         if (profileError) {
-          console.error('Error al crear perfil:', profileError);
-          toast({
-            title: t('general.error'),
-            description: "Error al crear perfil: " + profileError.message,
-            variant: "destructive"
-          });
+          console.error('Error al verificar perfil:', profileError);
+        }
+        
+        if (!profileData) {
+          console.log('Perfil no encontrado, creando manualmente');
+          
+          // Si el perfil no existe, crearlo manualmente
+          const { error: createError } = await supabase
+            .from('profiles')
+            .upsert({
+              id: data.user.id,
+              name: userData.name || userData.email?.split('@')[0] || '',
+              email: userData.email,
+              is_organization: userData.isOrganization || false,
+              profile_image: userData.profileImage || `https://api.dicebear.com/7.x/initials/svg?seed=${userData.email}`,
+              average_rating: 0
+            }, {
+              onConflict: 'id'
+            });
+            
+          if (createError) {
+            console.error('Error al crear perfil manualmente:', createError);
+            toast({
+              title: t('general.error'),
+              description: "Error al crear perfil: " + createError.message,
+              variant: "destructive"
+            });
+          } else {
+            console.log('Perfil creado manualmente con éxito');
+          }
         } else {
-          console.log('Perfil creado con éxito:', profileData);
+          console.log('Perfil encontrado:', profileData);
         }
         
         const user: User = {
@@ -203,7 +232,7 @@ export const useAuthActions = (
           active: true
         };
         
-        // Actualizar estado (no usar localStorage)
+        // Actualizar estado
         setCurrentUser(user);
         
         toast({
