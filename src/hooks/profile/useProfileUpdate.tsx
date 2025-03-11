@@ -48,46 +48,58 @@ export const useProfileUpdate = (
         console.error('Error al verificar perfil:', checkError);
       }
       
+      // Si el perfil no existe, crearlo
       if (!existingProfile) {
         console.log('Perfil no encontrado, creando nuevo perfil');
-        const { error: createError } = await supabase.auth.getUser();
-        if (createError) {
-          console.error('Error obteniendo usuario actual:', createError);
+        const { data: insertData, error: insertError } = await supabase
+          .from('profiles')
+          .insert({
+            id: currentUser.id,
+            name: userData.name || currentUser.name,
+            email: userData.email || currentUser.email,
+            is_organization: userData.isOrganization !== undefined ? userData.isOrganization : currentUser.isOrganization,
+            profile_image: userData.profileImage || currentUser.profileImage,
+            average_rating: currentUser.averageRating || 0
+          })
+          .select();
+          
+        if (insertError) {
+          console.error('Error al crear perfil:', insertError);
           toast({
             title: t('general.error'),
-            description: "No se pudo verificar la sesión actual",
+            description: insertError.message || "Error al crear perfil",
             variant: "destructive"
           });
           return null;
         }
+        
+        console.log('Perfil creado con éxito:', insertData);
+      } else {
+        // Actualizar el perfil existente
+        const { data: updateData, error: updateError } = await supabase
+          .from('profiles')
+          .update({
+            name: userData.name || currentUser.name,
+            email: userData.email || currentUser.email,
+            is_organization: userData.isOrganization !== undefined ? userData.isOrganization : currentUser.isOrganization,
+            profile_image: userData.profileImage || currentUser.profileImage,
+            average_rating: currentUser.averageRating || 0
+          })
+          .eq('id', currentUser.id)
+          .select();
+          
+        if (updateError) {
+          console.error('Error al actualizar perfil:', updateError);
+          toast({
+            title: t('general.error'),
+            description: updateError.message || "Error al actualizar perfil",
+            variant: "destructive"
+          });
+          return null;
+        }
+        
+        console.log('Perfil actualizado con éxito:', updateData);
       }
-      
-      // Update the user in Supabase
-      const { data: supabaseData, error: supabaseError } = await supabase
-        .from('profiles')
-        .upsert({
-          id: currentUser.id,
-          name: userData.name || currentUser.name,
-          email: userData.email || currentUser.email,
-          is_organization: userData.isOrganization !== undefined ? userData.isOrganization : currentUser.isOrganization,
-          profile_image: userData.profileImage || currentUser.profileImage,
-          average_rating: currentUser.averageRating || 0
-        }, {
-          onConflict: 'id'
-        })
-        .select();
-      
-      if (supabaseError) {
-        console.error('Error al actualizar perfil en Supabase:', supabaseError);
-        toast({
-          title: t('general.error'),
-          description: supabaseError.message || "Error actualizando perfil en la base de datos",
-          variant: "destructive"
-        });
-        return null;
-      }
-      
-      console.log('Perfil actualizado en Supabase:', supabaseData);
       
       // Actualizar el usuario en memoria
       const updatedUser = {
