@@ -60,11 +60,11 @@ export const useProfileUpdate = (
       
       console.log('Enviando datos de perfil a Supabase:', profileData);
       
+      // Fixed: Removed 'returning' option and added proper type with onConflict option
       const { data: upsertData, error: upsertError } = await supabase
         .from('profiles')
         .upsert(profileData, {
-          onConflict: 'id',
-          returning: 'minimal'
+          onConflict: 'id'
         });
         
       if (upsertError) {

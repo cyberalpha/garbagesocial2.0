@@ -231,9 +231,12 @@ export const useAuthActions = (
         
         console.log('Creando perfil con datos:', profileToCreate);
         
+        // Fixed: Removed 'returning' option and using proper type with onConflict
         const { error: profileError } = await supabase
           .from('profiles')
-          .upsert(profileToCreate);
+          .upsert(profileToCreate, {
+            onConflict: 'id'
+          });
           
         if (profileError) {
           console.error('Error al crear perfil:', profileError);
