@@ -130,7 +130,7 @@ export const useAuthActions = (
           
           const { error: createError } = await supabase
             .from('profiles')
-            .upsert(profileToCreate);
+            .insert(profileToCreate);
             
           if (createError) {
             console.error('Error creating profile:', createError);
@@ -231,34 +231,20 @@ export const useAuthActions = (
         
         console.log('Creando perfil con datos:', profileToCreate);
         
-        // Fixed: Removed 'returning' option and using proper type with onConflict
+        // Usamos insert en lugar de upsert ya que es un nuevo perfil
         const { error: profileError } = await supabase
           .from('profiles')
-          .upsert(profileToCreate, {
-            onConflict: 'id'
-          });
+          .insert(profileToCreate);
           
         if (profileError) {
           console.error('Error al crear perfil:', profileError);
-          console.log('Intentando crear perfil con insert en lugar de upsert');
-          
-          // Intentar con insert si upsert falla
-          const { error: insertError } = await supabase
-            .from('profiles')
-            .insert(profileToCreate);
-            
-          if (insertError) {
-            console.error('Error al insertar perfil:', insertError);
-            toast({
-              title: t('general.error'),
-              description: "Error al crear perfil: " + insertError.message,
-              variant: "destructive"
-            });
-          } else {
-            console.log('Perfil creado con éxito mediante insert');
-          }
+          toast({
+            title: t('general.error'),
+            description: "Error al crear perfil: " + profileError.message,
+            variant: "destructive"
+          });
         } else {
-          console.log('Perfil creado con éxito mediante upsert');
+          console.log('Perfil creado con éxito');
         }
         
         const user: User = {

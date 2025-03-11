@@ -57,7 +57,7 @@ export const useProfileUpdate = (
       
       console.log('Enviando datos de perfil a Supabase:', profileData);
       
-      // Primero intentamos con upsert
+      // Ahora usamos upsert sin opciones adicionales
       const { error: upsertError } = await supabase
         .from('profiles')
         .upsert(profileData);
