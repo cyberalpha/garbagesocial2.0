@@ -118,15 +118,19 @@ export const useAuthActions = (
         // If profile doesn't exist, create it
         if (!profileData && data.user) {
           console.log('Perfil no encontrado, creando nuevo perfil');
+          const profileToCreate = {
+            id: data.user.id,
+            name: data.user.user_metadata?.name || data.user.email?.split('@')[0] || '',
+            email: data.user.email,
+            is_organization: data.user.user_metadata?.isOrganization || false,
+            profile_image: data.user.user_metadata?.profileImage || `https://api.dicebear.com/7.x/initials/svg?seed=${data.user.email}`
+          };
+          
+          console.log('Creando perfil con datos:', profileToCreate);
+          
           const { error: createError } = await supabase
             .from('profiles')
-            .insert({
-              id: data.user.id,
-              name: data.user.user_metadata?.name || data.user.email?.split('@')[0] || '',
-              email: data.user.email,
-              is_organization: data.user.user_metadata?.isOrganization || false,
-              profile_image: data.user.user_metadata?.profileImage || `https://api.dicebear.com/7.x/initials/svg?seed=${data.user.email}`
-            });
+            .upsert(profileToCreate);
             
           if (createError) {
             console.error('Error creating profile:', createError);
@@ -215,28 +219,43 @@ export const useAuthActions = (
           setPendingVerification(true);
         }
         
-        // Explícitamente crear el perfil, sin depender del trigger
-        console.log('Creando perfil explícitamente');
+        // Crear el perfil de manera explícita
+        const profileToCreate = {
+          id: data.user.id,
+          name: userData.name || userData.email?.split('@')[0] || '',
+          email: userData.email,
+          is_organization: userData.isOrganization || false,
+          profile_image: userData.profileImage || `https://api.dicebear.com/7.x/initials/svg?seed=${userData.email}`,
+          average_rating: 0
+        };
+        
+        console.log('Creando perfil con datos:', profileToCreate);
+        
         const { error: profileError } = await supabase
           .from('profiles')
-          .insert({
-            id: data.user.id,
-            name: userData.name || userData.email?.split('@')[0] || '',
-            email: userData.email,
-            is_organization: userData.isOrganization || false,
-            profile_image: userData.profileImage || `https://api.dicebear.com/7.x/initials/svg?seed=${userData.email}`,
-            average_rating: 0
-          });
+          .upsert(profileToCreate);
           
         if (profileError) {
           console.error('Error al crear perfil:', profileError);
-          toast({
-            title: t('general.error'),
-            description: "Error al crear perfil: " + profileError.message,
-            variant: "destructive"
-          });
+          console.log('Intentando crear perfil con insert en lugar de upsert');
+          
+          // Intentar con insert si upsert falla
+          const { error: insertError } = await supabase
+            .from('profiles')
+            .insert(profileToCreate);
+            
+          if (insertError) {
+            console.error('Error al insertar perfil:', insertError);
+            toast({
+              title: t('general.error'),
+              description: "Error al crear perfil: " + insertError.message,
+              variant: "destructive"
+            });
+          } else {
+            console.log('Perfil creado con éxito mediante insert');
+          }
         } else {
-          console.log('Perfil creado con éxito');
+          console.log('Perfil creado con éxito mediante upsert');
         }
         
         const user: User = {
