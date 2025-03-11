@@ -26,7 +26,6 @@ export const useProfileUpdate = (
 
       console.log('Intentando actualizar perfil en Supabase:', currentUser.id, userData);
       
-      // Ensure the user ID is a valid UUID
       if (!currentUser.id || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(currentUser.id)) {
         console.error('ID de usuario inválido:', currentUser.id);
         toast({
@@ -37,7 +36,6 @@ export const useProfileUpdate = (
         return null;
       }
       
-      // Verificar si el perfil existe
       const { data: existingProfile, error: checkError } = await supabase
         .from('profiles')
         .select('*')
@@ -48,7 +46,6 @@ export const useProfileUpdate = (
         console.error('Error al verificar perfil:', checkError);
       }
       
-      // Crear o actualizar perfil usando upsert para mayor seguridad
       const profileData = {
         id: currentUser.id,
         name: userData.name || currentUser.name,
@@ -60,26 +57,31 @@ export const useProfileUpdate = (
       
       console.log('Enviando datos de perfil a Supabase:', profileData);
       
-      // Fixed: Removed 'returning' option and added proper type with onConflict option
-      const { data: upsertData, error: upsertError } = await supabase
+      // Primero intentamos con upsert
+      const { error: upsertError } = await supabase
         .from('profiles')
-        .upsert(profileData, {
-          onConflict: 'id'
-        });
-        
+        .upsert(profileData);
+      
       if (upsertError) {
-        console.error('Error al guardar perfil:', upsertError);
-        toast({
-          title: t('general.error'),
-          description: upsertError.message || "Error al actualizar perfil",
-          variant: "destructive"
-        });
-        return null;
+        console.error('Error con upsert, intentando con insert:', upsertError);
+        // Si falla upsert, intentamos con insert
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert(profileData);
+          
+        if (insertError) {
+          console.error('Error al guardar perfil:', insertError);
+          toast({
+            title: t('general.error'),
+            description: insertError.message || "Error al actualizar perfil",
+            variant: "destructive"
+          });
+          return null;
+        }
       }
       
       console.log('Perfil guardado con éxito');
       
-      // Actualizar el usuario en memoria
       const updatedUser = {
         ...currentUser,
         ...userData,
