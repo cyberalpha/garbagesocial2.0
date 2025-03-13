@@ -51,6 +51,10 @@ const LoginForm = () => {
         }
       } else {
         console.log("Login successful:", user);
+        toast({
+          title: "Éxito",
+          description: "Sesión iniciada correctamente",
+        });
         navigate('/profile');
       }
     } catch (error: any) {

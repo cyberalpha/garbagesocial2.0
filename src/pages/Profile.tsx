@@ -3,13 +3,14 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { User, Waste } from "@/types";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, AlertCircle } from "lucide-react";
 import { getUserById, getWastesByUserId } from "@/services/users";
 import UserProfile from "@/components/UserProfile";
 import { useAuth } from "@/hooks/useAuth";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
 import { transformSupabaseWaste } from '@/services/wastes/utils';
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Profile = () => {
   const { id } = useParams<{ id: string }>();
@@ -18,6 +19,8 @@ const Profile = () => {
   const [user, setUser] = useState<User | null>(null);
   const [wastes, setWastes] = useState<Waste[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
   
   useEffect(() => {
     // Verificar si el usuario está autenticado
@@ -31,25 +34,23 @@ const Profile = () => {
     
     if (!userId) {
       console.error('No se pudo obtener un ID de usuario válido');
-      toast({
-        title: "Error",
-        description: "No se pudo cargar el perfil. Intenta nuevamente.",
-        variant: "destructive"
-      });
+      setError("No se pudo obtener un ID de usuario válido");
       setLoading(false);
       return;
     }
     
     setLoading(true);
+    setError(null);
 
     const loadProfileData = async () => {
       try {
         console.log('Obteniendo datos del usuario con ID:', userId);
+        let userData: User | null = null;
         
         // Si el ID del perfil corresponde al usuario actual, usarlo directamente
         if (currentUser && currentUser.id === userId) {
           console.log('Usando datos del usuario actual:', currentUser);
-          setUser(currentUser);
+          userData = currentUser;
         } else {
           // Try to get user data directly from Supabase
           const { data: profileData, error: profileError } = await supabase
@@ -60,24 +61,21 @@ const Profile = () => {
           
           if (profileError) {
             console.error('Error fetching profile from Supabase:', profileError);
-            // Fallback to our service
-            const userData = await getUserById(userId);
-            
-            if (userData) {
-              console.log('Datos del usuario encontrados desde servicio:', userData);
-              setUser(userData);
-            } else {
-              console.error('No se encontraron datos para el usuario con ID:', userId);
-              toast({
-                title: "Error",
-                description: "Usuario no encontrado",
-                variant: "destructive"
-              });
-            }
-          } else if (profileData) {
+            throw new Error('Error al obtener el perfil: ' + profileError.message);
+          } 
+          
+          if (profileData) {
             console.log('Profile found in Supabase:', profileData);
+            
+            // Verificar si el perfil está desactivado
+            if (profileData.name && profileData.name.startsWith('DELETED_')) {
+              setError("Este perfil ha sido desactivado");
+              setLoading(false);
+              return;
+            }
+            
             // Convert Supabase profile to User format
-            const userData: User = {
+            userData = {
               id: profileData.id,
               name: profileData.name || 'Usuario',
               email: profileData.email || '',
@@ -87,24 +85,21 @@ const Profile = () => {
               emailVerified: true,
               active: true
             };
-            setUser(userData);
           } else {
-            // Fallback to our service if no profile found in Supabase
-            const userData = await getUserById(userId);
+            // Try to get via service as fallback
+            userData = await getUserById(userId);
             
-            if (userData) {
-              console.log('Datos del usuario encontrados desde servicio:', userData);
-              setUser(userData);
-            } else {
-              console.error('No se encontraron datos para el usuario con ID:', userId);
-              toast({
-                title: "Error",
-                description: "Usuario no encontrado",
-                variant: "destructive"
-              });
+            if (!userData) {
+              throw new Error('Usuario no encontrado');
             }
           }
         }
+        
+        if (!userData) {
+          throw new Error('No se encontraron datos para el usuario');
+        }
+        
+        setUser(userData);
         
         // Get user's wastes from Supabase
         try {
@@ -115,42 +110,70 @@ const Profile = () => {
           
           if (wasteError) {
             console.error('Error fetching wastes from Supabase:', wasteError);
-            // Fallback to our service
-            const userWastes = await getWastesByUserId(userId);
-            console.log('Residuos del usuario encontrados desde servicio:', userWastes);
-            setWastes(userWastes);
-          } else if (wasteData) {
+            throw new Error('Error al obtener los residuos');
+          } 
+          
+          if (wasteData) {
             console.log('Wastes found in Supabase:', wasteData);
             // Transform Supabase waste format to our application's Waste type
             const transformedWastes = wasteData.map(waste => transformSupabaseWaste(waste));
             setWastes(transformedWastes);
+          } else {
+            // Fallback to service
+            const userWastes = await getWastesByUserId(userId);
+            setWastes(userWastes);
           }
         } catch (wasteErr) {
           console.error('Error getting wastes:', wasteErr);
-          // Fallback to our service
-          const userWastes = await getWastesByUserId(userId);
-          console.log('Residuos del usuario encontrados desde servicio:', userWastes);
-          setWastes(userWastes);
+          // We don't throw here to avoid blocking profile display if wastes fail
+          toast({
+            title: "Advertencia",
+            description: "No se pudieron cargar los residuos del usuario",
+            variant: "destructive"
+          });
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error al cargar los datos del perfil:', error);
-        toast({
-          title: "Error",
-          description: "Error al cargar los datos del perfil",
-          variant: "destructive"
-        });
+        setError(error.message || "Error al cargar los datos del perfil");
       } finally {
         setLoading(false);
       }
     };
     
     loadProfileData();
-  }, [id, currentUser, navigate]);
+  }, [id, currentUser, navigate, toast]);
   
   if (loading) {
     return (
-      <div className="container mx-auto max-w-2xl py-8 px-4 text-center">
-        <p>Cargando perfil...</p>
+      <div className="container mx-auto max-w-2xl py-8 px-4">
+        <div className="flex flex-col items-center justify-center min-h-[50vh]">
+          <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+          <p className="text-gray-600">Cargando perfil...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  if (error) {
+    return (
+      <div className="container mx-auto max-w-2xl py-8 px-4">
+        <Button 
+          variant="ghost" 
+          className="mb-4" 
+          onClick={() => navigate(-1)}
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Volver
+        </Button>
+        
+        <Alert variant="destructive" className="my-4">
+          <AlertCircle className="h-4 w-4 mr-2" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+        
+        <div className="text-center mt-8">
+          <Button onClick={() => navigate('/')}>Ir al inicio</Button>
+        </div>
       </div>
     );
   }
@@ -185,7 +208,7 @@ const Profile = () => {
         Volver
       </Button>
       
-      <UserProfile user={user} isEditable={currentUser && user?.id === currentUser?.id} wastes={wastes} />
+      <UserProfile user={user} isEditable={isEditable} wastes={wastes} />
     </div>
   );
 };

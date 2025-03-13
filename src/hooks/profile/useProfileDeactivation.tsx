@@ -26,7 +26,8 @@ export const useProfileDeactivation = (
 
       console.log('Intentando desactivar perfil en Supabase:', currentUser.id);
       
-      // En lugar de usar un campo "active", marcamos el perfil como desactivado de otra manera
+      // En lugar de borrar el perfil, lo marcamos como desactivado
+      // Prefijamos el nombre con "DELETED_" para indicar que está desactivado
       const { error: supabaseError } = await supabase
         .from('profiles')
         .update({ 
