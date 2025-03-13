@@ -39,7 +39,7 @@ export const useSupabaseConnectionTest = () => {
           success: true,
           timestamp,
           latency: result.latency || null,
-          supabaseVersion: result.version || null
+          supabaseVersion: result.supabaseVersion || null
         });
       } else if (result && result.error) {
         setIsConnected(false);

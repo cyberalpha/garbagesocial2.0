@@ -1,52 +1,62 @@
-
 import { supabase, offlineMode } from '@/integrations/supabase/client';
 import { safeTableAccess } from './supabaseMockUtils';
 
-// Función para verificar la conexión a la base de datos
-export const checkDatabaseConnection = async () => {
-  // Si estamos en modo offline, retornamos un estado offline simulado
-  if (offlineMode()) {
-    console.log('Modo offline activado, saltando verificación de conexión real');
-    return { 
-      success: false, 
-      error: "Modo offline activado", 
-      offlineMode: true,
-      latency: null
-    };
-  }
-  
+/**
+ * Verificar la conexión a la base de datos Supabase
+ */
+export const checkDatabaseConnection = async (): Promise<{
+  success: boolean;
+  error?: any;
+  offlineMode: boolean;
+  latency?: number;
+  supabaseVersion?: string;
+}> => {
   try {
-    console.log('Verificando conexión a Supabase...');
-    const startTime = performance.now();
-    
-    // Use safeTableAccess instead of direct table access since tables might not exist
-    const { data, error } = await safeTableAccess('profiles').select('count()');
-    
-    const endTime = performance.now();
-    
-    if (error) {
-      console.error('Error al verificar conexión:', error);
-      return { 
-        success: false, 
-        error: error?.message || 'Error inesperado al verificar la conexión',
-        offlineMode: false,
-        latency: null
+    // Si estamos en modo offline, no intentamos conexión
+    if (offlineMode()) {
+      console.log('En modo offline, no se verifica conexión a Supabase');
+      return {
+        success: false,
+        error: 'Modo offline activado',
+        offlineMode: true,
+        latency: 0
       };
     }
     
-    return { 
-      success: true, 
-      error: null,
+    const startTime = Date.now();
+    
+    // Probar conexión con una consulta simple
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id')
+      .limit(1);
+    
+    const endTime = Date.now();
+    const latency = endTime - startTime;
+    
+    if (error) {
+      console.error('Error verificando conexión a Supabase:', error);
+      return {
+        success: false,
+        error,
+        offlineMode: false,
+        latency
+      };
+    }
+    
+    console.log('Conexión a Supabase exitosa');
+    return {
+      success: true,
       offlineMode: false,
-      latency: Math.round(endTime - startTime)
+      latency,
+      supabaseVersion: '2.x' // Versión fija o podría obtenerse de alguna manera
     };
-  } catch (error: any) {
-    console.error('Error al verificar conexión:', error);
-    return { 
-      success: false, 
-      error: error?.message || 'Error inesperado al verificar la conexión',
-      offlineMode: false,
-      latency: null
+  } catch (error) {
+    console.error('Error inesperado al verificar conexión a Supabase:', error);
+    return {
+      success: false,
+      error,
+      offlineMode: false
     };
   }
 };
