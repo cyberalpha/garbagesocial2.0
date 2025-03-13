@@ -88,6 +88,21 @@ export const useAuthActions = (
 
       if (error) {
         console.error('Error de inicio de sesión:', error.message);
+        
+        // Mejorar manejo de error específico para email no confirmado
+        if (error.message.includes('Email not confirmed') || 
+            error.message.includes('email not confirmed') ||
+            error.message.includes('email_not_confirmed')) {
+          console.log('El email no ha sido confirmado');
+          toast({
+            title: t('general.error'),
+            description: "Por favor verifica tu correo electrónico antes de iniciar sesión. Revisa tu bandeja de entrada.",
+            variant: "destructive"
+          });
+          setPendingVerification(true);
+          return null;
+        }
+        
         toast({
           title: t('general.error'),
           description: error.message,

@@ -7,13 +7,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Mail, Lock, LogIn, Loader2 } from 'lucide-react';
+import { Mail, Lock, LogIn, Loader2, AlertCircle } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const LoginForm = () => {
   const [credentials, setCredentials] = useState({ email: '', password: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { login, currentUser } = useAuth();
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const { login, currentUser, pendingVerification } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -27,12 +29,11 @@ const LoginForm = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Limpiar mensaje de error previo
+    setErrorMessage(null);
+    
     if (!credentials.email || !credentials.password) {
-      toast({
-        title: t('general.error'),
-        description: "Por favor completa todos los campos",
-        variant: "destructive"
-      });
+      setErrorMessage("Por favor completa todos los campos");
       return;
     }
     
@@ -43,22 +44,18 @@ const LoginForm = () => {
       const user = await login(credentials);
       
       if (!user) {
-        toast({
-          title: t('general.error'),
-          description: "No se pudo iniciar sesión. Comprueba tus credenciales.",
-          variant: "destructive"
-        });
+        if (pendingVerification) {
+          setErrorMessage("Por favor verifica tu correo electrónico antes de iniciar sesión. Revisa tu bandeja de entrada.");
+        } else {
+          setErrorMessage("No se pudo iniciar sesión. Comprueba tus credenciales.");
+        }
       } else {
         console.log("Login successful:", user);
         navigate('/profile');
       }
     } catch (error: any) {
       console.error('Login error:', error);
-      toast({
-        title: t('general.error'),
-        description: error.message || "Ha ocurrido un error durante el inicio de sesión",
-        variant: "destructive"
-      });
+      setErrorMessage(error.message || "Ha ocurrido un error durante el inicio de sesión");
     } finally {
       setIsSubmitting(false);
     }
@@ -79,6 +76,13 @@ const LoginForm = () => {
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
+          {errorMessage && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4 mr-2" />
+              <AlertDescription>{errorMessage}</AlertDescription>
+            </Alert>
+          )}
+          
           <div className="space-y-2">
             <Label htmlFor="email">{t('auth.email')}</Label>
             <div className="relative">
@@ -127,6 +131,15 @@ const LoginForm = () => {
             )}
             {isSubmitting ? t('general.loading') : t('auth.login')}
           </Button>
+          
+          {pendingVerification && (
+            <Alert className="mt-4 bg-amber-50 border-amber-200">
+              <AlertCircle className="h-4 w-4 text-amber-600 mr-2" />
+              <AlertDescription className="text-amber-800">
+                Tu correo electrónico no ha sido verificado. Por favor, revisa tu bandeja de entrada y haz clic en el enlace de verificación.
+              </AlertDescription>
+            </Alert>
+          )}
         </CardContent>
         <CardFooter className="flex flex-col space-y-2">
           <div className="text-sm text-center">
