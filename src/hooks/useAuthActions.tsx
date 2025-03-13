@@ -1,4 +1,3 @@
-
 import { User } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
 import { useLanguage } from '@/components/LanguageContext';
@@ -187,6 +186,25 @@ export const useAuthActions = (
         return null;
       }
       
+      // Verificar si el email ya existe antes de registrar
+      const { data: existingUsers, error: checkError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', userData.email)
+        .limit(1);
+        
+      if (checkError) {
+        console.error('Error al verificar email existente:', checkError);
+      } else if (existingUsers && existingUsers.length > 0) {
+        console.log('Email ya registrado:', userData.email);
+        toast({
+          title: t('general.error'),
+          description: "Este email ya está registrado. Por favor utiliza otro o inicia sesión.",
+          variant: "destructive"
+        });
+        return null;
+      }
+      
       // Registrar en Supabase Auth
       const { data, error } = await supabase.auth.signUp({
         email: userData.email,
@@ -202,11 +220,23 @@ export const useAuthActions = (
       
       if (error) {
         console.error('Error en registro:', error.message);
-        toast({
-          title: t('general.error'),
-          description: error.message,
-          variant: "destructive"
-        });
+        
+        // Detectar errores específicos de email ya utilizado
+        if (error.message.includes('already registered') || 
+            error.message.includes('already in use') || 
+            error.message.toLowerCase().includes('duplicate')) {
+          toast({
+            title: t('general.error'),
+            description: "Este email ya está registrado. Por favor utiliza otro o inicia sesión.",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: t('general.error'),
+            description: error.message,
+            variant: "destructive"
+          });
+        }
         return null;
       }
       

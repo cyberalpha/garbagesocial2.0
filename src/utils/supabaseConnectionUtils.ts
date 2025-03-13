@@ -1,3 +1,4 @@
+
 import { supabase, offlineMode } from '@/integrations/supabase/client';
 import { safeTableAccess } from './supabaseMockUtils';
 

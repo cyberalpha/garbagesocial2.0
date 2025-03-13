@@ -11,6 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { User, Mail, Lock, LogIn, Building, Loader2 } from 'lucide-react';
 import { User as UserType } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const RegisterForm = () => {
   const [userData, setUserData] = useState<Partial<UserType> & { password?: string }>({
@@ -20,6 +21,7 @@ const RegisterForm = () => {
     password: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { register, currentUser } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
@@ -35,22 +37,17 @@ const RegisterForm = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Limpiar mensaje de error previo
+    setErrorMessage(null);
+    
     // Validar datos
     if (!userData.name || !userData.email || !userData.password) {
-      toast({
-        title: t('general.error'),
-        description: "Por favor completa todos los campos requeridos",
-        variant: "destructive"
-      });
+      setErrorMessage("Por favor completa todos los campos requeridos");
       return;
     }
     
     if (userData.password && userData.password.length < 6) {
-      toast({
-        title: t('general.error'),
-        description: "La contraseña debe tener al menos 6 caracteres",
-        variant: "destructive"
-      });
+      setErrorMessage("La contraseña debe tener al menos 6 caracteres");
       return;
     }
     
@@ -75,11 +72,7 @@ const RegisterForm = () => {
       }
     } catch (error: any) {
       console.error('Error en registro:', error);
-      toast({
-        title: t('general.error'),
-        description: error.message || "Error al registrar usuario",
-        variant: "destructive"
-      });
+      setErrorMessage(error.message || "Error al registrar usuario");
     } finally {
       setIsSubmitting(false);
     }
@@ -103,6 +96,12 @@ const RegisterForm = () => {
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
+          {errorMessage && (
+            <Alert variant="destructive">
+              <AlertDescription>{errorMessage}</AlertDescription>
+            </Alert>
+          )}
+          
           <div className="space-y-2">
             <Label htmlFor="name">{t('auth.name')}</Label>
             <div className="relative">
