@@ -32,12 +32,16 @@ export const useAuthProvider = () => {
           
           if (error) {
             console.error('Error fetching profile:', error);
+            setIsLoading(false);
+            return;
           }
           
           if (profileData) {
-            // Check if profile is deactivated by name
-            if (profileData.name && profileData.name.startsWith('DELETED_')) {
-              console.log('This profile is deactivated');
+            // Check if profile is deactivated
+            if (profileData.name && profileData.name.startsWith('DELETED_') || profileData.active === false) {
+              console.log('Este perfil está desactivado');
+              // Cerrar sesión automáticamente si el perfil está desactivado
+              await supabase.auth.signOut();
               setCurrentUser(null);
               setIsLoading(false);
               return;
@@ -51,11 +55,11 @@ export const useAuthProvider = () => {
               averageRating: profileData.average_rating || 0,
               profileImage: profileData.profile_image || '',
               emailVerified: session.user.email_confirmed_at ? true : false,
-              active: true
+              active: profileData.active !== false // Si no existe active, considerarlo como activo
             };
             setCurrentUser(user);
           } else {
-            // If profile doesn't exist yet but user is authenticated, create it
+            // Si el perfil no existe pero el usuario está autenticado, crearlo
             console.log('Creating profile for authenticated user without profile');
             const user = {
               id: session.user.id,
@@ -68,7 +72,7 @@ export const useAuthProvider = () => {
               active: true
             };
             
-            // Explicitly create profile in Supabase
+            // Crear explícitamente el perfil en Supabase
             const { error: createError } = await supabase
               .from('profiles')
               .upsert({
@@ -77,7 +81,8 @@ export const useAuthProvider = () => {
                 email: user.email,
                 is_organization: user.isOrganization,
                 profile_image: user.profileImage,
-                average_rating: 0
+                average_rating: 0,
+                active: true
               }, {
                 onConflict: 'id'
               });

@@ -26,13 +26,13 @@ export const useProfileDeactivation = (
       setIsLoading(true);
       console.log('Intentando desactivar perfil en Supabase:', currentUser.id);
       
-      // En lugar de borrar el perfil, lo marcamos como desactivado
-      // Prefijamos el nombre con "DELETED_" para indicar que está desactivado
+      // Marcar el perfil como inactivo
       const { error: supabaseError } = await supabase
         .from('profiles')
         .update({ 
           name: `DELETED_${currentUser.name}`,
-          profile_image: null 
+          profile_image: null,
+          active: false  // Explícitamente marcar como inactivo
         })
         .eq('id', currentUser.id);
       
@@ -51,7 +51,7 @@ export const useProfileDeactivation = (
       
       toast({
         title: t('general.success'),
-        description: "Tu perfil ha sido desactivado. Puedes reactivarlo registrándote nuevamente con el mismo correo electrónico."
+        description: "Tu perfil ha sido desactivado correctamente. Puedes reactivarlo registrándote nuevamente con el mismo correo electrónico."
       });
     } catch (error: any) {
       console.error('Error inesperado al desactivar perfil:', error);

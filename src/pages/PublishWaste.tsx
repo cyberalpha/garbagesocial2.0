@@ -16,23 +16,23 @@ const PublishWaste = () => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { currentUser } = useAuth();
+  const { currentUser, isLoading } = useAuth();
   const { toast } = useToast();
   
   // Add effect to ensure the user is authenticated
   useEffect(() => {
-    if (!currentUser) {
+    if (!isLoading && !currentUser) {
       console.log("No hay usuario autenticado, redirigiendo a login");
       toast({
-        title: "Error",
+        title: "Acceso denegado",
         description: "Debes iniciar sesión para publicar un residuo",
         variant: "destructive"
       });
       navigate('/login');
-    } else {
+    } else if (currentUser) {
       console.log("Usuario autenticado:", currentUser);
     }
-  }, [currentUser, navigate, toast]);
+  }, [currentUser, isLoading, navigate, toast]);
   
   const handleSubmit = async (data: {
     type: WasteType;
@@ -101,6 +101,15 @@ const PublishWaste = () => {
       setIsSubmitting(false);
     }
   };
+  
+  // Mostrar un indicador de carga mientras se verifica la autenticación
+  if (isLoading) {
+    return (
+      <div className="container mx-auto max-w-2xl py-8 px-4 text-center">
+        <p>Cargando...</p>
+      </div>
+    );
+  }
   
   // Si no hay usuario autenticado, mostrar un mensaje y un botón para ir al login
   if (!currentUser) {
