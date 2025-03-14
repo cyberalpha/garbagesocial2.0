@@ -1,4 +1,3 @@
-
 import { useAuthState } from './useAuthState';
 import { useAuthActions } from './useAuthActions';
 import { useProfileActions } from './useProfileActions';
@@ -39,6 +38,8 @@ export const useAuthProvider = () => {
           if (profileData) {
             // Check if profile is deactivated
             const isDeactivated = profileData.name && profileData.name.startsWith('DELETED_');
+            // Verificar si el perfil está explícitamente marcado como inactivo
+            // Nota: Como 'active' no existe en el tipo, utilizamos una verificación segura
             const isActiveExplicitly = 'active' in profileData ? profileData.active === true : true;
             
             if (isDeactivated || !isActiveExplicitly) {
@@ -58,6 +59,7 @@ export const useAuthProvider = () => {
               averageRating: profileData.average_rating || 0,
               profileImage: profileData.profile_image || '',
               emailVerified: session.user.email_confirmed_at ? true : false,
+              // Utilizamos una verificación segura para la propiedad 'active'
               active: 'active' in profileData ? profileData.active !== false : true
             };
             setCurrentUser(user);
