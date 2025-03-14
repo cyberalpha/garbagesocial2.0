@@ -5,15 +5,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Waste, WasteType } from "@/types";
 import { ArrowLeft } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import WasteForm from "@/components/WasteForm";
 import { addWaste } from "@/services/wastes";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 const PublishWaste = () => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { currentUser } = useAuth();
+  const { toast } = useToast();
   
   // Add effect to ensure the user is authenticated
   useEffect(() => {
@@ -28,7 +32,7 @@ const PublishWaste = () => {
     } else {
       console.log("Usuario autenticado:", currentUser);
     }
-  }, [currentUser, navigate]);
+  }, [currentUser, navigate, toast]);
   
   const handleSubmit = async (data: {
     type: WasteType;
@@ -48,18 +52,13 @@ const PublishWaste = () => {
     }
     
     setIsSubmitting(true);
+    setError(null);
     
     try {
       console.log("Creando nuevo residuo con datos:", data);
       console.log("Usuario actual:", currentUser);
       
-      // Ensure the user's ID is properly saved to localStorage before proceeding
-      if (currentUser) {
-        localStorage.setItem('auth_user_data', JSON.stringify(currentUser));
-        console.log("Usuario guardado en localStorage:", JSON.parse(localStorage.getItem('auth_user_data') || '{}'));
-      }
-      
-      // Create new waste object
+      // Create new waste object con el ID de usuario verificado
       const newWasteData: Partial<Waste> = {
         userId: currentUser.id,
         type: data.type,
@@ -85,41 +84,41 @@ const PublishWaste = () => {
         description: "Tu residuo ha sido publicado correctamente",
       });
       
-      // Ensure user data is preserved in session before redirecting
+      // Redirigir al perfil del usuario
       setTimeout(() => {
         setIsSubmitting(false);
-        
-        if (!currentUser || !currentUser.id) {
-          console.error("Error: ID de usuario no válido al intentar redirigir");
-          toast({
-            title: "Error",
-            description: "Hubo un problema con tu sesión. Volviendo al inicio.",
-            variant: "destructive"
-          });
-          navigate('/');
-          return;
-        }
-        
-        // Double check localStorage before redirecting
-        const storedUser = JSON.parse(localStorage.getItem('auth_user_data') || '{}');
-        console.log("Usuario en localStorage antes de redirigir:", storedUser);
-        
-        // Redirigir al perfil del usuario
-        const profilePath = `/profile/${currentUser.id}`;
-        console.log("Redirigiendo a:", profilePath);
-        navigate(profilePath);
-      }, 2000); // Increased to 2 seconds to ensure data is saved
-    } catch (error) {
+        navigate(`/profile/${currentUser.id}`);
+      }, 1000);
+    } catch (error: any) {
       console.error("Error al publicar residuo:", error);
       // Mostrar mensaje de error
+      setError(error.message || "Ha ocurrido un error al publicar el residuo. Intenta de nuevo.");
       toast({
         title: "Error",
-        description: "Ha ocurrido un error al publicar el residuo. Intenta de nuevo.",
+        description: error.message || "Ha ocurrido un error al publicar el residuo. Intenta de nuevo.",
         variant: "destructive"
       });
       setIsSubmitting(false);
     }
   };
+  
+  // Si no hay usuario autenticado, mostrar un mensaje y un botón para ir al login
+  if (!currentUser) {
+    return (
+      <div className="container mx-auto max-w-2xl py-8 px-4">
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4 mr-2" />
+          <AlertDescription>
+            Debes iniciar sesión para publicar un residuo
+          </AlertDescription>
+        </Alert>
+        
+        <Button onClick={() => navigate('/login')}>
+          Iniciar sesión
+        </Button>
+      </div>
+    );
+  }
   
   return (
     <div className="container mx-auto max-w-2xl py-8 px-4">
@@ -131,6 +130,13 @@ const PublishWaste = () => {
         <ArrowLeft className="mr-2 h-4 w-4" />
         Volver
       </Button>
+      
+      {error && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4 mr-2" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
       
       <Card>
         <CardHeader>

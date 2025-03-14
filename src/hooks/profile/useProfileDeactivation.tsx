@@ -13,17 +13,17 @@ export const useProfileDeactivation = (
   const { t } = useLanguage();
 
   const deleteProfile = async (): Promise<void> => {
-    setIsLoading(true);
-    try {
-      if (!currentUser) {
-        toast({
-          title: t('general.error'),
-          description: "Debes iniciar sesión para desactivar tu perfil",
-          variant: "destructive"
-        });
-        return;
-      }
+    if (!currentUser) {
+      toast({
+        title: t('general.error'),
+        description: "Debes iniciar sesión para desactivar tu perfil",
+        variant: "destructive"
+      });
+      return;
+    }
 
+    try {
+      setIsLoading(true);
       console.log('Intentando desactivar perfil en Supabase:', currentUser.id);
       
       // En lugar de borrar el perfil, lo marcamos como desactivado

@@ -23,28 +23,29 @@ const Profile = () => {
   const { toast } = useToast();
   
   useEffect(() => {
-    // Verificar si el usuario está autenticado
-    if (!currentUser && !id) {
-      navigate('/login');
-      return;
-    }
-    
-    const userId = id || (currentUser?.id ?? '');
-    console.log("Cargando perfil para ID:", userId);
-    
-    if (!userId) {
-      console.error('No se pudo obtener un ID de usuario válido');
-      setError("No se pudo obtener un ID de usuario válido");
-      setLoading(false);
-      return;
-    }
-    
-    setLoading(true);
-    setError(null);
-
     const loadProfileData = async () => {
       try {
-        console.log('Obteniendo datos del usuario con ID:', userId);
+        setLoading(true);
+        setError(null);
+        
+        // Verificar si el usuario está autenticado
+        if (!currentUser && !id) {
+          console.log('No hay usuario autenticado y no se especificó ID, redirigiendo a login');
+          navigate('/login');
+          return;
+        }
+        
+        const userId = id || (currentUser?.id ?? '');
+        
+        if (!userId) {
+          console.error('No se pudo obtener un ID de usuario válido');
+          setError("No se pudo obtener un ID de usuario válido");
+          setLoading(false);
+          return;
+        }
+        
+        console.log('Cargando perfil para ID:', userId);
+        
         let userData: User | null = null;
         
         // Si el ID del perfil corresponde al usuario actual, usarlo directamente
@@ -52,7 +53,7 @@ const Profile = () => {
           console.log('Usando datos del usuario actual:', currentUser);
           userData = currentUser;
         } else {
-          // Try to get user data directly from Supabase
+          // Intentar obtener datos del usuario de Supabase
           const { data: profileData, error: profileError } = await supabase
             .from('profiles')
             .select('*')
@@ -86,10 +87,15 @@ const Profile = () => {
               active: true
             };
           } else {
-            // Try to get via service as fallback
-            userData = await getUserById(userId);
-            
-            if (!userData) {
+            // Fallback to service
+            try {
+              userData = await getUserById(userId);
+              
+              if (!userData) {
+                throw new Error('Usuario no encontrado');
+              }
+            } catch (getUserError) {
+              console.error('Error al obtener usuario por ID:', getUserError);
               throw new Error('Usuario no encontrado');
             }
           }
@@ -110,18 +116,31 @@ const Profile = () => {
           
           if (wasteError) {
             console.error('Error fetching wastes from Supabase:', wasteError);
-            throw new Error('Error al obtener los residuos');
-          } 
-          
-          if (wasteData) {
+            // No throw here, just log and continue
+            toast({
+              title: "Advertencia",
+              description: "No se pudieron cargar los residuos del usuario",
+              variant: "destructive"
+            });
+          } else if (wasteData && wasteData.length > 0) {
             console.log('Wastes found in Supabase:', wasteData);
             // Transform Supabase waste format to our application's Waste type
             const transformedWastes = wasteData.map(waste => transformSupabaseWaste(waste));
             setWastes(transformedWastes);
           } else {
             // Fallback to service
-            const userWastes = await getWastesByUserId(userId);
-            setWastes(userWastes);
+            try {
+              const userWastes = await getWastesByUserId(userId);
+              setWastes(userWastes);
+            } catch (getWastesError) {
+              console.error('Error getting wastes from service:', getWastesError);
+              // Show toast but don't block profile display
+              toast({
+                title: "Advertencia",
+                description: "No se pudieron cargar los residuos del usuario",
+                variant: "destructive"
+              });
+            }
           }
         } catch (wasteErr) {
           console.error('Error getting wastes:', wasteErr);

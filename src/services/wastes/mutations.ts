@@ -41,13 +41,19 @@ const saveWasteLocally = (waste: Waste, operation: 'create' | 'update'): void =>
  * Accepts partial waste and returns the complete waste object
  */
 export const addWaste = async (wasteData: Partial<Waste>): Promise<Waste> => {
+  // Check for user ID before proceeding
+  if (!wasteData.userId) {
+    console.error("Error: No se proporcionó un ID de usuario para crear el residuo");
+    throw new Error("Se requiere un ID de usuario para crear un residuo");
+  }
+
   // Generate a unique ID (simple implementation)
   const newId = `waste_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
   
   // Create complete waste object with defaults for required fields
   const newWaste: Waste = {
     id: newId,
-    userId: wasteData.userId || '',
+    userId: wasteData.userId,
     type: wasteData.type || 'various',
     description: wasteData.description || '',
     imageUrl: wasteData.imageUrl,
@@ -60,7 +66,7 @@ export const addWaste = async (wasteData: Partial<Waste>): Promise<Waste> => {
     pickupCommitment: wasteData.pickupCommitment
   };
   
-  console.log("Generando nuevo residuo con ID:", newId);
+  console.log("Generando nuevo residuo con ID:", newId, "para usuario:", wasteData.userId);
   
   // En modo offline, sólo guardamos localmente
   if (offlineMode()) {
@@ -78,18 +84,23 @@ export const addWaste = async (wasteData: Partial<Waste>): Promise<Waste> => {
       const supabaseData = transformWasteForSupabase(newWaste);
       console.log("Datos transformados para Supabase:", supabaseData);
       
-      // Intentar guardar en Supabase
-      const result = await safeTableAccess('wastes')
-        .insert(supabaseData);
+      // Intentar guardar en Supabase directamente con cliente
+      const { data, error } = await supabase
+        .from('wastes')
+        .insert(supabaseData)
+        .select()
+        .single();
         
-      const { error } = result;
-      
       if (error) {
         console.error("Error al insertar residuo en Supabase:", error);
         // Guardar localmente y agregar a la cola si hay error
         saveWasteLocally(newWaste, 'create');
       } else {
-        console.log("Residuo guardado correctamente en Supabase:", newWaste);
+        console.log("Residuo guardado correctamente en Supabase:", data);
+        // Usar el ID devuelto por Supabase si está disponible
+        if (data && data.id) {
+          newWaste.id = data.id;
+        }
         // También guardar en localStorage para acceso rápido
         const wastes = getFromStorage<Waste[]>(WASTES_STORAGE_KEY, []);
         wastes.push(newWaste);
@@ -104,6 +115,7 @@ export const addWaste = async (wasteData: Partial<Waste>): Promise<Waste> => {
     // En caso de error (por ejemplo, si Supabase no está disponible)
     console.error("Error en addWaste, usando localStorage como respaldo:", error);
     saveWasteLocally(newWaste, 'create');
+    throw error; // Re-lanzar el error para que se pueda manejar en la interfaz
   }
   
   return newWaste;
