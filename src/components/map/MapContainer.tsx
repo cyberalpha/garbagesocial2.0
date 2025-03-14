@@ -63,10 +63,21 @@ const MapContainer = ({
   } = useMapState();
 
   console.log("MapContainer rendering, wastes:", wastes.length);
+  console.log("Current user location:", location ? `${location.coordinates[1]}, ${location.coordinates[0]}` : "No disponible");
 
-  const [mapOptions] = useState<MapOptions>({
-    center: initialOptions?.center || [-58.3816, -34.6037],
-    zoom: initialOptions?.zoom || 13
+  // Inicializar opciones del mapa usando la ubicación del usuario si está disponible
+  const [mapOptions] = useState<MapOptions>(() => {
+    if (location) {
+      console.log("Inicializando mapa con la ubicación del usuario:", location.coordinates);
+      return {
+        center: location.coordinates,
+        zoom: initialOptions?.zoom || 15
+      };
+    }
+    return {
+      center: initialOptions?.center || [-58.3816, -34.6037],
+      zoom: initialOptions?.zoom || 13
+    };
   });
 
   const { mapRef, onMapLoad: handleMapLoad, zoomIn, zoomOut, centerOnUser } = useMapControls({
@@ -84,6 +95,17 @@ const MapContainer = ({
     handleMapLoad(map);
     setMapLoaded(true);
     console.log("Map loaded successfully");
+    
+    // Forzar centrado en la ubicación del usuario después de cargar el mapa
+    if (location) {
+      console.log("Forzando centrado en ubicación del usuario después de cargar mapa:", location.coordinates);
+      setTimeout(() => {
+        map.setCenter({ 
+          lat: location.coordinates[1], 
+          lng: location.coordinates[0] 
+        });
+      }, 300);
+    }
   };
 
   useEffect(() => {
@@ -105,19 +127,21 @@ const MapContainer = ({
     loadWastes();
   }, [setWastes, toast]);
 
+  // Efecto para centrar el mapa cuando cambia la ubicación
   useEffect(() => {
     if (location && mapRef.current) {
-      console.log("Centrando mapa en ubicación del usuario:", location.coordinates);
-      mapRef.current.panTo({ 
-        lat: location.coordinates[1], 
-        lng: location.coordinates[0] 
-      });
-      toast({
-        title: "Ubicación encontrada",
-        description: "El mapa se ha centrado en tu ubicación",
-      });
+      console.log("Centrando mapa en ubicación actualizada del usuario:", location.coordinates);
+      // Usar setTimeout para asegurar que el centrado se realice después de que el mapa esté completamente cargado
+      setTimeout(() => {
+        if (mapRef.current) {
+          mapRef.current.setCenter({ 
+            lat: location.coordinates[1], 
+            lng: location.coordinates[0] 
+          });
+        }
+      }, 500);
     }
-  }, [location, mapRef, toast]);
+  }, [location, mapRef]);
 
   return (
     <div className="relative w-full h-full min-h-[400px] bg-gray-100 rounded-lg overflow-hidden">

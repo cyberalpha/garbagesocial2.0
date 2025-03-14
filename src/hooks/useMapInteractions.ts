@@ -28,10 +28,16 @@ export const useMapInteractions = (initialOptions?: Partial<MapOptions>) => {
 
   const centerMap = useCallback((location: GeoLocation) => {
     if (mapRef.current) {
+      console.log("Centrando mapa en:", location.coordinates);
       mapRef.current.panTo({ 
         lat: location.coordinates[1], 
         lng: location.coordinates[0] 
       });
+      // Asegurarse de actualizar las opciones del mapa para mantener coherencia
+      setMapOptions(prev => ({
+        ...prev,
+        center: location.coordinates
+      }));
       return true;
     }
     return false;
@@ -51,10 +57,18 @@ export const useMapInteractions = (initialOptions?: Partial<MapOptions>) => {
 
   const centerOnLocation = useCallback((location: GeoLocation | null, showToast = true) => {
     if (location && mapRef.current) {
+      console.log("Centrando en ubicación:", location.coordinates);
       mapRef.current.panTo({ 
         lat: location.coordinates[1], 
         lng: location.coordinates[0] 
       });
+      
+      // Asegurarse de actualizar las opciones del mapa para mantener coherencia
+      setMapOptions(prev => ({
+        ...prev,
+        center: location.coordinates
+      }));
+      
       if (showToast) {
         toast({
           title: "Centrado en ubicación",

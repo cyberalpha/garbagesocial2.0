@@ -38,7 +38,10 @@ export const useAuthProvider = () => {
           
           if (profileData) {
             // Check if profile is deactivated
-            if (profileData.name && profileData.name.startsWith('DELETED_') || profileData.active === false) {
+            const isDeactivated = profileData.name && profileData.name.startsWith('DELETED_');
+            const isActiveExplicitly = 'active' in profileData ? profileData.active === true : true;
+            
+            if (isDeactivated || !isActiveExplicitly) {
               console.log('Este perfil está desactivado');
               // Cerrar sesión automáticamente si el perfil está desactivado
               await supabase.auth.signOut();
@@ -55,7 +58,7 @@ export const useAuthProvider = () => {
               averageRating: profileData.average_rating || 0,
               profileImage: profileData.profile_image || '',
               emailVerified: session.user.email_confirmed_at ? true : false,
-              active: profileData.active !== false // Si no existe active, considerarlo como activo
+              active: 'active' in profileData ? profileData.active !== false : true
             };
             setCurrentUser(user);
           } else {

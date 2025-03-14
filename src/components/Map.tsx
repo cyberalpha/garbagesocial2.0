@@ -17,19 +17,31 @@ const Map = ({ initialOptions, onMarkerClick, showRouteTools = false }: MapProps
   const geolocation = useGeolocation();
   const routeOptimization = useRouteOptimization();
   
-  console.log("Map rendering, geolocation:", geolocation.location ? "available" : "unavailable");
+  console.log("Map rendering, geolocation:", geolocation.location ? 
+    `disponible (${geolocation.location.coordinates[1]}, ${geolocation.location.coordinates[0]})` : 
+    "no disponible");
   
   if (geolocation.error) {
+    console.log("Error de geolocalización:", geolocation.error);
     return <ErrorState message={geolocation.error} />;
   }
   
   if (geolocation.loading) {
+    console.log("Cargando geolocalización...");
     return <LoadingState message="Obteniendo ubicación..." />;
   }
   
+  // Si tenemos la ubicación, asegurarnos de que el mapa se inicialice con ella
+  const enhancedInitialOptions = geolocation.location ? {
+    ...initialOptions,
+    center: geolocation.location.coordinates
+  } : initialOptions;
+  
+  console.log("Opciones iniciales del mapa:", enhancedInitialOptions);
+  
   return (
     <MapContainer
-      initialOptions={initialOptions}
+      initialOptions={enhancedInitialOptions}
       onMarkerClick={onMarkerClick}
       showRouteTools={showRouteTools}
       useGeolocation={geolocation}
