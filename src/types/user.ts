@@ -5,14 +5,16 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: UserRole;
+  role?: UserRole;
   isOrganization: boolean;
   averageRating: number;
   location?: {
     type: 'Point';
     coordinates: [number, number]; // [longitude, latitude]
   };
-  profileImageUrl?: string;
+  profileImage?: string;
+  emailVerified?: boolean;
+  active?: boolean;
 }
 
 export interface Rating {

@@ -11,6 +11,6 @@ export const mapProfileToUser = (profile: any): User => {
     averageRating: profile.average_rating,
     profileImage: profile.profile_image,
     emailVerified: true,
-    active: profile.active
+    active: profile.active !== false  // Si es undefined o null, será true
   };
 };

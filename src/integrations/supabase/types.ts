@@ -11,6 +11,7 @@ export type Database = {
     Tables: {
       profiles: {
         Row: {
+          active: boolean | null
           average_rating: number | null
           created_at: string | null
           email: string | null
@@ -21,6 +22,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          active?: boolean | null
           average_rating?: number | null
           created_at?: string | null
           email?: string | null
@@ -31,6 +33,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          active?: boolean | null
           average_rating?: number | null
           created_at?: string | null
           email?: string | null
