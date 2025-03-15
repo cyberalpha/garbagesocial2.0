@@ -1,4 +1,6 @@
 
+import React from 'react';
+
 /**
  * Utilidad para capturar y registrar errores en la aplicación
  */
@@ -101,25 +103,15 @@ export function withErrorLogging<P>(
 ): React.FC<P> {
   return function WithErrorLogging(props: P) {
     try {
-      return React.createElement(Component, props);
+      return <Component {...props} />;
     } catch (error) {
       logError(error as Error, componentName);
       // Renderizar un fallback en caso de error
-      return React.createElement(
-        'div',
-        { className: "p-4 border border-red-500 rounded-md" },
-        [
-          React.createElement(
-            'h3',
-            { className: "text-red-500 font-medium", key: 'title' },
-            'Error inesperado'
-          ),
-          React.createElement(
-            'p',
-            { className: "text-sm", key: 'message' },
-            (error as Error).message
-          )
-        ]
+      return (
+        <div className="p-4 border border-red-500 rounded-md">
+          <h3 className="text-red-500 font-medium">Error inesperado</h3>
+          <p className="text-sm">{(error as Error).message}</p>
+        </div>
       );
     }
   };
