@@ -5,11 +5,20 @@ import { dataSynchronizer } from '@/services/sync/DataSynchronizer';
 import { syncQueue } from '@/services/sync/SyncQueue';
 import { initLocalStorage, clearExpiredItems } from '@/services/localStorage';
 
+interface SyncError {
+  id: string;
+  timestamp: Date;
+  operation?: string;
+  entityType?: string;
+  message: string;
+}
+
 interface DataSyncState {
   isSyncing: boolean;
   isOnline: boolean;
   pendingOperations: number;
   lastSyncAttempt: Date | null;
+  syncErrors: SyncError[];
 }
 
 /**
@@ -20,7 +29,8 @@ export const useDataSync = () => {
     isSyncing: false,
     isOnline: navigator.onLine,
     pendingOperations: 0,
-    lastSyncAttempt: null
+    lastSyncAttempt: null,
+    syncErrors: []
   });
   const { toast } = useToast();
   
@@ -31,7 +41,34 @@ export const useDataSync = () => {
       ...prev,
       isSyncing: state.isSyncing,
       isOnline: state.isOnline,
-      pendingOperations: state.pendingOperations
+      pendingOperations: state.pendingOperations,
+      syncErrors: state.syncErrors || prev.syncErrors
+    }));
+  }, []);
+  
+  // Agregar un error a la lista de errores de sincronización
+  const addSyncError = useCallback((error: Error | string, operation?: string, entityType?: string) => {
+    const errorMsg = typeof error === 'string' ? error : error.message || 'Error desconocido';
+    setSyncState(prev => ({
+      ...prev,
+      syncErrors: [
+        {
+          id: `err_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+          timestamp: new Date(),
+          operation,
+          entityType,
+          message: errorMsg
+        },
+        ...prev.syncErrors.slice(0, 9) // Mantener solo los 10 errores más recientes
+      ]
+    }));
+  }, []);
+  
+  // Limpiar errores de sincronización
+  const clearSyncErrors = useCallback(() => {
+    setSyncState(prev => ({
+      ...prev,
+      syncErrors: []
     }));
   }, []);
   
@@ -69,11 +106,14 @@ export const useDataSync = () => {
           title: "Sincronización completada",
           description: "Los datos se han sincronizado correctamente"
         });
+        clearSyncErrors();
       }
       
       return success;
     } catch (error) {
       console.error("Error durante la sincronización manual:", error);
+      const errorMsg = error instanceof Error ? error.message : "Error desconocido";
+      addSyncError(errorMsg, 'sync', 'manual');
       toast({
         title: "Error de sincronización",
         description: "No se pudieron sincronizar los datos. Intente nuevamente más tarde.",
@@ -83,7 +123,7 @@ export const useDataSync = () => {
     } finally {
       setSyncState(prev => ({ ...prev, isSyncing: false }));
     }
-  }, [syncState.isOnline, syncState.isSyncing, toast, refreshState]);
+  }, [syncState.isOnline, syncState.isSyncing, toast, refreshState, addSyncError, clearSyncErrors]);
   
   // Inicializar sincronización
   useEffect(() => {
@@ -92,6 +132,13 @@ export const useDataSync = () => {
     
     // Limpiar items expirados
     clearExpiredItems();
+    
+    // Sobreescribir el método de error en dataSynchronizer
+    const originalOnError = dataSynchronizer.onSyncError;
+    dataSynchronizer.onSyncError = (error, operation, entityType) => {
+      if (originalOnError) originalOnError(error, operation, entityType);
+      addSyncError(error, operation, entityType);
+    };
     
     // Iniciar el servicio de sincronización
     dataSynchronizer.start();
@@ -111,16 +158,19 @@ export const useDataSync = () => {
     
     // Limpiar al desmontar
     return () => {
+      dataSynchronizer.onSyncError = originalOnError;
       dataSynchronizer.stop();
       clearInterval(intervalId);
       window.removeEventListener('online', handleOnlineStatusChange);
       window.removeEventListener('offline', handleOnlineStatusChange);
     };
-  }, [refreshState]);
+  }, [refreshState, addSyncError]);
   
   return {
     ...syncState,
     syncNow,
-    hasPendingChanges: syncState.pendingOperations > 0
+    clearSyncErrors,
+    hasPendingChanges: syncState.pendingOperations > 0,
+    hasErrors: syncState.syncErrors.length > 0
   };
 };

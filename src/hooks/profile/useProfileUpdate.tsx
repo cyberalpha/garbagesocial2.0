@@ -36,6 +36,19 @@ export const useProfileUpdate = (
         return null;
       }
       
+      // Preparamos los datos para Supabase, asegurándonos de transformar los campos correctamente
+      const profileData = {
+        id: currentUser.id,
+        name: userData.name || currentUser.name,
+        email: userData.email || currentUser.email,
+        is_organization: userData.isOrganization !== undefined ? userData.isOrganization : currentUser.isOrganization,
+        profile_image: userData.profileImage || currentUser.profileImage,
+        active: true // Aseguramos que el perfil esté activo
+      };
+      
+      console.log('Enviando datos de perfil a Supabase:', profileData);
+      
+      // Primero verificamos si el perfil existe
       const { data: existingProfile, error: checkError } = await supabase
         .from('profiles')
         .select('*')
@@ -44,44 +57,32 @@ export const useProfileUpdate = (
       
       if (checkError) {
         console.error('Error al verificar perfil:', checkError);
+        throw new Error(checkError.message);
       }
       
-      const profileData = {
-        id: currentUser.id,
-        name: userData.name || currentUser.name,
-        email: userData.email || currentUser.email,
-        is_organization: userData.isOrganization !== undefined ? userData.isOrganization : currentUser.isOrganization,
-        profile_image: userData.profileImage || currentUser.profileImage,
-        average_rating: currentUser.averageRating || 0
-      };
+      let result;
       
-      console.log('Enviando datos de perfil a Supabase:', profileData);
-      
-      // Ahora usamos upsert sin opciones adicionales
-      const { error: upsertError } = await supabase
-        .from('profiles')
-        .upsert(profileData);
-      
-      if (upsertError) {
-        console.error('Error con upsert, intentando con insert:', upsertError);
-        // Si falla upsert, intentamos con insert
-        const { error: insertError } = await supabase
+      if (existingProfile) {
+        // Si existe, actualizamos
+        result = await supabase
+          .from('profiles')
+          .update(profileData)
+          .eq('id', currentUser.id);
+      } else {
+        // Si no existe, insertamos
+        result = await supabase
           .from('profiles')
           .insert(profileData);
-          
-        if (insertError) {
-          console.error('Error al guardar perfil:', insertError);
-          toast({
-            title: t('general.error'),
-            description: insertError.message || "Error al actualizar perfil",
-            variant: "destructive"
-          });
-          return null;
-        }
+      }
+      
+      if (result.error) {
+        console.error('Error al guardar perfil:', result.error);
+        throw new Error(result.error.message);
       }
       
       console.log('Perfil guardado con éxito');
       
+      // Actualizamos el usuario en el estado local
       const updatedUser = {
         ...currentUser,
         ...userData,
@@ -97,9 +98,14 @@ export const useProfileUpdate = (
       return updatedUser;
     } catch (error: any) {
       console.error('Error inesperado al actualizar perfil:', error);
+      
+      // Capturamos y mostramos los mensajes de error
+      const errorMessage = error.message || "Ocurrió un error durante la actualización";
+      console.error('Mensaje de error completo:', errorMessage);
+      
       toast({
         title: t('general.error'),
-        description: error.message || "Ocurrió un error durante la actualización",
+        description: errorMessage,
         variant: "destructive"
       });
       return null;

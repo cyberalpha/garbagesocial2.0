@@ -1,3 +1,4 @@
+
 import { supabase, offlineMode } from '@/integrations/supabase/client';
 import { syncQueue, SyncOperation } from './SyncQueue';
 import { getWastes, saveWaste, deleteWaste } from '../wastes';
@@ -8,6 +9,14 @@ import { safeTableAccess } from '@/utils/supabaseMockUtils';
 
 const SYNC_INTERVAL = 3 * 60 * 1000;
 
+interface SyncError {
+  id: string;
+  timestamp: Date;
+  operation?: string;
+  entityType?: string;
+  message: string;
+}
+
 /**
  * Servicio para gestionar la sincronización de datos con Supabase
  */
@@ -15,6 +24,10 @@ export class DataSynchronizer {
   private syncInterval: NodeJS.Timeout | null = null;
   private isSyncing = false;
   private isOnline = navigator.onLine;
+  private syncErrors: SyncError[] = [];
+  
+  // Callback para errores de sincronización
+  public onSyncError: ((error: Error | string, operation?: string, entityType?: string) => void) | null = null;
   
   /**
    * Iniciar el servicio de sincronización
@@ -90,6 +103,32 @@ export class DataSynchronizer {
   };
   
   /**
+   * Reportar error de sincronización
+   */
+  private reportError(error: Error | string, operation?: string, entityType?: string): void {
+    const errorMsg = typeof error === 'string' ? error : error.message || 'Error desconocido';
+    
+    // Guardar el error en la lista local
+    this.syncErrors.unshift({
+      id: `err_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+      timestamp: new Date(),
+      operation,
+      entityType,
+      message: errorMsg
+    });
+    
+    // Mantener solo los 20 errores más recientes
+    if (this.syncErrors.length > 20) {
+      this.syncErrors = this.syncErrors.slice(0, 20);
+    }
+    
+    // Llamar al callback si existe
+    if (this.onSyncError) {
+      this.onSyncError(error, operation, entityType);
+    }
+  }
+  
+  /**
    * Sincronizar datos con Supabase
    */
   public async sync(): Promise<void> {
@@ -113,6 +152,7 @@ export class DataSynchronizer {
       
     } catch (error) {
       console.error('Error durante la sincronización:', error);
+      this.reportError(error as Error, 'sync', 'global');
     } finally {
       this.isSyncing = false;
       console.log('Sincronización completada');
@@ -138,6 +178,7 @@ export class DataSynchronizer {
       return true;
     } catch (error) {
       console.error('Error durante la sincronización forzada:', error);
+      this.reportError(error as Error, 'sync', 'manual');
       return false;
     }
   }
@@ -161,6 +202,7 @@ export class DataSynchronizer {
           
           if (error) {
             console.error(`Error al sincronizar residuo ${waste.id}:`, error);
+            this.reportError(error, op.operation, 'waste');
             return false;
           }
           
@@ -175,6 +217,7 @@ export class DataSynchronizer {
           
           if (error) {
             console.error(`Error al eliminar residuo ${op.entityId}:`, error);
+            this.reportError(error, 'delete', 'waste');
             return false;
           }
           
@@ -185,6 +228,7 @@ export class DataSynchronizer {
       }
     } catch (error) {
       console.error(`Error procesando operación de residuo ${op.id}:`, error);
+      this.reportError(error as Error, op.operation, 'waste');
       return false;
     }
   }
@@ -206,6 +250,13 @@ export class DataSynchronizer {
   }
   
   /**
+   * Limpiar todos los errores de sincronización
+   */
+  public clearErrors(): void {
+    this.syncErrors = [];
+  }
+  
+  /**
    * Verificar si el dispositivo está en línea
    */
   public isDeviceOnline(): boolean {
@@ -220,12 +271,14 @@ export class DataSynchronizer {
     isOnline: boolean;
     offlineMode: boolean;
     pendingOperations: number;
+    syncErrors: SyncError[];
   } {
     return {
       isSyncing: this.isSyncing,
       isOnline: this.isOnline,
       offlineMode: offlineMode(),
-      pendingOperations: syncQueue.getPendingCount()
+      pendingOperations: syncQueue.getPendingCount(),
+      syncErrors: [...this.syncErrors]
     };
   }
 }
