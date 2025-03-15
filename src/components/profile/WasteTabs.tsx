@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Waste } from '@/types';
 import { Button } from "@/components/ui/button";
@@ -15,25 +15,38 @@ interface WasteTabsProps {
 const WasteTabs = ({ wastes, isEditable }: WasteTabsProps) => {
   const [activeTab, setActiveTab] = useState('published');
   
-  const filteredWastes = wastes.filter(waste => {
-    switch (activeTab) {
-      case 'published':
-        return true;
-      case 'pending':
-        return waste.status === 'pending';
-      case 'collected':
-        return waste.status === 'collected';
-      default:
-        return true;
+  // Usar useMemo para filtrar los residuos solo cuando cambia la lista o la pestaña activa
+  const filteredWastes = useMemo(() => {
+    console.log(`Filtrando residuos, tab: ${activeTab}, cantidad: ${wastes.length}`);
+    
+    if (!wastes || wastes.length === 0) {
+      return [];
     }
-  });
-
+    
+    return wastes.filter(waste => {
+      switch (activeTab) {
+        case 'published':
+          return true;
+        case 'pending':
+          return waste.status === 'pending';
+        case 'collected':
+          return waste.status === 'collected';
+        default:
+          return true;
+      }
+    });
+  }, [wastes, activeTab]);
+  
   return (
     <Tabs defaultValue="published" onValueChange={setActiveTab}>
       <TabsList className="w-full grid grid-cols-3">
-        <TabsTrigger value="published">Todos</TabsTrigger>
-        <TabsTrigger value="pending">Pendientes</TabsTrigger>
-        <TabsTrigger value="collected">Recolectados</TabsTrigger>
+        <TabsTrigger value="published">Todos ({wastes.length})</TabsTrigger>
+        <TabsTrigger value="pending">
+          Pendientes ({wastes.filter(w => w.status === 'pending').length})
+        </TabsTrigger>
+        <TabsTrigger value="collected">
+          Recolectados ({wastes.filter(w => w.status === 'collected').length})
+        </TabsTrigger>
       </TabsList>
       
       {['published', 'pending', 'collected'].map(tab => (

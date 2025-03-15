@@ -3,11 +3,12 @@ import React from 'react';
 import { useSupabaseConnection } from '@/hooks/useSupabaseConnection';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { WifiOff, Database, AlertCircle } from 'lucide-react';
+import { WifiOff, Database, AlertCircle, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 import { useDataSync } from '@/hooks/useDataSync';
+import { Button } from '@/components/ui/button';
 
 interface OfflineModeToggleProps {
   className?: string;
@@ -61,18 +62,42 @@ const OfflineModeToggle = ({ className }: OfflineModeToggleProps) => {
       
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className="mt-2 text-xs text-muted-foreground flex items-center">
-            {isOfflineMode ? (
-              <>
-                <AlertCircle className="h-3 w-3 mr-1 text-amber-500" />
-                <span className="text-amber-600">Los cambios se guardan localmente</span>
-              </>
-            ) : (
-              <>
-                <Database className="h-3 w-3 mr-1" />
-                <span>Estado: {status === 'connected' ? 'Conectado' : 'Desconectado'}</span>
-                {error && <span className="ml-2 text-destructive">[{error}]</span>}
-              </>
+          <div className="mt-2 text-xs text-muted-foreground flex items-center justify-between">
+            <div className="flex items-center">
+              {isOfflineMode ? (
+                <>
+                  <AlertCircle className="h-3 w-3 mr-1 text-amber-500" />
+                  <span className="text-amber-600">Los cambios se guardan localmente</span>
+                </>
+              ) : (
+                <>
+                  <Database className="h-3 w-3 mr-1" />
+                  <span>Estado: {status === 'connected' ? 'Conectado' : 'Desconectado'}</span>
+                  {error && <span className="ml-2 text-destructive">[{error}]</span>}
+                </>
+              )}
+            </div>
+            
+            {pendingOperations > 0 && !isOfflineMode && (
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                className="ml-2 h-6 px-2 text-xs"
+                onClick={handleSyncNow}
+                disabled={isSyncing}
+              >
+                {isSyncing ? (
+                  <>
+                    <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                    Sincronizando...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-3 w-3 mr-1" />
+                    Sincronizar ahora
+                  </>
+                )}
+              </Button>
             )}
           </div>
         </TooltipTrigger>

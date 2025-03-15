@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { User, Waste } from "@/types";
@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
 import { transformSupabaseWaste } from '@/services/wastes/utils';
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { offlineMode } from '@/integrations/supabase/client';
 
 const Profile = () => {
   const { id } = useParams<{ id: string }>();
@@ -22,9 +23,106 @@ const Profile = () => {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   
+  // Función para cargar los residuos de un usuario
+  const loadUserWastes = useCallback(async (userId: string) => {
+    try {
+      if (!userId) return [];
+      
+      console.log(`Cargando residuos para usuario: ${userId}`);
+      
+      if (offlineMode()) {
+        // En modo offline, intentar usar la memoria local primero
+        const userWastes = await getWastesByUserId(userId);
+        return userWastes;
+      }
+      
+      // Intentar obtener datos de Supabase directamente
+      const { data: wasteData, error: wasteError } = await supabase
+        .from('wastes')
+        .select('*')
+        .eq('user_id', userId);
+      
+      if (wasteError) {
+        console.error('Error fetching wastes from Supabase:', wasteError);
+        throw wasteError;
+      }
+      
+      if (wasteData && wasteData.length > 0) {
+        console.log(`Encontrados ${wasteData.length} residuos para el usuario ${userId}`);
+        return wasteData.map(transformSupabaseWaste);
+      }
+      
+      // Si no hay datos en Supabase, usar el servicio como respaldo
+      return await getWastesByUserId(userId);
+    } catch (error) {
+      console.error(`Error al cargar residuos para el usuario ${userId}:`, error);
+      return [];
+    }
+  }, []);
+  
+  // Función para cargar el perfil de usuario
+  const loadUserProfile = useCallback(async (profileId: string): Promise<User | null> => {
+    try {
+      if (!profileId) return null;
+      
+      console.log(`Cargando perfil para usuario: ${profileId}`);
+      
+      // Si el perfil es del usuario actual, usar esos datos directamente
+      if (currentUser && currentUser.id === profileId) {
+        console.log('Usando datos del usuario actual para el perfil');
+        return currentUser;
+      }
+      
+      // Si estamos en modo offline, intentar obtener de la memoria local
+      if (offlineMode()) {
+        return await getUserById(profileId);
+      }
+      
+      // Intentar obtener de Supabase directamente
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', profileId)
+        .maybeSingle();
+      
+      if (profileError) {
+        console.error('Error al obtener perfil de Supabase:', profileError);
+        throw profileError;
+      }
+      
+      if (profileData) {
+        // Verificar si el perfil está desactivado
+        if (profileData.name && profileData.name.startsWith('DELETED_')) {
+          console.log('Este perfil ha sido desactivado');
+          return null;
+        }
+        
+        return {
+          id: profileData.id,
+          name: profileData.name || 'Usuario',
+          email: profileData.email || '',
+          isOrganization: profileData.is_organization || false,
+          averageRating: profileData.average_rating || 0,
+          profileImage: profileData.profile_image || '',
+          emailVerified: true,
+          active: true
+        };
+      }
+      
+      // Como último recurso, usar el servicio
+      return await getUserById(profileId);
+    } catch (error) {
+      console.error(`Error al cargar perfil para el usuario ${profileId}:`, error);
+      return null;
+    }
+  }, [currentUser]);
+  
   useEffect(() => {
+    let isMounted = true;
+    
     const loadProfileData = async () => {
       try {
+        if (!isMounted) return;
         setLoading(true);
         setError(null);
         
@@ -39,128 +137,49 @@ const Profile = () => {
         
         if (!userId) {
           console.error('No se pudo obtener un ID de usuario válido');
-          setError("No se pudo obtener un ID de usuario válido");
-          setLoading(false);
+          if (isMounted) {
+            setError("No se pudo obtener un ID de usuario válido");
+            setLoading(false);
+          }
           return;
         }
         
-        console.log('Cargando perfil para ID:', userId);
+        console.log('Cargando datos para el perfil con ID:', userId);
         
-        let userData: User | null = null;
-        
-        // Si el ID del perfil corresponde al usuario actual, usarlo directamente
-        if (currentUser && currentUser.id === userId) {
-          console.log('Usando datos del usuario actual:', currentUser);
-          userData = currentUser;
-        } else {
-          // Intentar obtener datos del usuario de Supabase
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', userId)
-            .maybeSingle();
-          
-          if (profileError) {
-            console.error('Error fetching profile from Supabase:', profileError);
-            throw new Error('Error al obtener el perfil: ' + profileError.message);
-          } 
-          
-          if (profileData) {
-            console.log('Profile found in Supabase:', profileData);
-            
-            // Verificar si el perfil está desactivado
-            if (profileData.name && profileData.name.startsWith('DELETED_')) {
-              setError("Este perfil ha sido desactivado");
-              setLoading(false);
-              return;
-            }
-            
-            // Convert Supabase profile to User format
-            userData = {
-              id: profileData.id,
-              name: profileData.name || 'Usuario',
-              email: profileData.email || '',
-              isOrganization: profileData.is_organization || false,
-              averageRating: profileData.average_rating || 0,
-              profileImage: profileData.profile_image || '',
-              emailVerified: true,
-              active: true
-            };
-          } else {
-            // Fallback to service
-            try {
-              userData = await getUserById(userId);
-              
-              if (!userData) {
-                throw new Error('Usuario no encontrado');
-              }
-            } catch (getUserError) {
-              console.error('Error al obtener usuario por ID:', getUserError);
-              throw new Error('Usuario no encontrado');
-            }
-          }
-        }
+        // Cargar datos del usuario (con caché si es offline)
+        const userData = await loadUserProfile(userId);
         
         if (!userData) {
-          throw new Error('No se encontraron datos para el usuario');
+          if (isMounted) {
+            setError('Usuario no encontrado o perfil desactivado');
+            setLoading(false);
+          }
+          return;
         }
         
-        setUser(userData);
-        
-        // Get user's wastes from Supabase
-        try {
-          const { data: wasteData, error: wasteError } = await supabase
-            .from('wastes')
-            .select('*')
-            .eq('user_id', userId);
+        if (isMounted) {
+          setUser(userData);
           
-          if (wasteError) {
-            console.error('Error fetching wastes from Supabase:', wasteError);
-            // No throw here, just log and continue
-            toast({
-              title: "Advertencia",
-              description: "No se pudieron cargar los residuos del usuario",
-              variant: "destructive"
-            });
-          } else if (wasteData && wasteData.length > 0) {
-            console.log('Wastes found in Supabase:', wasteData);
-            // Transform Supabase waste format to our application's Waste type
-            const transformedWastes = wasteData.map(waste => transformSupabaseWaste(waste));
-            setWastes(transformedWastes);
-          } else {
-            // Fallback to service
-            try {
-              const userWastes = await getWastesByUserId(userId);
-              setWastes(userWastes);
-            } catch (getWastesError) {
-              console.error('Error getting wastes from service:', getWastesError);
-              // Show toast but don't block profile display
-              toast({
-                title: "Advertencia",
-                description: "No se pudieron cargar los residuos del usuario",
-                variant: "destructive"
-              });
-            }
-          }
-        } catch (wasteErr) {
-          console.error('Error getting wastes:', wasteErr);
-          // We don't throw here to avoid blocking profile display if wastes fail
-          toast({
-            title: "Advertencia",
-            description: "No se pudieron cargar los residuos del usuario",
-            variant: "destructive"
-          });
+          // Cargar los residuos del usuario (también con caché si es offline)
+          const userWastes = await loadUserWastes(userId);
+          setWastes(userWastes);
+          setLoading(false);
         }
       } catch (error: any) {
         console.error('Error al cargar los datos del perfil:', error);
-        setError(error.message || "Error al cargar los datos del perfil");
-      } finally {
-        setLoading(false);
+        if (isMounted) {
+          setError(error.message || "Error al cargar los datos del perfil");
+          setLoading(false);
+        }
       }
     };
     
     loadProfileData();
-  }, [id, currentUser, navigate, toast]);
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [id, currentUser, navigate, loadUserProfile, loadUserWastes]);
   
   if (loading) {
     return (
