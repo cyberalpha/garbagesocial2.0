@@ -95,25 +95,35 @@ export const clearErrorLog = (): void => {
 /**
  * Wrapper de error handler para componentes React
  */
-export const withErrorLogging = <P extends {}>(
+export function withErrorLogging<P>(
   Component: React.ComponentType<P>,
   componentName: string
-) => {
+): React.FC<P> {
   return function WithErrorLogging(props: P) {
     try {
-      return <Component {...props} />;
+      return React.createElement(Component, props);
     } catch (error) {
       logError(error as Error, componentName);
       // Renderizar un fallback en caso de error
-      return (
-        <div className="p-4 border border-red-500 rounded-md">
-          <h3 className="text-red-500 font-medium">Error inesperado</h3>
-          <p className="text-sm">{(error as Error).message}</p>
-        </div>
+      return React.createElement(
+        'div',
+        { className: "p-4 border border-red-500 rounded-md" },
+        [
+          React.createElement(
+            'h3',
+            { className: "text-red-500 font-medium", key: 'title' },
+            'Error inesperado'
+          ),
+          React.createElement(
+            'p',
+            { className: "text-sm", key: 'message' },
+            (error as Error).message
+          )
+        ]
       );
     }
   };
-};
+}
 
 /**
  * Configurar manejador global de errores
