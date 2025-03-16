@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,7 +10,6 @@ import useGeolocation from '@/hooks/useGeolocation';
 import WasteTypeSelector from './waste/WasteTypeSelector';
 import ImageUploader from './waste/ImageUploader';
 import LocationDisplay from './waste/LocationDisplay';
-import { Skeleton } from '@/components/ui/skeleton';
 
 interface WasteFormProps {
   onSubmit: (data: {
@@ -31,25 +30,9 @@ const WasteForm = ({ onSubmit, isSubmitting }: WasteFormProps) => {
   const [image, setImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [customLocation, setCustomLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [isFormReady, setIsFormReady] = useState(false);
-  const formLoadingTimerRef = useRef<NodeJS.Timeout | null>(null);
   
   // Para futura implementación: usar la ubicación personalizada
   const [usingCustomLocation] = useState(false);
-  
-  // Asegurarse de que el formulario no parpadee y tenga un tiempo de carga estable
-  useEffect(() => {
-    // Este timer espera SIEMPRE al menos 2000ms antes de mostrar el formulario
-    formLoadingTimerRef.current = setTimeout(() => {
-      setIsFormReady(true);
-    }, 2000);
-    
-    return () => {
-      if (formLoadingTimerRef.current) {
-        clearTimeout(formLoadingTimerRef.current);
-      }
-    };
-  }, []);
   
   const handleImageChange = (file: File | null) => {
     setImage(file);
@@ -112,19 +95,6 @@ const WasteForm = ({ onSubmit, isSubmitting }: WasteFormProps) => {
     
     onSubmit(formData);
   };
-  
-  // Render el esqueleto de carga con altura fija para evitar saltos
-  if (!isFormReady) {
-    return (
-      <div className="space-y-6">
-        <Skeleton className="h-20 w-full" />
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-48 w-full" />
-        <Skeleton className="h-24 w-full" />
-        <Skeleton className="h-10 w-full" />
-      </div>
-    );
-  }
   
   return (
     <form onSubmit={handleSubmit} className="space-y-6">

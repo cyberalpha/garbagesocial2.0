@@ -1,10 +1,10 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useDataSync } from '@/hooks/useDataSync';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
-import { CloudOff, Loader2, Database, AlertTriangle, CheckCircle2, UploadCloud } from 'lucide-react';
+import { CloudOff, Loader2, Database, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
 interface DataSyncIndicatorProps {
@@ -18,15 +18,6 @@ const DataSyncIndicator = ({ className }: DataSyncIndicatorProps) => {
   const { isOnline, isSyncing, pendingOperations, syncNow, lastSyncAttempt, syncErrors } = useDataSync();
   const { toast } = useToast();
   const [isTrying, setIsTrying] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
-
-  // Asegurar una transición suave para la aparición del componente
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsVisible(true);
-    }, 800);
-    return () => clearTimeout(timer);
-  }, []);
 
   const handleSync = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -36,24 +27,12 @@ const DataSyncIndicator = ({ className }: DataSyncIndicatorProps) => {
     
     try {
       setIsTrying(true);
-      toast({
-        title: "Sincronizando",
-        description: "Intentando sincronizar los datos...",
-      });
-      
       const result = await syncNow();
       if (!result) {
         toast({
           title: "Error de sincronización",
           description: "No se pudo sincronizar. Intente nuevamente más tarde.",
           variant: "destructive"
-        });
-      } else {
-        toast({
-          title: "Sincronización completada",
-          description: pendingOperations > 0 
-            ? `Aún quedan ${pendingOperations} operaciones pendientes` 
-            : "Todos los datos están sincronizados",
         });
       }
     } catch (error) {
@@ -70,39 +49,10 @@ const DataSyncIndicator = ({ className }: DataSyncIndicatorProps) => {
 
   const hasErrors = syncErrors && syncErrors.length > 0;
 
-  // Determinar icono y color según el estado
-  const getIcon = () => {
-    if (isSyncing || isTrying) {
-      return <Loader2 className="h-5 w-5 text-white animate-spin" />;
-    } else if (!isOnline) {
-      return <CloudOff className="h-5 w-5 text-white" />;
-    } else if (hasErrors) {
-      return <AlertTriangle className="h-5 w-5 text-white animate-pulse" />;
-    } else if (pendingOperations > 0) {
-      return <UploadCloud className="h-5 w-5 text-white animate-pulse" />;
-    } else {
-      return <CheckCircle2 className="h-5 w-5 text-white" />;
-    }
-  };
-
-  // Determinar color según el estado
-  const getBackgroundColor = () => {
-    if (!isOnline) {
-      return "bg-gray-500/80 hover:bg-gray-500";
-    } else if (hasErrors) {
-      return "bg-red-500/80 hover:bg-red-500";
-    } else if (pendingOperations > 0) {
-      return "bg-red-500/80 hover:bg-red-500";
-    } else {
-      return "bg-green-500/80 hover:bg-green-500";
-    }
-  };
-
   return (
     <div 
       className={cn(
-        "fixed bottom-4 right-28 z-50 transition-all duration-500",
-        isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10",
+        "fixed bottom-4 right-28 z-50 transition-all duration-300",
         className
       )}
     >
@@ -113,12 +63,29 @@ const DataSyncIndicator = ({ className }: DataSyncIndicatorProps) => {
             size="icon"
             className={cn(
               "p-2 rounded-full shadow-md flex items-center justify-center transition-colors",
-              getBackgroundColor()
+              !isOnline
+                ? "bg-destructive/80 hover:bg-destructive"
+                : hasErrors
+                  ? "bg-red-500/80 hover:bg-red-500"
+                  : pendingOperations > 0 
+                    ? "bg-amber-500/80 hover:bg-amber-500" 
+                    : "bg-green-500/80 hover:bg-green-500"
             )}
             onClick={handleSync}
             disabled={isSyncing || isTrying}
           >
-            {getIcon()}
+            {isSyncing || isTrying ? (
+              <Loader2 className="h-5 w-5 text-white animate-spin" />
+            ) : !isOnline ? (
+              <CloudOff className="h-5 w-5 text-white" />
+            ) : hasErrors ? (
+              <AlertTriangle className="h-5 w-5 text-white animate-pulse" />
+            ) : (
+              <Database className={cn(
+                "h-5 w-5 text-white",
+                pendingOperations > 0 && "animate-pulse"
+              )} />
+            )}
           </Button>
         </TooltipTrigger>
         <TooltipContent side="left" className="max-w-xs p-4">
@@ -154,9 +121,9 @@ const DataSyncIndicator = ({ className }: DataSyncIndicatorProps) => {
               </p>
             )}
             
-            {!isSyncing && pendingOperations > 0 && (
+            {!isSyncing && (
               <p className="text-xs italic mt-2">
-                Haz clic para enviar los datos a la base de datos
+                Haz clic para sincronizar manualmente
               </p>
             )}
           </div>

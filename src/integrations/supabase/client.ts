@@ -14,42 +14,33 @@ export const SUPABASE_CONFIG = {
   projectId: 'onlpsmjdqqcqyqmhyfay'
 };
 
-// Estado global para el modo offline - SIEMPRE activado por defecto
-let _offlineMode = true;
+// Estado global para el modo offline
+let _offlineMode = false;
 
 // Import the supabase client like this:
-// import { supabase } from "@/integrations/supasheet/client";
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: true
-  }
-});
+// import { supabase } from "@/integrations/supabase/client";
+export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
 /**
  * Verificar si el modo offline está activado
- * Por defecto siempre retorna true
  */
 export const offlineMode = (): boolean => {
-  return _offlineMode; // Retorna el estado actual
+  return _offlineMode;
 };
 
 /**
  * Activar o desactivar el modo offline
- * Esta función permite cambiar el modo manualmente
  */
 export const setOfflineMode = (mode: boolean): void => {
-  if (_offlineMode !== mode) {
-    _offlineMode = mode;
-    
-    // Crear y disparar evento personalizado cuando cambia el modo offline
-    const event = new CustomEvent('offlinemodechange', {
-      detail: { offlineMode: mode }
-    });
-    window.dispatchEvent(event);
-    
-    console.log(`Modo offline ${mode ? 'activado' : 'desactivado'}`);
-  }
+  _offlineMode = mode;
+  
+  // Crear y disparar evento personalizado cuando cambia el modo offline
+  const event = new CustomEvent('offlinemodechange', {
+    detail: { offlineMode: mode }
+  });
+  window.dispatchEvent(event);
+  
+  console.log(`Modo offline cambiado a: ${mode}`);
 };
 
 /**
@@ -64,28 +55,7 @@ export const isOnline = (): boolean => {
  * Alias para checkDatabaseConnection que será implementado en utils
  */
 export const testConnection = async () => {
-  try {
-    if (offlineMode()) {
-      return { success: false, error: "Modo offline activado" };
-    }
-    
-    // Intentar verificar la conexión a la DB
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id')
-      .limit(1);
-      
-    if (error) {
-      return { success: false, error: error.message };
-    }
-    
-    return { 
-      success: true, 
-      error: null,
-      latency: 100, // Valor estático para simplicidad
-      supabaseVersion: '2.x'
-    };
-  } catch (error: any) {
-    return { success: false, error: error.message || "Error de conexión" };
-  }
+  // Importamos dinámicamente para evitar referencias circulares
+  const { checkDatabaseConnection } = await import('@/utils/supabaseConnectionUtils');
+  return checkDatabaseConnection();
 };

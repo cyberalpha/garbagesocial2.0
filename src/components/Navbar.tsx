@@ -15,8 +15,8 @@ const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  const { currentUser, logout, isLoading } = useAuth();
-  
+  const { currentUser, logout } = useAuth();
+
   // Handle scrolling effect
   useEffect(() => {
     const handleScroll = () => {
@@ -38,12 +38,9 @@ const Navbar = () => {
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
   
-  // Manejador mejorado para el cierre de sesión
-  const handleAuthAction = async () => {
+  const handleAuthAction = () => {
     if (currentUser) {
-      // Ejecutar logout y luego redireccionar manualmente para asegurar
-      await logout();
-      navigate('/');
+      logout();
     } else {
       navigate('/login');
     }
@@ -118,14 +115,8 @@ const Navbar = () => {
               size="sm"
               className="flex items-center"
               onClick={handleAuthAction}
-              disabled={isLoading}
             >
-              {isLoading ? (
-                <span className="flex items-center">
-                  <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></span>
-                  Procesando...
-                </span>
-              ) : currentUser ? (
+              {currentUser ? (
                 <>
                   <LogOut className="mr-2 h-4 w-4" />
                   Salir
@@ -179,14 +170,8 @@ const Navbar = () => {
                 variant={currentUser ? "outline" : "default"} 
                 className="w-full justify-start mt-4 flex items-center"
                 onClick={handleAuthAction}
-                disabled={isLoading}
               >
-                {isLoading ? (
-                  <span className="flex items-center">
-                    <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></span>
-                    Procesando...
-                  </span>
-                ) : currentUser ? (
+                {currentUser ? (
                   <>
                     <LogOut className="mr-2 h-4 w-4" />
                     Salir

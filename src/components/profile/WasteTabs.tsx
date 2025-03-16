@@ -1,5 +1,5 @@
 
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Waste } from '@/types';
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Upload } from 'lucide-react';
 import WasteCard from '@/components/WasteCard';
 import { useSupabaseConnection } from '@/hooks/useSupabaseConnection';
-import { Skeleton } from "@/components/ui/skeleton";
 
 interface WasteTabsProps {
   wastes: Waste[];
@@ -19,31 +18,13 @@ const WasteTabs = ({ wastes, isEditable }: WasteTabsProps) => {
   const [localWastes, setLocalWastes] = useState<Waste[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { isOfflineMode } = useSupabaseConnection();
-  const loadingTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const componentMountedRef = useRef(true);
   
-  // Establecer un tiempo mínimo de carga fijo para evitar parpadeos
+  // Cargar los residuos localmente para evitar parpadeos
   useEffect(() => {
-    componentMountedRef.current = true;
-    
-    const loadWastes = () => {
-      // Forzar un tiempo mínimo de carga para estabilizar la interfaz
-      loadingTimerRef.current = setTimeout(() => {
-        if (componentMountedRef.current) {
-          setLocalWastes(wastes);
-          setIsLoading(false);
-        }
-      }, 1500); // Tiempo fijo de carga
-    };
-    
-    loadWastes();
-    
-    return () => {
-      componentMountedRef.current = false;
-      if (loadingTimerRef.current) {
-        clearTimeout(loadingTimerRef.current);
-      }
-    };
+    if (wastes && wastes.length >= 0) {
+      setLocalWastes(wastes);
+      setIsLoading(false);
+    }
   }, [wastes]);
   
   // Cuenta de residuos memoizada para evitar recálculos
@@ -77,12 +58,14 @@ const WasteTabs = ({ wastes, isEditable }: WasteTabsProps) => {
   
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <Skeleton className="h-10 w-full rounded-lg" />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-64 rounded-lg" />
-          ))}
+      <div className="text-center py-12 rounded-lg border">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-gray-200 w-3/4 mx-auto rounded"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-64 bg-gray-200 rounded-lg"></div>
+            ))}
+          </div>
         </div>
       </div>
     );

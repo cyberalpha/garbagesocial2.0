@@ -1,81 +1,72 @@
 
-import { useState, useEffect } from 'react';
-import { offlineMode, testConnection } from '@/integrations/supabase/client';
+import { useState, useCallback } from 'react';
+import { testConnection, offlineMode } from '@/integrations/supabase/client';
 
-export interface ConnectionTestResult {
+export interface ConnectionDetails {
   success: boolean;
-  error: string | null;
-  latency?: number;
-  supabaseVersion?: string;
-  message?: string;
+  timestamp: number;
+  latency: number | null;
+  supabaseVersion: string | null;
 }
 
+// Hook para probar la conexión a Supabase
 export const useSupabaseConnectionTest = () => {
-  const [isTestingConnection, setIsTestingConnection] = useState<boolean>(false);
-  const [testResult, setTestResult] = useState<ConnectionTestResult | null>(null);
-  const [showResult, setShowResult] = useState<boolean>(false);
-  
-  // Verificar el estado offline
-  const isOffline = offlineMode();
-  
-  useEffect(() => {
-    if (isOffline) {
-      // Si está en modo offline, establecer un resultado predeterminado
-      setTestResult({
-        success: false,
-        error: "Modo offline activado. No se puede conectar a Supabase.",
-        message: "La aplicación está en modo offline"
-      });
-    }
-  }, [isOffline]);
-  
-  const testSupabaseConnection = async () => {
-    if (isOffline) {
-      // Si está en modo offline, no intentar la conexión
-      setTestResult({
-        success: false,
-        error: "Modo offline activado. No se puede conectar a Supabase.",
-        message: "La aplicación está en modo offline"
-      });
-      setShowResult(true);
+  const [isConnected, setIsConnected] = useState<boolean | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [connectionDetails, setConnectionDetails] = useState<ConnectionDetails | null>(null);
+
+  const testConnectionFunc = useCallback(async (forceTest: boolean = false) => {
+    // Si estamos en modo offline y no es un test forzado, no ejecutamos la prueba
+    if (offlineMode() && !forceTest) {
+      console.log('En modo offline, no se realizará la prueba de conexión');
+      setIsConnected(false);
+      setErrorMessage('Modo offline activado');
       return;
     }
     
-    setIsTestingConnection(true);
-    setShowResult(false);
+    setIsLoading(true);
+    setErrorMessage(null);
     
     try {
-      // Prueba la conexión utilizando la función del cliente de Supabase
+      // Verificar conexión a Supabase
       const result = await testConnection();
+      const timestamp = Date.now();
       
-      // Adaptamos la respuesta al formato esperado por nuestro hook
-      const testResult: ConnectionTestResult = {
-        success: result.success,
-        error: result.error || null,
-        latency: 0, // Valor por defecto ya que no tenemos esta info
-        supabaseVersion: 'Unknown' // Valor por defecto ya que no tenemos esta info
-      };
-      
-      setTestResult(testResult);
-      setShowResult(true);
+      if (result && result.success) {
+        setIsConnected(true);
+        setConnectionDetails({
+          success: true,
+          timestamp,
+          latency: result.latency || null,
+          supabaseVersion: result.supabaseVersion || null
+        });
+      } else if (result && result.error) {
+        setIsConnected(false);
+        setErrorMessage(typeof result.error === 'string' 
+          ? result.error 
+          : (result.error && result.error.message) || 'Error desconocido');
+        console.error('Error al verificar conexión:', result.error);
+      } else {
+        setIsConnected(false);
+        setErrorMessage('No se pudo establecer conexión');
+      }
     } catch (error: any) {
-      setTestResult({
-        success: false,
-        error: error?.message || "Error desconocido al probar la conexión",
-        message: error?.message || "Error desconocido"
-      });
-      setShowResult(true);
+      setIsConnected(false);
+      setErrorMessage(error.message || 'Error inesperado al verificar la conexión');
+      console.error('Error en testConnection:', error);
     } finally {
-      setIsTestingConnection(false);
+      setIsLoading(false);
     }
-  };
-  
+  }, []);
+
   return {
-    isTestingConnection,
-    testResult,
-    showResult,
-    setShowResult,
-    testSupabaseConnection,
-    isOffline
+    isConnected,
+    isLoading,
+    errorMessage,
+    testConnection: testConnectionFunc,
+    connectionDetails
   };
 };
+
+export default useSupabaseConnectionTest;
