@@ -16,7 +16,7 @@ const StabilityManager: React.FC = () => {
   useEffect(() => {
     console.log("StabilityManager: Inicializando control de estabilidad");
     
-    // Forzar modo offline permanente
+    // Forzar modo offline permanente al iniciar
     setOfflineMode(true);
     
     // Prevenir parpadeos por reconexiones automáticas
@@ -35,6 +35,7 @@ const StabilityManager: React.FC = () => {
       if (!currentUser && !isLoading) {
         console.log("StabilityManager: Detectada posible sesión cerrada incorrectamente");
         cleanupAuthSession();
+        navigate('/', { replace: true });
       }
     };
     

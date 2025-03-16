@@ -14,12 +14,11 @@ export const SUPABASE_CONFIG = {
   projectId: 'onlpsmjdqqcqyqmhyfay'
 };
 
-// Estado global para el modo offline - SIEMPRE activado
+// Estado global para el modo offline - SIEMPRE activado por defecto
 let _offlineMode = true;
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supasheet/client";
-// Forzar conexión nula para estabilizar
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
     autoRefreshToken: false,
@@ -29,33 +28,35 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 
 /**
  * Verificar si el modo offline está activado
- * Siempre retorna true (forzado)
+ * Por defecto siempre retorna true
  */
 export const offlineMode = (): boolean => {
-  return true; // Forzado a modo offline permanente
+  return _offlineMode; // Retorna el estado actual
 };
 
 /**
- * Activar o desactivar el modo offline (ignorado)
- * La aplicación siempre permanecerá en modo offline
+ * Activar o desactivar el modo offline
+ * Esta función permite cambiar el modo manualmente
  */
 export const setOfflineMode = (mode: boolean): void => {
-  _offlineMode = true; // Ignorar el parámetro y siempre establecer como true
-  
-  // Crear y disparar evento personalizado cuando cambia el modo offline
-  const event = new CustomEvent('offlinemodechange', {
-    detail: { offlineMode: true }
-  });
-  window.dispatchEvent(event);
-  
-  console.log(`Modo offline forzado permanentemente`);
+  if (_offlineMode !== mode) {
+    _offlineMode = mode;
+    
+    // Crear y disparar evento personalizado cuando cambia el modo offline
+    const event = new CustomEvent('offlinemodechange', {
+      detail: { offlineMode: mode }
+    });
+    window.dispatchEvent(event);
+    
+    console.log(`Modo offline ${mode ? 'activado' : 'desactivado'}`);
+  }
 };
 
 /**
- * Verificar si el navegador está online (siempre false)
+ * Verificar si el navegador está online
  */
 export const isOnline = (): boolean => {
-  return false; // Forzado a falso para estabilidad
+  return navigator.onLine;
 };
 
 /**
@@ -63,5 +64,28 @@ export const isOnline = (): boolean => {
  * Alias para checkDatabaseConnection que será implementado en utils
  */
 export const testConnection = async () => {
-  return { success: false, error: "Modo offline permanente activado" };
+  try {
+    if (offlineMode()) {
+      return { success: false, error: "Modo offline activado" };
+    }
+    
+    // Intentar verificar la conexión a la DB
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id')
+      .limit(1);
+      
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    
+    return { 
+      success: true, 
+      error: null,
+      latency: 100, // Valor estático para simplicidad
+      supabaseVersion: '2.x'
+    };
+  } catch (error: any) {
+    return { success: false, error: error.message || "Error de conexión" };
+  }
 };

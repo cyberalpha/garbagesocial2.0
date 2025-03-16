@@ -25,4 +25,7 @@ export const cleanupAuthSession = () => {
     timestamp: new Date().toISOString()
   });
   localStorage.setItem('app_errors', JSON.stringify(errors));
+  
+  // Forzar navegación a la página principal (ejecutado desde el componente que invoca)
+  console.log('Redirección a home después de cerrar sesión');
 };
