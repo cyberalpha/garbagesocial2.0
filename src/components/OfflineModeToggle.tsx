@@ -3,7 +3,7 @@ import React from 'react';
 import { useSupabaseConnection } from '@/hooks/useSupabaseConnection';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { WifiOff, Database, AlertCircle, RefreshCw } from 'lucide-react';
+import { WifiOff, Database, AlertCircle, RefreshCw, CheckCircle2, UploadCloud } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +24,26 @@ const OfflineModeToggle = ({ className }: OfflineModeToggleProps) => {
     if (!isOfflineMode && !isSyncing) {
       await syncNow();
     }
+  };
+
+  // Determinar el color del botón de sincronización
+  const getSyncButtonColor = () => {
+    if (pendingOperations === 0) return "bg-green-500 hover:bg-green-600";
+    return "bg-red-500 hover:bg-red-600";
+  };
+
+  // Determinar el icono del botón de sincronización
+  const getSyncIcon = () => {
+    if (isSyncing) return <RefreshCw className="h-4 w-4 mr-2 animate-spin" />;
+    if (pendingOperations === 0) return <CheckCircle2 className="h-4 w-4 mr-2" />;
+    return <UploadCloud className="h-4 w-4 mr-2" />;
+  };
+
+  // Determinar el texto del botón de sincronización
+  const getSyncButtonText = () => {
+    if (isSyncing) return "Sincronizando...";
+    if (pendingOperations === 0) return "Sincronizado";
+    return `Enviar datos (${pendingOperations})`;
   };
 
   return (
@@ -60,6 +80,19 @@ const OfflineModeToggle = ({ className }: OfflineModeToggleProps) => {
         )}
       </div>
       
+      {/* Botón de sincronización destacado */}
+      {!isOfflineMode && (
+        <Button 
+          className={cn("w-full mt-2", getSyncButtonColor())}
+          size="sm"
+          onClick={handleSyncNow}
+          disabled={isSyncing || pendingOperations === 0}
+        >
+          {getSyncIcon()}
+          {getSyncButtonText()}
+        </Button>
+      )}
+      
       <Tooltip>
         <TooltipTrigger asChild>
           <div className="mt-2 text-xs text-muted-foreground flex items-center justify-between">
@@ -77,28 +110,6 @@ const OfflineModeToggle = ({ className }: OfflineModeToggleProps) => {
                 </>
               )}
             </div>
-            
-            {pendingOperations > 0 && !isOfflineMode && (
-              <Button 
-                size="sm" 
-                variant="ghost" 
-                className="ml-2 h-6 px-2 text-xs"
-                onClick={handleSyncNow}
-                disabled={isSyncing}
-              >
-                {isSyncing ? (
-                  <>
-                    <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
-                    Sincronizando...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="h-3 w-3 mr-1" />
-                    Sincronizar ahora
-                  </>
-                )}
-              </Button>
-            )}
           </div>
         </TooltipTrigger>
         <TooltipContent side="bottom" className="max-w-xs">
@@ -117,13 +128,7 @@ const OfflineModeToggle = ({ className }: OfflineModeToggleProps) => {
                 <p className="text-destructive text-xs">{error}</p>
               ) : null}
               {pendingOperations > 0 && (
-                <button 
-                  onClick={handleSyncNow}
-                  className="text-xs px-2 py-1 bg-primary/10 hover:bg-primary/20 text-primary rounded flex items-center w-full justify-center"
-                  disabled={isSyncing}
-                >
-                  {isSyncing ? 'Sincronizando...' : 'Sincronizar ahora'}
-                </button>
+                <p>Para enviar los cambios pendientes, pulsa el botón "Enviar datos"</p>
               )}
             </div>
           )}
