@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Upload } from 'lucide-react';
 import WasteCard from '@/components/WasteCard';
 import { useSupabaseConnection } from '@/hooks/useSupabaseConnection';
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface WasteTabsProps {
   wastes: Waste[];
@@ -19,12 +20,29 @@ const WasteTabs = ({ wastes, isEditable }: WasteTabsProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const { isOfflineMode } = useSupabaseConnection();
   
-  // Cargar los residuos localmente para evitar parpadeos
+  // Simular un tiempo de carga mínimo para evitar parpadeos
   useEffect(() => {
-    if (wastes && wastes.length >= 0) {
-      setLocalWastes(wastes);
-      setIsLoading(false);
-    }
+    let isComponentMounted = true;
+    
+    const loadWastes = async () => {
+      // Forzar un tiempo mínimo de carga para estabilizar la interfaz
+      const minLoadTime = new Promise(resolve => setTimeout(resolve, 800));
+      
+      // Esperar a que los residuos estén disponibles y haya pasado el tiempo mínimo
+      await minLoadTime;
+      
+      if (isComponentMounted) {
+        setLocalWastes(wastes);
+        setIsLoading(false);
+      }
+    };
+    
+    setIsLoading(true);
+    loadWastes();
+    
+    return () => {
+      isComponentMounted = false;
+    };
   }, [wastes]);
   
   // Cuenta de residuos memoizada para evitar recálculos
@@ -58,14 +76,12 @@ const WasteTabs = ({ wastes, isEditable }: WasteTabsProps) => {
   
   if (isLoading) {
     return (
-      <div className="text-center py-12 rounded-lg border">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 w-3/4 mx-auto rounded"></div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-64 bg-gray-200 rounded-lg"></div>
-            ))}
-          </div>
+      <div className="space-y-6">
+        <Skeleton className="h-10 w-full rounded-lg" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-64 rounded-lg" />
+          ))}
         </div>
       </div>
     );

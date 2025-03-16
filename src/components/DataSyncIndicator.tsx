@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDataSync } from '@/hooks/useDataSync';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -18,6 +18,15 @@ const DataSyncIndicator = ({ className }: DataSyncIndicatorProps) => {
   const { isOnline, isSyncing, pendingOperations, syncNow, lastSyncAttempt, syncErrors } = useDataSync();
   const { toast } = useToast();
   const [isTrying, setIsTrying] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+
+  // Asegurar una transición suave para la aparición del componente
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsVisible(true);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleSync = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -27,12 +36,24 @@ const DataSyncIndicator = ({ className }: DataSyncIndicatorProps) => {
     
     try {
       setIsTrying(true);
+      toast({
+        title: "Sincronizando",
+        description: "Intentando sincronizar los datos...",
+      });
+      
       const result = await syncNow();
       if (!result) {
         toast({
           title: "Error de sincronización",
           description: "No se pudo sincronizar. Intente nuevamente más tarde.",
           variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Sincronización completada",
+          description: pendingOperations > 0 
+            ? `Aún quedan ${pendingOperations} operaciones pendientes` 
+            : "Todos los datos están sincronizados",
         });
       }
     } catch (error) {
@@ -80,7 +101,8 @@ const DataSyncIndicator = ({ className }: DataSyncIndicatorProps) => {
   return (
     <div 
       className={cn(
-        "fixed bottom-4 right-28 z-50 transition-all duration-300",
+        "fixed bottom-4 right-28 z-50 transition-all duration-500",
+        isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10",
         className
       )}
     >

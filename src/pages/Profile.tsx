@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { User, Waste } from "@/types";
@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { transformSupabaseWaste } from '@/services/wastes/utils';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { offlineMode } from '@/integrations/supabase/client';
+import { Skeleton } from "@/components/ui/skeleton";
 
 const Profile = () => {
   const { id } = useParams<{ id: string }>();
@@ -22,6 +23,7 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const loadingTimeoutRef = useRef<number | null>(null);
   
   // Función para cargar los residuos de un usuario
   const loadUserWastes = useCallback(async (userId: string) => {
@@ -30,30 +32,10 @@ const Profile = () => {
       
       console.log(`Cargando residuos para usuario: ${userId}`);
       
-      if (offlineMode()) {
-        // En modo offline, intentar usar la memoria local primero
-        const userWastes = await getWastesByUserId(userId);
-        return userWastes;
-      }
+      // En modo offline, siempre usar la memoria local para mayor estabilidad
+      const userWastes = await getWastesByUserId(userId);
+      return userWastes;
       
-      // Intentar obtener datos de Supabase directamente
-      const { data: wasteData, error: wasteError } = await supabase
-        .from('wastes')
-        .select('*')
-        .eq('user_id', userId);
-      
-      if (wasteError) {
-        console.error('Error fetching wastes from Supabase:', wasteError);
-        throw wasteError;
-      }
-      
-      if (wasteData && wasteData.length > 0) {
-        console.log(`Encontrados ${wasteData.length} residuos para el usuario ${userId}`);
-        return wasteData.map(transformSupabaseWaste);
-      }
-      
-      // Si no hay datos en Supabase, usar el servicio como respaldo
-      return await getWastesByUserId(userId);
     } catch (error) {
       console.error(`Error al cargar residuos para el usuario ${userId}:`, error);
       return [];
@@ -73,44 +55,9 @@ const Profile = () => {
         return currentUser;
       }
       
-      // Si estamos en modo offline, intentar obtener de la memoria local
-      if (offlineMode()) {
-        return await getUserById(profileId);
-      }
-      
-      // Intentar obtener de Supabase directamente
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', profileId)
-        .maybeSingle();
-      
-      if (profileError) {
-        console.error('Error al obtener perfil de Supabase:', profileError);
-        throw profileError;
-      }
-      
-      if (profileData) {
-        // Verificar si el perfil está desactivado
-        if (profileData.name && profileData.name.startsWith('DELETED_')) {
-          console.log('Este perfil ha sido desactivado');
-          return null;
-        }
-        
-        return {
-          id: profileData.id,
-          name: profileData.name || 'Usuario',
-          email: profileData.email || '',
-          isOrganization: profileData.is_organization || false,
-          averageRating: profileData.average_rating || 0,
-          profileImage: profileData.profile_image || '',
-          emailVerified: true,
-          active: true
-        };
-      }
-      
-      // Como último recurso, usar el servicio
+      // Siempre usar la memoria local para mayor estabilidad
       return await getUserById(profileId);
+      
     } catch (error) {
       console.error(`Error al cargar perfil para el usuario ${profileId}:`, error);
       return null;
@@ -162,8 +109,24 @@ const Profile = () => {
           
           // Cargar los residuos del usuario (también con caché si es offline)
           const userWastes = await loadUserWastes(userId);
-          setWastes(userWastes);
-          setLoading(false);
+          
+          // Configurar un tiempo mínimo de carga para evitar parpadeos
+          // Asegurar que la interfaz de carga se muestre al menos por 800ms
+          const loadingStartTime = Date.now();
+          const minLoadingTime = 800; // milisegundos
+          const timeElapsed = Date.now() - loadingStartTime;
+          
+          if (timeElapsed < minLoadingTime) {
+            loadingTimeoutRef.current = window.setTimeout(() => {
+              if (isMounted) {
+                setWastes(userWastes);
+                setLoading(false);
+              }
+            }, minLoadingTime - timeElapsed);
+          } else {
+            setWastes(userWastes);
+            setLoading(false);
+          }
         }
       } catch (error: any) {
         console.error('Error al cargar los datos del perfil:', error);
@@ -178,15 +141,28 @@ const Profile = () => {
     
     return () => {
       isMounted = false;
+      if (loadingTimeoutRef.current !== null) {
+        clearTimeout(loadingTimeoutRef.current);
+      }
     };
   }, [id, currentUser, navigate, loadUserProfile, loadUserWastes]);
   
   if (loading) {
     return (
       <div className="container mx-auto max-w-2xl py-8 px-4">
-        <div className="flex flex-col items-center justify-center min-h-[50vh]">
-          <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
-          <p className="text-gray-600">Cargando perfil...</p>
+        <Button 
+          variant="ghost" 
+          className="mb-4" 
+          onClick={() => navigate(-1)}
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Volver
+        </Button>
+        
+        <div className="space-y-6">
+          <Skeleton className="h-48 w-full rounded-lg" />
+          <Skeleton className="h-24 w-full rounded-lg" />
+          <Skeleton className="h-64 w-full rounded-lg" />
         </div>
       </div>
     );

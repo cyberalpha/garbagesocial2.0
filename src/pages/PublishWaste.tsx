@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,17 +11,34 @@ import WasteForm from "@/components/WasteForm";
 import { addWaste } from "@/services/wastes";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const PublishWaste = () => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { currentUser, isLoading } = useAuth();
+  const { currentUser, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
+  const [componentReady, setComponentReady] = useState(false);
+  const initialLoadTimerRef = useRef<number | null>(null);
+  
+  // Garantizar un tiempo mínimo de carga para evitar parpadeos
+  useEffect(() => {
+    // Asegurar un tiempo mínimo de renderizado para evitar parpadeos
+    initialLoadTimerRef.current = window.setTimeout(() => {
+      setComponentReady(true);
+    }, 800);
+    
+    return () => {
+      if (initialLoadTimerRef.current !== null) {
+        clearTimeout(initialLoadTimerRef.current);
+      }
+    };
+  }, []);
   
   // Add effect to ensure the user is authenticated
   useEffect(() => {
-    if (!isLoading && !currentUser) {
+    if (!authLoading && !currentUser && componentReady) {
       console.log("No hay usuario autenticado, redirigiendo a login");
       toast({
         title: "Acceso denegado",
@@ -29,10 +46,10 @@ const PublishWaste = () => {
         variant: "destructive"
       });
       navigate('/login');
-    } else if (currentUser) {
+    } else if (currentUser && componentReady) {
       console.log("Usuario autenticado:", currentUser);
     }
-  }, [currentUser, isLoading, navigate, toast]);
+  }, [currentUser, authLoading, navigate, toast, componentReady]);
   
   const handleSubmit = async (data: {
     type: WasteType;
@@ -102,11 +119,34 @@ const PublishWaste = () => {
     }
   };
   
-  // Mostrar un indicador de carga mientras se verifica la autenticación
-  if (isLoading) {
+  // Mostrar un indicador de carga estable mientras se verifica la autenticación
+  if (authLoading || !componentReady) {
     return (
-      <div className="container mx-auto max-w-2xl py-8 px-4 text-center">
-        <p>Cargando...</p>
+      <div className="container mx-auto max-w-2xl py-8 px-4">
+        <Button 
+          variant="ghost" 
+          className="mb-4" 
+          onClick={() => navigate(-1)}
+          disabled
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Volver
+        </Button>
+        
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-8 w-3/4" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+              <Skeleton className="h-20 w-full" />
+              <Skeleton className="h-32 w-full" />
+              <Skeleton className="h-48 w-full" />
+              <Skeleton className="h-24 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -115,6 +155,15 @@ const PublishWaste = () => {
   if (!currentUser) {
     return (
       <div className="container mx-auto max-w-2xl py-8 px-4">
+        <Button 
+          variant="ghost" 
+          className="mb-4" 
+          onClick={() => navigate(-1)}
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Volver
+        </Button>
+        
         <Alert variant="destructive" className="mb-4">
           <AlertCircle className="h-4 w-4 mr-2" />
           <AlertDescription>
