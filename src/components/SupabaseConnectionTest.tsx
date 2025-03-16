@@ -11,24 +11,36 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 
 const SupabaseConnectionTest = () => {
   const { 
-    isConnected, 
-    isLoading, 
-    errorMessage, 
-    testConnection,
-    connectionDetails
+    isTestingConnection,
+    testResult,
+    showResult,
+    setShowResult,
+    testSupabaseConnection,
+    isOffline
   } = useSupabaseConnectionTest();
   
   const { status, isOfflineMode } = useSupabaseConnection();
 
   useEffect(() => {
     // Test connection on mount
-    testConnection();
-  }, [testConnection]);
+    testSupabaseConnection();
+  }, [testSupabaseConnection]);
 
   const handleForceTest = () => {
     console.log("Forzando verificación de conexión...");
-    testConnection(true); // Pasar true para indicar que es una prueba forzada
+    testSupabaseConnection();
   };
+
+  // Derivar valores de isConnected, errorMessage, etc. desde testResult
+  const isConnected = testResult?.success || false;
+  const isLoading = isTestingConnection;
+  const errorMessage = testResult?.error || null;
+  // Crear un objeto connectionDetails derivado de testResult
+  const connectionDetails = testResult ? {
+    latency: testResult.latency || 0,
+    timestamp: new Date().getTime(),
+    supabaseVersion: testResult.supabaseVersion || 'Unknown'
+  } : null;
 
   return (
     <div className="w-full max-w-xl mx-auto space-y-6">
