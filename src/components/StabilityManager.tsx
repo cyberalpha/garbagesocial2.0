@@ -1,12 +1,18 @@
 
 import React, { useEffect } from 'react';
 import { setOfflineMode } from '@/integrations/supabase/client';
+import { useAuth } from './AuthProvider';
+import { useNavigate } from 'react-router-dom';
+import { cleanupAuthSession } from '@/utils/authCleanup';
 
 /**
  * Componente que garantiza la estabilidad de la aplicación
  * Se monta una sola vez y se encarga de bloquear reconexiones y estabilizar la interfaz
  */
 const StabilityManager: React.FC = () => {
+  const { currentUser, isLoading } = useAuth();
+  const navigate = useNavigate();
+  
   useEffect(() => {
     console.log("StabilityManager: Inicializando control de estabilidad");
     
@@ -24,13 +30,30 @@ const StabilityManager: React.FC = () => {
       setOfflineMode(true); // Mantener modo offline aunque el navegador detecte conexión
     };
     
+    // Registrar los eventos para detectar cierres de sesión incorrectos
+    const handleLogoutCheck = () => {
+      if (!currentUser && !isLoading) {
+        console.log("StabilityManager: Detectada posible sesión cerrada incorrectamente");
+        cleanupAuthSession();
+      }
+    };
+    
+    // Verificar periódicamente si hay una sesión inconsistente
+    const checkSessionInterval = setInterval(handleLogoutCheck, 10000);
+    
+    // Limpiar sesiones y caché al inicio
+    cleanupAuthSession();
+    
     window.addEventListener('online', handleOnlineEvent);
+    window.addEventListener('unload', cleanupAuthSession);
     
     return () => {
       clearInterval(forceOfflineInterval);
+      clearInterval(checkSessionInterval);
       window.removeEventListener('online', handleOnlineEvent);
+      window.removeEventListener('unload', cleanupAuthSession);
     };
-  }, []);
+  }, [currentUser, isLoading, navigate]);
   
   // Este componente no renderiza nada visible
   return null;

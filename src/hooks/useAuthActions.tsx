@@ -2,6 +2,7 @@ import { User } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
 import { useLanguage } from '@/components/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
 
 export const useAuthActions = (
   currentUser: User | null,
@@ -11,6 +12,7 @@ export const useAuthActions = (
 ) => {
   const { toast } = useToast();
   const { t } = useLanguage();
+  const navigate = useNavigate();
 
   // Handle Supabase session changes
   const handleSessionChange = async (event: any, session: any) => {
@@ -334,6 +336,7 @@ export const useAuthActions = (
   const logout = async () => {
     setIsLoading(true);
     try {
+      console.log('Iniciando proceso de cierre de sesión');
       const { error } = await supabase.auth.signOut();
       
       if (error) {
@@ -345,11 +348,17 @@ export const useAuthActions = (
         });
       } else {
         setCurrentUser(null);
+        localStorage.removeItem('supabase.auth.token');
         
+        console.log('Sesión cerrada, redirigiendo a inicio');
         toast({
           title: t('general.success'),
           description: "Sesión cerrada correctamente",
         });
+        
+        setTimeout(() => {
+          navigate('/');
+        }, 100);
       }
     } catch (error: any) {
       console.error('Error inesperado al cerrar sesión:', error);
