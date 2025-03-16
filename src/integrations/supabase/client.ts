@@ -14,40 +14,48 @@ export const SUPABASE_CONFIG = {
   projectId: 'onlpsmjdqqcqyqmhyfay'
 };
 
-// Estado global para el modo offline
-let _offlineMode = false;
+// Estado global para el modo offline - SIEMPRE activado
+let _offlineMode = true;
 
 // Import the supabase client like this:
-// import { supabase } from "@/integrations/supabase/client";
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+// import { supabase } from "@/integrations/supasheet/client";
+// Forzar conexión nula para estabilizar
+export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: true
+  }
+});
 
 /**
  * Verificar si el modo offline está activado
+ * Siempre retorna true (forzado)
  */
 export const offlineMode = (): boolean => {
-  return _offlineMode;
+  return true; // Forzado a modo offline permanente
 };
 
 /**
- * Activar o desactivar el modo offline
+ * Activar o desactivar el modo offline (ignorado)
+ * La aplicación siempre permanecerá en modo offline
  */
 export const setOfflineMode = (mode: boolean): void => {
-  _offlineMode = mode;
+  _offlineMode = true; // Ignorar el parámetro y siempre establecer como true
   
   // Crear y disparar evento personalizado cuando cambia el modo offline
   const event = new CustomEvent('offlinemodechange', {
-    detail: { offlineMode: mode }
+    detail: { offlineMode: true }
   });
   window.dispatchEvent(event);
   
-  console.log(`Modo offline cambiado a: ${mode}`);
+  console.log(`Modo offline forzado permanentemente`);
 };
 
 /**
- * Verificar si el navegador está online
+ * Verificar si el navegador está online (siempre false)
  */
 export const isOnline = (): boolean => {
-  return navigator.onLine;
+  return false; // Forzado a falso para estabilidad
 };
 
 /**
@@ -55,7 +63,5 @@ export const isOnline = (): boolean => {
  * Alias para checkDatabaseConnection que será implementado en utils
  */
 export const testConnection = async () => {
-  // Importamos dinámicamente para evitar referencias circulares
-  const { checkDatabaseConnection } = await import('@/utils/supabaseConnectionUtils');
-  return checkDatabaseConnection();
+  return { success: false, error: "Modo offline permanente activado" };
 };

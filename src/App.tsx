@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -21,6 +20,7 @@ import SupabaseDiagnostic from "./pages/SupabaseDiagnostic";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useEffect, useState } from "react";
+import StabilityManager from './components/StabilityManager';
 
 const queryClient = new QueryClient();
 
@@ -94,6 +94,7 @@ const App = () => (
     <TooltipProvider>
       <LanguageProvider>
         <AuthProvider>
+          <StabilityManager />
           <Toaster />
           <Sonner />
           <InternetConnectionAlert />

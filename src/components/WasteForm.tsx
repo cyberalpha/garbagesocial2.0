@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -32,16 +32,23 @@ const WasteForm = ({ onSubmit, isSubmitting }: WasteFormProps) => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [customLocation, setCustomLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [isFormReady, setIsFormReady] = useState(false);
+  const formLoadingTimerRef = useRef<NodeJS.Timeout | null>(null);
   
   // Para futura implementación: usar la ubicación personalizada
   const [usingCustomLocation] = useState(false);
   
   // Asegurarse de que el formulario no parpadee y tenga un tiempo de carga estable
   useEffect(() => {
-    const timer = setTimeout(() => {
+    // Este timer espera SIEMPRE al menos 2000ms antes de mostrar el formulario
+    formLoadingTimerRef.current = setTimeout(() => {
       setIsFormReady(true);
-    }, 500);
-    return () => clearTimeout(timer);
+    }, 2000);
+    
+    return () => {
+      if (formLoadingTimerRef.current) {
+        clearTimeout(formLoadingTimerRef.current);
+      }
+    };
   }, []);
   
   const handleImageChange = (file: File | null) => {
@@ -106,6 +113,7 @@ const WasteForm = ({ onSubmit, isSubmitting }: WasteFormProps) => {
     onSubmit(formData);
   };
   
+  // Render el esqueleto de carga con altura fija para evitar saltos
   if (!isFormReady) {
     return (
       <div className="space-y-6">

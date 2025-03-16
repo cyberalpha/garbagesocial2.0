@@ -1,5 +1,5 @@
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Waste } from '@/types';
 import { Button } from "@/components/ui/button";
@@ -19,29 +19,30 @@ const WasteTabs = ({ wastes, isEditable }: WasteTabsProps) => {
   const [localWastes, setLocalWastes] = useState<Waste[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { isOfflineMode } = useSupabaseConnection();
+  const loadingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const componentMountedRef = useRef(true);
   
-  // Simular un tiempo de carga mínimo para evitar parpadeos
+  // Establecer un tiempo mínimo de carga fijo para evitar parpadeos
   useEffect(() => {
-    let isComponentMounted = true;
+    componentMountedRef.current = true;
     
-    const loadWastes = async () => {
+    const loadWastes = () => {
       // Forzar un tiempo mínimo de carga para estabilizar la interfaz
-      const minLoadTime = new Promise(resolve => setTimeout(resolve, 800));
-      
-      // Esperar a que los residuos estén disponibles y haya pasado el tiempo mínimo
-      await minLoadTime;
-      
-      if (isComponentMounted) {
-        setLocalWastes(wastes);
-        setIsLoading(false);
-      }
+      loadingTimerRef.current = setTimeout(() => {
+        if (componentMountedRef.current) {
+          setLocalWastes(wastes);
+          setIsLoading(false);
+        }
+      }, 1500); // Tiempo fijo de carga
     };
     
-    setIsLoading(true);
     loadWastes();
     
     return () => {
-      isComponentMounted = false;
+      componentMountedRef.current = false;
+      if (loadingTimerRef.current) {
+        clearTimeout(loadingTimerRef.current);
+      }
     };
   }, [wastes]);
   
@@ -79,7 +80,7 @@ const WasteTabs = ({ wastes, isEditable }: WasteTabsProps) => {
       <div className="space-y-6">
         <Skeleton className="h-10 w-full rounded-lg" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3].map((i) => (
+          {[1, 2, 3, 4].map((i) => (
             <Skeleton key={i} className="h-64 rounded-lg" />
           ))}
         </div>
