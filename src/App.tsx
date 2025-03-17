@@ -11,10 +11,6 @@ import SupabaseConnectionAlert from './components/SupabaseConnectionAlert';
 import GeolocationAlert from './components/GeolocationAlert';
 import StabilityManager from './components/StabilityManager';
 import Home from "./pages/Home";
-import MapView from "./pages/MapView";
-import PublishWaste from "./pages/PublishWaste";
-import WasteDetail from "./pages/WasteDetail";
-import Profile from "./pages/Profile";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
@@ -39,11 +35,7 @@ const AppRoutes = () => {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/supabase-diagnostic" element={<SupabaseDiagnostic />} />
-      <Route path="/map" element={<MapView />} />
-      <Route path="/publish" element={<PublishWaste />} />
-      <Route path="/waste/:id" element={<WasteDetail />} />
-      <Route path="/profile/:id" element={<Profile />} />
-      <Route path="/profile" element={<Profile />} />
+      {/* Rutas de Perfil y Residuo eliminadas */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
