@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useLanguage } from '@/components/LanguageContext';
+import { useLanguage, Language } from '@/components/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Globe } from 'lucide-react';
@@ -8,7 +8,7 @@ import { Globe } from 'lucide-react';
 const LanguageSwitcher = () => {
   const { language, setLanguage, t } = useLanguage();
 
-  const handleLanguageChange = (lang: string) => {
+  const handleLanguageChange = (lang: Language) => {
     setLanguage(lang);
   };
 
