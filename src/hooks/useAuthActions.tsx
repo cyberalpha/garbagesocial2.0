@@ -1,363 +1,334 @@
-import { User } from '@/types';
-import { useToast } from '@/components/ui/use-toast';
-import { useLanguage } from '@/components/LanguageContext';
+
+import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { User } from '@/types';
+import { offlineMode } from '@/integrations/supabase/client';
+import { setSessionToken, clearSessionToken } from '@/utils/sessionManager';
+import { mockUsers, createMockUser, removeMockUser } from '@/utils/mockUsers';
 
 export const useAuthActions = (
   currentUser: User | null,
   setCurrentUser: (user: User | null) => void,
-  setIsLoading: (loading: boolean) => void,
+  setIsLoading: (isLoading: boolean) => void,
   setPendingVerification: (pending: boolean) => void
 ) => {
-  const { toast } = useToast();
-  const { t } = useLanguage();
+  const [lastError, setLastError] = useState<Error | null>(null);
 
-  // Handle Supabase session changes
-  const handleSessionChange = async (event: any, session: any) => {
+  const handleSessionChange = async (event: string, session: any) => {
     console.log('Evento de sesión detectado:', event, session);
     
-    if (event === 'SIGNED_IN') {
+    try {
       setIsLoading(true);
-      const user = session.user;
       
-      if (user) {
-        try {
-          // Get profile data from Supabase
+      if (event === 'SIGNED_IN' && session?.user) {
+        console.log('Usuario inició sesión:', session.user);
+        
+        // Si estamos en modo offline, usar datos simulados
+        if (offlineMode()) {
+          console.log('Modo offline activo, usando datos simulados para sesión');
+          const mockUser = mockUsers.find(u => u.email === session.user.email);
+          
+          if (mockUser) {
+            setCurrentUser(mockUser);
+          } else {
+            // Si no existe, crear usuario simulado
+            const newMockUser: User = {
+              id: session.user.id,
+              name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Usuario',
+              email: session.user.email || '',
+              isOrganization: false,
+              profileImage: `https://api.dicebear.com/7.x/initials/svg?seed=${session.user.email}`,
+              averageRating: 0,
+              emailVerified: true,
+              active: true
+            };
+            createMockUser(newMockUser);
+            setCurrentUser(newMockUser);
+          }
+        } else {
+          // En modo online, intentar obtener perfil de Supabase
           const { data: profileData, error: profileError } = await supabase
             .from('profiles')
             .select('*')
-            .eq('id', user.id)
+            .eq('id', session.user.id)
             .maybeSingle();
-            
+          
           if (profileError) {
-            console.error('Error fetching profile from Supabase:', profileError);
+            console.error('Error fetching profile:', profileError);
+            throw profileError;
           }
           
-          // If profile doesn't exist, create it
-          if (!profileData) {
-            console.log('Profile not found, creating new profile');
+          if (profileData) {
+            const user: User = {
+              id: profileData.id,
+              name: profileData.name || session.user.email?.split('@')[0] || '',
+              email: session.user.email || '',
+              isOrganization: profileData.is_organization || false,
+              averageRating: profileData.average_rating || 0,
+              profileImage: profileData.profile_image || `https://api.dicebear.com/7.x/initials/svg?seed=${session.user.email}`,
+              emailVerified: session.user.email_confirmed_at ? true : false,
+              active: true
+            };
+            setCurrentUser(user);
+          } else {
+            // Si no hay perfil, crearlo automáticamente
+            const newUser: User = {
+              id: session.user.id,
+              name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || '',
+              email: session.user.email || '',
+              isOrganization: session.user.user_metadata?.isOrganization || false,
+              averageRating: 0,
+              profileImage: session.user.user_metadata?.profileImage || `https://api.dicebear.com/7.x/initials/svg?seed=${session.user.email}`,
+              emailVerified: session.user.email_confirmed_at ? true : false,
+              active: true
+            };
+            
+            // Crear perfil en Supabase
             const { error: createError } = await supabase
               .from('profiles')
-              .insert({
-                id: user.id,
-                name: user.user_metadata?.name || user.email?.split('@')[0] || '',
-                email: user.email,
-                is_organization: user.user_metadata?.isOrganization || false,
-                profile_image: user.user_metadata?.profileImage || `https://api.dicebear.com/7.x/initials/svg?seed=${user.email}`
+              .upsert({
+                id: newUser.id,
+                name: newUser.name,
+                email: newUser.email,
+                is_organization: newUser.isOrganization,
+                profile_image: newUser.profileImage,
+                average_rating: 0,
+                active: true
               });
-              
+            
             if (createError) {
               console.error('Error creating profile:', createError);
-            } else {
-              console.log('Profile created successfully');
+              throw createError;
             }
-          }
-          
-          // Set current user with profile data if available
-          setCurrentUser({
-            id: user.id,
-            name: profileData?.name || user.user_metadata?.name || user.email?.split('@')[0] || '',
-            email: user.email || '',
-            isOrganization: profileData?.is_organization || user.user_metadata?.isOrganization || false,
-            averageRating: profileData?.average_rating || 0,
-            profileImage: profileData?.profile_image || user.user_metadata?.profileImage || `https://api.dicebear.com/7.x/initials/svg?seed=${user.email}`,
-            emailVerified: user.email_confirmed_at ? true : false,
-            active: true
-          });
-        } catch (error) {
-          console.error('Error handling session change:', error);
-        }
-      }
-      
-      setIsLoading(false);
-    } else if (event === 'SIGNED_OUT') {
-      setCurrentUser(null);
-    }
-  };
-
-  // Login with email and password
-  const login = async ({ email, password }: { email: string; password: string }) => {
-    setIsLoading(true);
-    try {
-      console.log(`Intentando iniciar sesión para ${email}`);
-      
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-
-      if (error) {
-        console.error('Error de inicio de sesión:', error.message);
-        
-        // Mejorar manejo de error específico para email no confirmado
-        if (error.message.includes('Email not confirmed') || 
-            error.message.includes('email not confirmed') ||
-            error.message.includes('email_not_confirmed')) {
-          console.log('El email no ha sido confirmado');
-          toast({
-            title: t('general.error'),
-            description: "Por favor verifica tu correo electrónico antes de iniciar sesión. Revisa tu bandeja de entrada.",
-            variant: "destructive"
-          });
-          setPendingVerification(true);
-          return null;
-        }
-        
-        toast({
-          title: t('general.error'),
-          description: error.message,
-          variant: "destructive"
-        });
-        return null;
-      }
-
-      if (data.session) {
-        console.log('Sesión creada:', data.session);
-        toast({
-          title: t('general.success'),
-          description: "Inicio de sesión exitoso",
-        });
-
-        // Fetch user profile data
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', data.user?.id)
-          .maybeSingle();
-        
-        if (profileError) {
-          console.error('Error al obtener perfil:', profileError);
-        }
-        
-        // If profile doesn't exist, create it
-        if (!profileData && data.user) {
-          console.log('Perfil no encontrado, creando nuevo perfil');
-          const profileToCreate = {
-            id: data.user.id,
-            name: data.user.user_metadata?.name || data.user.email?.split('@')[0] || '',
-            email: data.user.email,
-            is_organization: data.user.user_metadata?.isOrganization || false,
-            profile_image: data.user.user_metadata?.profileImage || `https://api.dicebear.com/7.x/initials/svg?seed=${data.user.email}`
-          };
-          
-          console.log('Creando perfil con datos:', profileToCreate);
-          
-          const { error: createError } = await supabase
-            .from('profiles')
-            .insert(profileToCreate);
             
-          if (createError) {
-            console.error('Error creating profile:', createError);
-          } else {
-            console.log('Profile created successfully');
+            setCurrentUser(newUser);
           }
         }
         
-        const userObject: User = {
-          id: data.user?.id || '',
-          name: profileData?.name || data.user?.user_metadata?.name || data.user?.email?.split('@')[0] || '',
-          email: data.user?.email || '',
-          isOrganization: profileData?.is_organization || data.user?.user_metadata?.isOrganization || false,
-          averageRating: profileData?.average_rating || 0,
-          profileImage: profileData?.profile_image || data.user?.user_metadata?.profileImage || `https://api.dicebear.com/7.x/initials/svg?seed=${data.user?.email}`,
-          emailVerified: data.user?.email_confirmed_at ? true : false,
-          active: true
-        };
+        // Guardar token en localStorage para mantener sesión
+        if (session?.access_token) {
+          setSessionToken(session.access_token, session.refresh_token);
+        }
         
-        setCurrentUser(userObject);
-        
-        return userObject;
+      } else if (['SIGNED_OUT', 'USER_DELETED'].includes(event)) {
+        console.log('Usuario cerró sesión o fue eliminado');
+        setCurrentUser(null);
+        clearSessionToken();
       }
-      
-      return null;
-    } catch (error: any) {
-      console.error('Error inesperado:', error);
-      toast({
-        title: t('general.error'),
-        description: error.message || "Error inesperado durante el inicio de sesión",
-        variant: "destructive"
-      });
-      return null;
+    } catch (error) {
+      console.error('Error handling session change:', error);
+      setLastError(error as Error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Register new user
-  const register = async (userData: Partial<User> & { password?: string }) => {
+  const login = async (credentials: { email: string; password: string }): Promise<User | null> => {
+    console.log("Iniciando proceso de login con email:", credentials.email);
     setIsLoading(true);
+    setLastError(null);
+    
     try {
-      console.log('Registrando usuario:', {
-        ...userData,
-        password: userData.password ? "********" : undefined
+      // Si estamos en modo offline, usar autenticación simulada
+      if (offlineMode()) {
+        console.log('Modo offline activo, simulando login');
+        
+        // Verificar credenciales contra usuarios mock
+        const mockUser = mockUsers.find(
+          u => u.email === credentials.email && u.password === credentials.password
+        );
+        
+        if (mockUser) {
+          console.log('Login simulado exitoso');
+          setTimeout(() => {
+            // Simular evento de sesión
+            handleSessionChange('SIGNED_IN', { 
+              user: { 
+                id: mockUser.id, 
+                email: mockUser.email,
+                user_metadata: {
+                  name: mockUser.name,
+                  isOrganization: mockUser.isOrganization
+                }
+              },
+              access_token: 'fake-token-' + Date.now(),
+              refresh_token: 'fake-refresh-token-' + Date.now()
+            });
+          }, 100);
+          return mockUser;
+        } else {
+          console.log('Login simulado fallido');
+          throw new Error('Credenciales inválidas');
+        }
+      }
+      
+      // En modo online, usar autenticación real de Supabase
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: credentials.email,
+        password: credentials.password,
       });
       
-      if (!userData.email || !userData.password) {
-        toast({
-          title: t('general.error'),
-          description: "Email y contraseña son obligatorios",
-          variant: "destructive"
-        });
-        return null;
-      }
-      
-      // Verificar si el email ya existe antes de registrar
-      const { data: existingUsers, error: checkError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', userData.email)
-        .limit(1);
+      if (error) {
+        console.error('Error en login:', error);
         
-      if (checkError) {
-        console.error('Error al verificar email existente:', checkError);
-      } else if (existingUsers && existingUsers.length > 0) {
-        console.log('Email ya registrado:', userData.email);
-        toast({
-          title: t('general.error'),
-          description: "Este email ya está registrado. Por favor utiliza otro o inicia sesión.",
-          variant: "destructive"
-        });
-        return null;
+        // Verificar si es un error de verificación de email
+        if (error.message?.includes('Email not confirmed')) {
+          setPendingVerification(true);
+        }
+        
+        throw error;
       }
       
-      // Registrar en Supabase Auth
+      if (!data?.user) {
+        throw new Error('No se recibieron datos de usuario');
+      }
+      
+      // La sesión se manejará en el evento SIGNED_IN
+      console.log('Login exitoso, esperando evento de sesión');
+      return null;
+      
+    } catch (error: any) {
+      console.error('Error en login:', error);
+      setLastError(error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const register = async (userData: Partial<User> & { password?: string }): Promise<User | null> => {
+    console.log("Registrando usuario:", userData.email);
+    setIsLoading(true);
+    setLastError(null);
+    
+    try {
+      const { name, email, password, isOrganization, profileImage } = userData;
+      
+      if (!email || !password) {
+        throw new Error('Email y contraseña son requeridos');
+      }
+      
+      // Si estamos en modo offline, crear usuario simulado
+      if (offlineMode()) {
+        console.log('Modo offline activo, creando usuario simulado');
+        
+        // Verificar si ya existe
+        const existingUser = mockUsers.find(u => u.email === email);
+        if (existingUser) {
+          throw new Error('Este email ya está registrado');
+        }
+        
+        const mockUser: User & { password: string } = {
+          id: 'mock-' + Date.now(),
+          name: name || email.split('@')[0],
+          email,
+          password,
+          isOrganization: isOrganization || false,
+          profileImage: profileImage || `https://api.dicebear.com/7.x/initials/svg?seed=${email}`,
+          averageRating: 0,
+          emailVerified: true,
+          active: true
+        };
+        
+        createMockUser(mockUser);
+        
+        // Simular evento de inicio de sesión
+        setTimeout(() => {
+          handleSessionChange('SIGNED_IN', { 
+            user: { 
+              id: mockUser.id, 
+              email: mockUser.email,
+              user_metadata: {
+                name: mockUser.name,
+                isOrganization: mockUser.isOrganization
+              }
+            },
+            access_token: 'fake-token-' + Date.now(),
+            refresh_token: 'fake-refresh-token-' + Date.now()
+          });
+        }, 100);
+        
+        return mockUser;
+      }
+      
+      // En modo online, registrar con Supabase
       const { data, error } = await supabase.auth.signUp({
-        email: userData.email,
-        password: userData.password,
+        email,
+        password,
         options: {
           data: {
-            name: userData.name,
-            isOrganization: userData.isOrganization,
-            profileImage: userData.profileImage || `https://api.dicebear.com/7.x/initials/svg?seed=${userData.email}`
+            name,
+            isOrganization,
+            profileImage: profileImage || `https://api.dicebear.com/7.x/initials/svg?seed=${email}`
           }
         }
       });
       
       if (error) {
-        console.error('Error en registro:', error.message);
-        
-        // Detectar errores específicos de email ya utilizado
-        if (error.message.includes('already registered') || 
-            error.message.includes('already in use') || 
-            error.message.toLowerCase().includes('duplicate')) {
-          toast({
-            title: t('general.error'),
-            description: "Este email ya está registrado. Por favor utiliza otro o inicia sesión.",
-            variant: "destructive"
-          });
-        } else {
-          toast({
-            title: t('general.error'),
-            description: error.message,
-            variant: "destructive"
-          });
-        }
-        return null;
+        console.error('Error en registro:', error);
+        throw error;
       }
       
-      if (data.user) {
-        console.log('Usuario creado:', data.user);
-        
-        // Verificar si necesita verificación de email
-        if (!data.user.email_confirmed_at) {
-          console.log('El usuario necesita verificar su email');
-          setPendingVerification(true);
-        }
-        
-        // Crear el perfil de manera explícita
-        const profileToCreate = {
-          id: data.user.id,
-          name: userData.name || userData.email?.split('@')[0] || '',
-          email: userData.email,
-          is_organization: userData.isOrganization || false,
-          profile_image: userData.profileImage || `https://api.dicebear.com/7.x/initials/svg?seed=${userData.email}`,
-          average_rating: 0
-        };
-        
-        console.log('Creando perfil con datos:', profileToCreate);
-        
-        // Usamos insert en lugar de upsert ya que es un nuevo perfil
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert(profileToCreate);
-          
-        if (profileError) {
-          console.error('Error al crear perfil:', profileError);
-          toast({
-            title: t('general.error'),
-            description: "Error al crear perfil: " + profileError.message,
-            variant: "destructive"
-          });
-        } else {
-          console.log('Perfil creado con éxito');
-        }
-        
-        const user: User = {
-          id: data.user.id,
-          name: userData.name || userData.email?.split('@')[0] || '',
-          email: userData.email,
-          isOrganization: userData.isOrganization || false,
-          averageRating: 0,
-          profileImage: userData.profileImage || `https://api.dicebear.com/7.x/initials/svg?seed=${userData.email}`,
-          emailVerified: data.user.email_confirmed_at ? true : false,
-          active: true
-        };
-        
-        // Actualizar estado
-        setCurrentUser(user);
-        
-        toast({
-          title: t('general.success'),
-          description: data.user.email_confirmed_at 
-            ? "¡Registro completado con éxito!" 
-            : "Registro exitoso. Por favor verifica tu email.",
-        });
-        
-        return user;
+      if (!data?.user) {
+        throw new Error('No se recibieron datos de usuario');
       }
       
+      // Verificar si requiere confirmación de email
+      if (!data.user.email_confirmed_at) {
+        console.log('Usuario registrado, pendiente de confirmación');
+        setPendingVerification(true);
+      }
+      
+      // El perfil se creará automáticamente mediante el trigger en Supabase
+      
+      console.log('Registro exitoso, usuario creado');
       return null;
+      
     } catch (error: any) {
-      console.error('Error inesperado en registro:', error);
-      toast({
-        title: t('general.error'),
-        description: error.message || "Error inesperado durante el registro",
-        variant: "destructive"
-      });
-      return null;
+      console.error('Error en registro:', error);
+      setLastError(error);
+      throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Logout
-  const logout = async () => {
+  const logout = async (): Promise<void> => {
+    console.log("Ejecutando logout...");
     setIsLoading(true);
+    setLastError(null);
+    
     try {
+      // Siempre eliminar datos localmente primero
+      clearSessionToken();
+      
+      // Si estamos en modo offline, solo limpiar el estado
+      if (offlineMode()) {
+        console.log('Modo offline activo, simulando logout');
+        setCurrentUser(null);
+        return;
+      }
+      
+      // En modo online, hacer logout en Supabase
       const { error } = await supabase.auth.signOut();
       
       if (error) {
-        console.error('Error al cerrar sesión:', error);
-        toast({
-          title: t('general.error'),
-          description: error.message,
-          variant: "destructive"
-        });
-      } else {
-        setCurrentUser(null);
-        
-        toast({
-          title: t('general.success'),
-          description: "Sesión cerrada correctamente",
-        });
+        console.error('Error en logout:', error);
+        throw error;
       }
+      
+      // Limpiar usuario (por si acaso el evento no se dispara)
+      setCurrentUser(null);
+      console.log('Logout exitoso');
+      
     } catch (error: any) {
-      console.error('Error inesperado al cerrar sesión:', error);
-      toast({
-        title: t('general.error'),
-        description: error.message || "Error al cerrar sesión",
-        variant: "destructive"
-      });
+      console.error('Error en logout:', error);
+      setLastError(error);
+      
+      // Forzar logout local incluso si hay error en Supabase
+      setCurrentUser(null);
+      
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -367,6 +338,7 @@ export const useAuthActions = (
     handleSessionChange,
     login,
     register,
-    logout
+    logout,
+    lastError
   };
 };

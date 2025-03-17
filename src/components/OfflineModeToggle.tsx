@@ -12,9 +12,10 @@ import { Button } from '@/components/ui/button';
 
 interface OfflineModeToggleProps {
   className?: string;
+  simplified?: boolean;
 }
 
-const OfflineModeToggle = ({ className }: OfflineModeToggleProps) => {
+const OfflineModeToggle = ({ className, simplified = false }: OfflineModeToggleProps) => {
   const { isOfflineMode, toggleOfflineMode, status, error } = useSupabaseConnection();
   const { pendingOperations, syncNow, isSyncing, hasErrors } = useDataSync();
 
@@ -26,6 +27,38 @@ const OfflineModeToggle = ({ className }: OfflineModeToggleProps) => {
     }
   };
 
+  const handleClick = () => {
+    toggleOfflineMode();
+  };
+
+  // Versión simplificada del botón (solo modo online/offline con un clic)
+  if (simplified) {
+    return (
+      <Button 
+        onClick={handleClick}
+        variant={isOfflineMode ? "destructive" : "success"}
+        className={cn(
+          "flex items-center gap-2",
+          isOfflineMode ? "bg-red-500 hover:bg-red-600" : "bg-green-500 hover:bg-green-600",
+          className
+        )}
+      >
+        {isOfflineMode ? (
+          <>
+            <WifiOff className="h-4 w-4" />
+            <span>Sin conexión</span>
+          </>
+        ) : (
+          <>
+            <Database className="h-4 w-4" />
+            <span>Conectado</span>
+          </>
+        )}
+      </Button>
+    );
+  }
+
+  // Versión completa del toggle (la original)
   return (
     <div className={cn("p-3 rounded-lg border", isOfflineMode ? "bg-amber-50 border-amber-200" : "bg-gray-50 border-gray-200", className)}>
       <div className="flex items-center justify-between">

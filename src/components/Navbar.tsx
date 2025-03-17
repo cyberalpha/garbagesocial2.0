@@ -1,192 +1,207 @@
 
-import { useState, useEffect } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Button } from "@/components/ui/button";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { useAuth } from "@/components/AuthProvider";
-import { 
-  Menu, X, Map, User, Upload, Home, 
-  LogIn, LogOut 
-} from 'lucide-react';
+import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
+import { useLanguage } from '@/components/LanguageContext';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { Menu, X, MapPin, PlusCircle, UserCircle, LogOut, Home, Trash2, Activity } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { cn } from '@/lib/utils';
+import { useToast } from '@/components/ui/use-toast';
+import ConnectionIndicator from './ConnectionIndicator';
 
 const Navbar = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
-  const location = useLocation();
-  const navigate = useNavigate();
-  const isMobile = useIsMobile();
   const { currentUser, logout } = useAuth();
+  const { t } = useLanguage();
+  const location = useLocation();
+  const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+  const { toast } = useToast();
 
-  // Handle scrolling effect
-  useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY > 20) {
-        setIsScrolled(true);
-      } else {
-        setIsScrolled(false);
-      }
-    };
+  const handleLogout = async () => {
+    try {
+      console.log("Intentando cerrar sesión...");
+      await logout();
+      toast({
+        description: "Sesión cerrada exitosamente",
+      });
+      console.log("Sesión cerrada exitosamente");
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo cerrar la sesión. Intente nuevamente."
+      });
+    }
+  };
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen);
+  };
 
-  // Close mobile menu when changing routes
-  useEffect(() => {
+  const closeMenu = () => {
     setIsMenuOpen(false);
-  }, [location.pathname]);
-
-  const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
-  
-  const handleAuthAction = () => {
-    if (currentUser) {
-      logout();
-    } else {
-      navigate('/login');
-    }
-  };
-  
-  const handleNavLinkClick = (path: string) => {
-    // Si el usuario no está autenticado y la ruta requiere autenticación,
-    // redirigir a la página de inicio de sesión
-    if (!currentUser && (path === '/map' || path === '/publish' || path === '/profile')) {
-      navigate('/login');
-    } else {
-      navigate(path);
-    }
   };
 
-  // Navigation links
-  const navLinks = [
-    { name: 'Inicio', path: '/', icon: <Home className="mr-2 h-4 w-4" /> },
-    { name: 'Mapa', path: '/map', icon: <Map className="mr-2 h-4 w-4" /> },
-    { name: 'Publicar', path: '/publish', icon: <Upload className="mr-2 h-4 w-4" /> },
-    { name: 'Perfil', path: '/profile', icon: <User className="mr-2 h-4 w-4" /> },
-  ];
+  const renderNavLinks = () => {
+    return (
+      <>
+        <Link 
+          to="/" 
+          className={cn(
+            "flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-100 transition-colors",
+            location.pathname === "/" ? "font-medium text-primary" : "text-gray-700"
+          )}
+          onClick={closeMenu}
+        >
+          <Home size={18} />
+          <span>{t('nav.home')}</span>
+        </Link>
+        <Link 
+          to="/map" 
+          className={cn(
+            "flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-100 transition-colors",
+            location.pathname === "/map" ? "font-medium text-primary" : "text-gray-700"
+          )}
+          onClick={closeMenu}
+        >
+          <MapPin size={18} />
+          <span>{t('nav.map')}</span>
+        </Link>
+        {currentUser && (
+          <>
+            <Link 
+              to="/publish" 
+              className={cn(
+                "flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-100 transition-colors",
+                location.pathname === "/publish" ? "font-medium text-primary" : "text-gray-700"
+              )}
+              onClick={closeMenu}
+            >
+              <PlusCircle size={18} />
+              <span>{t('nav.publish')}</span>
+            </Link>
+            <Link 
+              to="/profile" 
+              className={cn(
+                "flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-100 transition-colors",
+                location.pathname === "/profile" ? "font-medium text-primary" : "text-gray-700"
+              )}
+              onClick={closeMenu}
+            >
+              <UserCircle size={18} />
+              <span>{t('nav.profile')}</span>
+            </Link>
+          </>
+        )}
+        <Link 
+          to="/supabase-diagnostic" 
+          className={cn(
+            "flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-100 transition-colors",
+            location.pathname === "/supabase-diagnostic" ? "font-medium text-primary" : "text-gray-700"
+          )}
+          onClick={closeMenu}
+        >
+          <Activity size={18} />
+          <span>Diagnóstico</span>
+        </Link>
+      </>
+    );
+  };
 
   return (
-    <header 
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ease-in-out ${
-        isScrolled ? 'bg-white/80 backdrop-blur-md shadow-md' : 'bg-transparent'
-      }`}
-    >
-      <div className="container mx-auto px-4 py-3">
-        <div className="flex items-center justify-between">
-          {/* Logo */}
-          <Link 
-            to="/" 
-            className="flex items-center space-x-2 transition-transform duration-300 hover:scale-105"
-          >
-            <img 
-              src="/lovable-uploads/7989feae-08a4-4881-a7f9-239a82906dd2.png" 
-              alt="GarbageSocial Logo" 
-              className="h-6 w-6 mr-1" 
-            />
-            <span className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              GarbageSocial
-            </span>
+    <header className="fixed top-0 left-0 right-0 h-16 bg-white border-b border-gray-200 z-50">
+      <div className="container mx-auto px-4 h-full flex items-center justify-between">
+        <div className="flex items-center">
+          <Link to="/" className="flex items-center gap-2" onClick={closeMenu}>
+            <Trash2 className="h-6 w-6 text-primary" />
+            <span className="font-bold text-xl text-gray-900">EcoResiduos</span>
           </Link>
-
-          {/* Desktop Navigation */}
-          {!isMobile && (
-            <nav className="hidden md:flex items-center space-x-1">
-              {navLinks.map((link) => (
-                <Button 
-                  key={link.path} 
-                  variant="ghost"
-                  onClick={() => handleNavLinkClick(link.path)}
-                  className={`px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 flex items-center ${
-                    location.pathname === link.path 
-                      ? 'text-primary bg-primary/10' 
-                      : 'text-gray-700 hover:text-primary hover:bg-primary/5'
-                  }`}
-                >
-                  {link.icon}
-                  {link.name}
-                </Button>
-              ))}
-            </nav>
-          )}
-
-          {/* Auth Button - Desktop */}
-          <div className="hidden md:block">
-            <Button 
-              variant={currentUser ? "outline" : "default"} 
-              size="sm"
-              className="flex items-center"
-              onClick={handleAuthAction}
-            >
-              {currentUser ? (
-                <>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Salir
-                </>
-              ) : (
-                <>
-                  <LogIn className="mr-2 h-4 w-4" />
-                  Ingresar
-                </>
-              )}
-            </Button>
+          
+          {/* Indicador de conexión siempre visible */}
+          <div className="ml-4">
+            <ConnectionIndicator />
           </div>
-
-          {/* Mobile Menu Button */}
-          {isMobile && (
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={toggleMenu}
-              className="md:hidden"
+        </div>
+        
+        <div className="hidden md:flex items-center space-x-4">
+          {renderNavLinks()}
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <LanguageSwitcher />
+          
+          {currentUser ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative rounded-full h-8 w-8 p-0">
+                  <Avatar className="h-8 w-8">
+                    {currentUser.profileImage ? (
+                      <AvatarImage src={currentUser.profileImage} alt={currentUser.name} />
+                    ) : (
+                      <AvatarFallback>{currentUser.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                    )}
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem asChild>
+                  <Link to="/profile" className="cursor-pointer">
+                    <UserCircle className="mr-2 h-4 w-4" />
+                    <span>{t('nav.profile')}</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>{t('auth.logout')}</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Link to="/login">
+              <Button size="sm" variant="default">
+                {t('auth.login')}
+              </Button>
+            </Link>
+          )}
+          
+          <button 
+            className="md:hidden"
+            onClick={toggleMenu}
+            aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+          >
+            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
+      </div>
+      
+      {/* Mobile menu */}
+      <div 
+        className={cn(
+          "fixed inset-0 bg-white z-40 transition-transform duration-300 pt-16",
+          isMenuOpen ? "translate-x-0" : "translate-x-full"
+        )}
+      >
+        <div className="container mx-auto px-4 py-4 flex flex-col space-y-1">
+          {renderNavLinks()}
+          {currentUser && (
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-100 transition-colors text-red-600"
             >
-              {isMenuOpen ? <X /> : <Menu />}
-            </Button>
+              <LogOut size={18} />
+              <span>{t('auth.logout')}</span>
+            </button>
           )}
         </div>
       </div>
-
-      {/* Mobile Navigation Menu */}
-      {isMobile && isMenuOpen && (
-        <div className="md:hidden animate-fade-in">
-          <div className="bg-white/95 backdrop-blur-sm shadow-lg border-t">
-            <div className="px-2 pt-2 pb-3 space-y-1">
-              {navLinks.map((link) => (
-                <Button
-                  key={link.path}
-                  variant="ghost"
-                  onClick={() => handleNavLinkClick(link.path)}
-                  className={`w-full justify-start px-3 py-2 rounded-md text-base font-medium flex items-center ${
-                    location.pathname === link.path 
-                      ? 'text-primary bg-primary/10' 
-                      : 'text-gray-700 hover:text-primary hover:bg-primary/5'
-                  }`}
-                >
-                  {link.icon}
-                  {link.name}
-                </Button>
-              ))}
-
-              {/* Auth Button - Mobile */}
-              <Button 
-                variant={currentUser ? "outline" : "default"} 
-                className="w-full justify-start mt-4 flex items-center"
-                onClick={handleAuthAction}
-              >
-                {currentUser ? (
-                  <>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Salir
-                  </>
-                ) : (
-                  <>
-                    <LogIn className="mr-2 h-4 w-4" />
-                    Ingresar
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </header>
   );
 };

@@ -4,9 +4,11 @@ import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 import ErrorBoundary from './components/ErrorBoundary.tsx'
+import { setOfflineMode } from './integrations/supabase/client'
 
-// Eliminamos la importación y configuración del manejador global de errores
-// que podría estar causando problemas
+// Activar modo offline por defecto al iniciar la aplicación
+setOfflineMode(true);
+console.log('Aplicación iniciada en modo offline (local) por defecto');
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
