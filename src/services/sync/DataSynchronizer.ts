@@ -2,9 +2,8 @@
 import { supabase } from '@/integrations/supabase/client';
 import { getFromStorage, saveToStorage } from '@/services/localStorage';
 import { WASTES_STORAGE_KEY } from '@/types';
-import { getAllWastes } from '../wastes';
 import { Waste, User } from '@/types';
-import { transformWasteToSupabase } from '../wastes/utils';
+import { transformWasteToSupabase, transformSupabaseWaste } from '../wastes/utils';
 
 type SyncOperation = {
   type: 'create' | 'update' | 'delete';
@@ -18,9 +17,69 @@ type SyncOperation = {
 // Clase para sincronizar datos entre localStorage y Supabase
 export class DataSynchronizer {
   private syncQueue: SyncOperation[] = [];
+  private syncIntervalId: number | null = null;
+  private _onSyncError: ((error: Error) => void) | null = null;
+  private _syncState: { syncing: boolean; lastSync: Date | null; error: Error | null } = {
+    syncing: false,
+    lastSync: null,
+    error: null
+  };
   
   constructor() {
     this.loadSyncQueue();
+  }
+  
+  // Obtener estado de sincronización
+  public getSyncState() {
+    return { ...this._syncState };
+  }
+  
+  // Establecer callback para errores de sincronización
+  public set onSyncError(callback: ((error: Error) => void) | null) {
+    this._onSyncError = callback;
+  }
+  
+  // Obtener callback para errores de sincronización
+  public get onSyncError() {
+    return this._onSyncError;
+  }
+  
+  // Iniciar sincronización automática
+  public start(intervalMs = 30000) {
+    if (this.syncIntervalId !== null) {
+      return; // Ya está activo
+    }
+    
+    this.syncIntervalId = window.setInterval(() => {
+      this.synchronize().catch(error => {
+        console.error('Error en sincronización automática:', error);
+        if (this._onSyncError) {
+          this._onSyncError(error instanceof Error ? error : new Error(String(error)));
+        }
+      });
+    }, intervalMs);
+  }
+  
+  // Detener sincronización automática
+  public stop() {
+    if (this.syncIntervalId !== null) {
+      window.clearInterval(this.syncIntervalId);
+      this.syncIntervalId = null;
+    }
+  }
+  
+  // Forzar sincronización si está en línea
+  public async forceSyncIfOnline(): Promise<boolean> {
+    if (navigator.onLine) {
+      try {
+        await this.synchronize();
+        return true;
+      } catch (error) {
+        console.error('Error en sincronización forzada:', error);
+        return false;
+      }
+    }
+    return false;
   }
   
   private loadSyncQueue() {
@@ -100,41 +159,63 @@ export class DataSynchronizer {
       return { success: true, synced: 0, failed: 0 };
     }
     
+    this._syncState.syncing = true;
+    this._syncState.error = null;
+    
     let synced = 0;
     let failed = 0;
     
-    for (const operation of this.syncQueue) {
-      if (operation.synced) continue;
-      
-      let success = false;
-      
-      switch (operation.entity) {
-        case 'waste':
-          success = await this.syncWaste(operation);
-          break;
-        case 'user':
-          // Implementar sincronización de usuarios si es necesario
-          success = true;
-          break;
+    try {
+      for (const operation of this.syncQueue) {
+        if (operation.synced) continue;
+        
+        let success = false;
+        
+        switch (operation.entity) {
+          case 'waste':
+            success = await this.syncWaste(operation);
+            break;
+          case 'user':
+            // Implementar sincronización de usuarios si es necesario
+            success = true;
+            break;
+        }
+        
+        if (success) {
+          operation.synced = true;
+          synced++;
+        } else {
+          failed++;
+        }
       }
       
-      if (success) {
-        operation.synced = true;
-        synced++;
-      } else {
-        failed++;
+      // Limpiar operaciones sincronizadas
+      this.syncQueue = this.syncQueue.filter(op => !op.synced);
+      this.saveSyncQueue();
+      
+      this._syncState.lastSync = new Date();
+      this._syncState.syncing = false;
+      
+      return {
+        success: failed === 0,
+        synced,
+        failed
+      };
+    } catch (error) {
+      console.error('Error durante sincronización:', error);
+      this._syncState.error = error instanceof Error ? error : new Error(String(error));
+      this._syncState.syncing = false;
+      
+      if (this._onSyncError) {
+        this._onSyncError(this._syncState.error);
       }
+      
+      return {
+        success: false,
+        synced,
+        failed: failed + (this.syncQueue.length - synced - failed)
+      };
     }
-    
-    // Limpiar operaciones sincronizadas
-    this.syncQueue = this.syncQueue.filter(op => !op.synced);
-    this.saveSyncQueue();
-    
-    return {
-      success: failed === 0,
-      synced,
-      failed
-    };
   }
   
   // Obtener número de operaciones pendientes
@@ -160,7 +241,7 @@ export class DataSynchronizer {
       }
       
       // Convertir al formato de la aplicación
-      const wastes = supabaseWastes.map(waste => transformWasteToSupabase(waste));
+      const wastes = supabaseWastes.map(waste => transformSupabaseWaste(waste));
       
       // Guardar en localStorage
       saveToStorage(WASTES_STORAGE_KEY, wastes);

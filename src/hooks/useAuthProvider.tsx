@@ -1,9 +1,237 @@
-import { useAuthState } from './useAuthState';
-import { useAuthActions } from './useAuthActions';
-import { useProfileActions } from './useProfileActions';
+import { useState, useEffect, useCallback } from 'react';
+import { useToast } from '@/hooks/use-toast';
+import { User } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
+import { offlineMode } from '@/integrations/supabase/client';
 
-export const useAuthProvider = () => {
+// Hook para manejar acciones del perfil de usuario
+export const useProfileActions = () => {
+  const { toast } = useToast();
+  const [lastError, setLastError] = useState<Error | null>(null);
+
+  // Actualizar perfil de usuario
+  const updateProfile = async (userData: Partial<User>): Promise<User> => {
+    try {
+      // Validar datos
+      if (!userData.id) {
+        throw new Error("ID de usuario requerido para actualizar perfil");
+      }
+      
+      // Obtener perfil actual del localStorage
+      const storedProfiles = JSON.parse(localStorage.getItem('profiles') || '{}');
+      const currentProfile = storedProfiles[userData.id] || {};
+      
+      // Actualizar con nuevos datos
+      const updatedProfile: User = {
+        ...currentProfile,
+        ...userData,
+      };
+      
+      // Guardar en localStorage
+      storedProfiles[userData.id] = updatedProfile;
+      localStorage.setItem('profiles', JSON.stringify(storedProfiles));
+      
+      // Actualizar en Supabase si está online
+      if (!offlineMode()) {
+        // Mapear datos a formato Supabase
+        const supabaseData = {
+          id: updatedProfile.id,
+          name: updatedProfile.name,
+          email: updatedProfile.email,
+          is_organization: updatedProfile.isOrganization,
+          profile_image: updatedProfile.profileImage
+        };
+        
+        const { error } = await supabase
+          .from('profiles')
+          .upsert(supabaseData);
+        
+        if (error) {
+          console.error('Error actualizando perfil en Supabase:', error);
+          // No bloquear la operación, solo registrar el error
+        }
+      }
+      
+      toast({
+        title: "Perfil actualizado",
+        description: "Tu perfil ha sido actualizado correctamente",
+      });
+      
+      return updatedProfile;
+    } catch (error) {
+      console.error('Error al actualizar perfil:', error);
+      const err = error instanceof Error ? error : new Error('Error desconocido al actualizar perfil');
+      setLastError(err);
+      
+      toast({
+        title: "Error al actualizar perfil",
+        description: err.message,
+        variant: "destructive"
+      });
+      
+      throw err;
+    }
+  };
+  
+  // Eliminar perfil de usuario
+  const deleteProfile = async (shouldDeactivate = false): Promise<void> => {
+    try {
+      // Obtener usuario actual del localStorage
+      const currentUserStr = localStorage.getItem('currentUser');
+      if (!currentUserStr) {
+        throw new Error("No hay usuario activo");
+      }
+      
+      const currentUser = JSON.parse(currentUserStr);
+      
+      if (!shouldDeactivate) {
+        // Eliminar datos del usuario
+        const storedProfiles = JSON.parse(localStorage.getItem('profiles') || '{}');
+        delete storedProfiles[currentUser.id];
+        localStorage.setItem('profiles', JSON.stringify(storedProfiles));
+        
+        // Eliminar usuario actual
+        localStorage.removeItem('currentUser');
+        
+        // Eliminar en Supabase si está online
+        if (!offlineMode()) {
+          // Esta operación requiere autenticación en Supabase
+          console.log('Operación de eliminación de perfil en Supabase no implementada en modo desconectado');
+        }
+        
+        toast({
+          title: "Perfil eliminado",
+          description: "Tu perfil ha sido eliminado correctamente",
+        });
+      } else {
+        // Desactivar perfil
+        const storedProfiles = JSON.parse(localStorage.getItem('profiles') || '{}');
+        const profileData = storedProfiles[currentUser.id];
+        
+        if (profileData) {
+          profileData.active = false;
+          storedProfiles[currentUser.id] = profileData;
+          localStorage.setItem('profiles', JSON.stringify(storedProfiles));
+          localStorage.removeItem('currentUser');
+          
+          // Desactivar en Supabase si está online
+          if (!offlineMode()) {
+            const { error } = await supabase
+              .from('profiles')
+              .update({ active: false })
+              .eq('id', currentUser.id);
+            
+            if (error) {
+              console.error('Error desactivando perfil en Supabase:', error);
+            }
+          }
+          
+          toast({
+            title: "Perfil desactivado",
+            description: "Tu perfil ha sido desactivado correctamente",
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error al eliminar/desactivar perfil:', error);
+      const err = error instanceof Error ? error : new Error('Error desconocido al eliminar perfil');
+      setLastError(err);
+      
+      toast({
+        title: "Error al eliminar perfil",
+        description: err.message,
+        variant: "destructive"
+      });
+      
+      throw err;
+    }
+  };
+  
+  // Verificar email (placeholder para cuando hay backend)
+  const verifyEmail = async (token: string): Promise<boolean> => {
+    try {
+      // En modo offline, simplemente simular éxito
+      toast({
+        title: "Email verificado",
+        description: "Tu correo electrónico ha sido verificado correctamente (simulado en modo offline)",
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Error al verificar email:', error);
+      const err = error instanceof Error ? error : new Error('Error desconocido al verificar email');
+      setLastError(err);
+      
+      toast({
+        title: "Error al verificar email",
+        description: err.message,
+        variant: "destructive"
+      });
+      
+      return false;
+    }
+  };
+  
+  // Reenviar email de verificación (placeholder)
+  const handleResendVerificationEmail = async (email: string): Promise<boolean> => {
+    try {
+      // En modo offline, simplemente simular éxito
+      toast({
+        title: "Email enviado",
+        description: "Se ha enviado un correo de verificación a tu dirección de email (simulado en modo offline)",
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Error al reenviar email de verificación:', error);
+      const err = error instanceof Error ? error : new Error('Error desconocido al reenviar verificación');
+      setLastError(err);
+      
+      toast({
+        title: "Error al enviar email",
+        description: err.message,
+        variant: "destructive"
+      });
+      
+      return false;
+    }
+  };
+  
+  // Cambiar modo offline
+  const toggleOfflineMode = async (): Promise<boolean> => {
+    try {
+      const newMode = !offlineMode();
+      localStorage.setItem('offline_mode', newMode ? 'true' : 'false');
+      
+      window.dispatchEvent(new CustomEvent('offlinemodechange', { 
+        detail: { offlineMode: newMode } 
+      }));
+      
+      toast({
+        title: newMode ? "Modo offline activado" : "Modo offline desactivado",
+        description: newMode 
+          ? "La aplicación funcionará sin conexión a internet" 
+          : "La aplicación se conectará a internet para sincronizar datos",
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Error al cambiar modo offline:', error);
+      return false;
+    }
+  };
+
+  return {
+    updateProfile,
+    deleteProfile,
+    verifyEmail,
+    handleResendVerificationEmail,
+    toggleOfflineMode,
+    lastError
+  };
+};
+
+const useAuthProvider = () => {
   const {
     currentUser,
     setCurrentUser,
@@ -157,3 +385,5 @@ export const useAuthProvider = () => {
     handleResendVerificationEmail
   };
 };
+
+export default useAuthProvider;

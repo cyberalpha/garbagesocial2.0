@@ -19,7 +19,7 @@ const PublishWaste = () => {
   const { currentUser, isLoading } = useAuth();
   const { toast } = useToast();
   
-  // Add effect to ensure the user is authenticated
+  // Efecto para asegurar que el usuario esté autenticado
   useEffect(() => {
     if (!isLoading && !currentUser) {
       console.log("No hay usuario autenticado, redirigiendo a login");
@@ -40,7 +40,7 @@ const PublishWaste = () => {
     imageUrl?: string;
     location: { lat: number; lng: number };
   }) => {
-    // Double check user is authenticated
+    // Verificar usuario autenticado
     if (!currentUser) {
       toast({
         title: "Error",
@@ -58,7 +58,7 @@ const PublishWaste = () => {
       console.log("Creando nuevo residuo con datos:", data);
       console.log("Usuario actual:", currentUser);
       
-      // Create new waste object con el ID de usuario verificado
+      // Crear objeto de residuo con el ID de usuario
       const newWasteData: Partial<Waste> = {
         userId: currentUser.id,
         type: data.type,
@@ -74,11 +74,11 @@ const PublishWaste = () => {
       
       console.log("Datos del residuo a guardar:", newWasteData);
       
-      // Add waste and handle response
+      // Agregar residuo y manejar respuesta
       const newWaste = await addWaste(newWasteData);
       console.log("Residuo creado exitosamente:", newWaste);
       
-      // Show success message
+      // Mostrar mensaje de éxito
       toast({
         title: "Publicación exitosa",
         description: "Tu residuo ha sido publicado correctamente",
@@ -102,7 +102,7 @@ const PublishWaste = () => {
     }
   };
   
-  // Mostrar un indicador de carga mientras se verifica la autenticación
+  // Mostrar indicador de carga mientras se verifica la autenticación
   if (isLoading) {
     return (
       <div className="container mx-auto max-w-2xl py-8 px-4 text-center">
@@ -111,7 +111,7 @@ const PublishWaste = () => {
     );
   }
   
-  // Si no hay usuario autenticado, mostrar un mensaje y un botón para ir al login
+  // Si no hay usuario autenticado, mostrar mensaje y botón para ir al login
   if (!currentUser) {
     return (
       <div className="container mx-auto max-w-2xl py-8 px-4">

@@ -13,6 +13,7 @@ import Register from "@/pages/Register";
 import SupabaseDiagnostic from "@/pages/SupabaseDiagnostic";
 import MapView from "@/pages/MapView";
 import PublishWaste from "@/pages/PublishWaste";
+import GeolocationAlert from "@/components/GeolocationAlert";
 
 function App() {
   const { checkConnection } = useSupabaseConnection();
@@ -23,6 +24,7 @@ function App() {
         <BrowserRouter>
           <Toaster />
           <SupabaseConnectionAlert />
+          <GeolocationAlert />
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
