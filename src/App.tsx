@@ -1,69 +1,42 @@
 
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "@/components/AuthProvider";
-import { LanguageProvider } from "@/components/LanguageContext";
-import InternetConnectionAlert from './components/InternetConnectionAlert';
-import SupabaseConnectionAlert from './components/SupabaseConnectionAlert';
-import GeolocationAlert from './components/GeolocationAlert';
-import StabilityManager from './components/StabilityManager';
-import Home from "./pages/Home";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import NotFound from "./pages/NotFound";
-import SupabaseDiagnostic from "./pages/SupabaseDiagnostic";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
+import AuthProvider from "@/components/AuthProvider";
+import { useSupabaseConnection } from "@/hooks/useSupabaseConnection";
+import SupabaseConnectionAlert from "@/components/SupabaseConnectionAlert";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import Home from "@/pages/Home";
+import Profile from "@/pages/Profile";
+import NotFound from "@/pages/NotFound";
+import Login from "@/pages/Login";
+import Register from "@/pages/Register";
+import SupabaseDiagnostic from "@/pages/SupabaseDiagnostic";
+import MapView from "@/pages/MapView";
+import PublishWaste from "@/pages/PublishWaste";
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      refetchOnWindowFocus: false,
-      staleTime: 5 * 60 * 1000 // 5 minutos
-    }
-  }
-});
+function App() {
+  const { checkConnection } = useSupabaseConnection();
 
-const AppRoutes = () => {
   return (
-    <Routes>
-      <Route path="/" element={<Home />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/supabase-diagnostic" element={<SupabaseDiagnostic />} />
-      {/* Rutas de Perfil y Residuo eliminadas */}
-      <Route path="*" element={<NotFound />} />
-    </Routes>
-  );
-};
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <LanguageProvider>
-        <AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <BrowserRouter>
           <Toaster />
-          <Sonner />
-          <InternetConnectionAlert />
           <SupabaseConnectionAlert />
-          <GeolocationAlert />
-          <BrowserRouter>
-            <StabilityManager>
-              <Navbar />
-              <main className="pt-16 min-h-[calc(100vh-64px)]">
-                <AppRoutes />
-              </main>
-              <Footer />
-            </StabilityManager>
-          </BrowserRouter>
-        </AuthProvider>
-      </LanguageProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/profile/:id" element={<Profile />} />
+            <Route path="/admin/diagnostics" element={<SupabaseDiagnostic />} />
+            <Route path="/map" element={<MapView />} />
+            <Route path="/publish" element={<PublishWaste />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
+    </ErrorBoundary>
+  );
+}
 
 export default App;
