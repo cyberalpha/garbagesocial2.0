@@ -1,137 +1,146 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { useInternetConnection } from './useInternetConnection';
-import { useSupabaseConnection } from './useSupabaseConnection';
-import { useToast } from '@/components/ui/use-toast';
+import { dataSynchronizer } from '@/services/sync/DataSynchronizer';
 import { Waste } from '@/types';
-import { WASTES_STORAGE_KEY } from '@/services/wastes/constants';
-import { getFromStorage } from '@/services/localStorage';
-import { supabase } from '@/integrations/supabase/client';
-import { Json } from '@/integrations/supabase/types';
+import { useAuth } from '@/hooks/useAuth';
+import { isOnline, offlineMode } from '@/integrations/supabase/client';
 
-interface UseDataSynchronizerResult {
-  isSynchronizing: boolean;
-  lastSyncTime: Date | null;
-  forceSynchronize: () => Promise<void>;
-}
+// Definir la clave de almacenamiento para residuos
+const WASTES_STORAGE_KEY = 'wastes';
 
-/**
- * Hook para sincronizar datos locales con Supabase cuando se restablece la conexión
- */
-export const useDataSynchronizer = (): UseDataSynchronizerResult => {
-  const [isSynchronizing, setIsSynchronizing] = useState<boolean>(false);
-  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
-  const { isOnline, wasOffline } = useInternetConnection();
-  const { status: supabaseStatus } = useSupabaseConnection();
-  const { toast } = useToast();
+export const useDataSynchronizer = () => {
+  const { currentUser } = useAuth();
+  const [wastes, setWastes] = useState<Waste[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<Error | null>(null);
 
-  // Función para transformar waste al formato de Supabase
-  const transformWasteForSupabase = (waste: Waste) => {
-    return {
-      id: waste.id,
-      user_id: waste.userId,
-      type: waste.type,
-      description: waste.description,
-      image_url: waste.imageUrl,
-      location: waste.location as unknown as Json,
-      publication_date: waste.publicationDate instanceof Date 
-        ? waste.publicationDate.toISOString() 
-        : waste.publicationDate,
-      status: waste.status,
-      pickup_commitment: waste.pickupCommitment as unknown as Json
-    };
-  };
-
-  // Función para sincronizar datos de localStorage con Supabase
-  const synchronizeData = useCallback(async () => {
-    if (!isOnline || supabaseStatus !== 'connected' || isSynchronizing) {
-      return;
-    }
-
-    setIsSynchronizing(true);
-    console.log('Iniciando sincronización de datos...');
-
+  // Cargar residuos
+  const loadWastes = useCallback(async () => {
     try {
-      // Obtener datos de localStorage
-      const localWastes = getFromStorage<Waste[]>(WASTES_STORAGE_KEY, []);
+      setIsLoading(true);
+      setError(null);
       
-      if (localWastes.length === 0) {
-        console.log('No hay datos locales para sincronizar');
-        setIsSynchronizing(false);
-        return;
+      let items: Waste[] = [];
+      
+      // Modo offline: usar localStorage
+      if (offlineMode()) {
+        const storedItems = localStorage.getItem(WASTES_STORAGE_KEY);
+        items = storedItems ? JSON.parse(storedItems) : [];
+      } else {
+        // Modo online: intentar cargar desde Supabase
+        try {
+          // Llamada a API o Supabase aquí
+          console.log('Cargando residuos desde Supabase (no implementado)');
+          const storedItems = localStorage.getItem(WASTES_STORAGE_KEY);
+          items = storedItems ? JSON.parse(storedItems) : [];
+        } catch (err) {
+          console.error('Error cargando datos de Supabase, usando datos locales:', err);
+          const storedItems = localStorage.getItem(WASTES_STORAGE_KEY);
+          items = storedItems ? JSON.parse(storedItems) : [];
+        }
       }
 
-      console.log(`Sincronizando ${localWastes.length} residuos desde localStorage a Supabase...`);
+      // Filtrar por usuario si es necesario
+      setWastes(items);
+    } catch (err) {
+      console.error('Error cargando residuos:', err);
+      setError(err instanceof Error ? err : new Error('Error desconocido cargando residuos'));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentUser]);
+
+  // Guardar residuo
+  const saveWaste = useCallback(async (waste: Waste): Promise<Waste> => {
+    try {
+      // Si no tiene ID, asignar uno
+      const wasteToSave: Waste = {
+        ...waste,
+        id: waste.id || `local-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      };
       
-      // Convertir a formato de Supabase
-      const supabaseData = localWastes.map(transformWasteForSupabase);
+      // Cargar residuos actuales
+      const currentItems = localStorage.getItem(WASTES_STORAGE_KEY);
+      const items: Waste[] = currentItems ? JSON.parse(currentItems) : [];
       
-      // Upsert en bloques de 50 para evitar límites de tamaño de payload
-      const chunkSize = 50;
-      let successCount = 0;
-      let errorCount = 0;
+      // Verificar si existe
+      const existingIndex = items.findIndex(item => item.id === wasteToSave.id);
       
-      for (let i = 0; i < supabaseData.length; i += chunkSize) {
-        const chunk = supabaseData.slice(i, i + chunkSize);
-        
-        const { error } = await supabase
-          .from('wastes')
-          .upsert(chunk, { onConflict: 'id' });
-        
-        if (error) {
-          console.error('Error al sincronizar chunk:', error);
-          errorCount += chunk.length;
-        } else {
-          successCount += chunk.length;
+      if (existingIndex >= 0) {
+        // Actualizar existente
+        items[existingIndex] = wasteToSave;
+      } else {
+        // Agregar nuevo
+        items.push(wasteToSave);
+      }
+      
+      // Guardar en localStorage
+      localStorage.setItem(WASTES_STORAGE_KEY, JSON.stringify(items));
+      
+      // Modo online: guardar en Supabase
+      if (!offlineMode()) {
+        try {
+          // Llamada a API o Supabase aquí
+          console.log('Guardando residuo en Supabase (no implementado):', wasteToSave);
+        } catch (err) {
+          console.error('Error guardando en Supabase:', err);
+          // No bloquear la operación, solo registrar el error
         }
       }
       
-      console.log(`Sincronización completada: ${successCount} exitosos, ${errorCount} con errores`);
+      // Recargar para actualizar la lista
+      await loadWastes();
       
-      if (successCount > 0) {
-        toast({
-          title: 'Sincronización completada',
-          description: `Se han sincronizado ${successCount} residuos con Supabase.`,
-        });
+      return wasteToSave;
+    } catch (err) {
+      console.error('Error guardando residuo:', err);
+      throw err instanceof Error ? err : new Error('Error desconocido guardando residuo');
+    }
+  }, [loadWastes]);
+
+  // Eliminar residuo
+  const deleteWaste = useCallback(async (wasteId: string): Promise<void> => {
+    try {
+      // Cargar residuos actuales
+      const currentItems = localStorage.getItem(WASTES_STORAGE_KEY);
+      const items: Waste[] = currentItems ? JSON.parse(currentItems) : [];
+      
+      // Filtrar para eliminar
+      const updatedItems = items.filter(item => item.id !== wasteId);
+      
+      // Guardar en localStorage
+      localStorage.setItem(WASTES_STORAGE_KEY, JSON.stringify(updatedItems));
+      
+      // Modo online: eliminar en Supabase
+      if (!offlineMode()) {
+        try {
+          // Llamada a API o Supabase aquí
+          console.log('Eliminando residuo en Supabase (no implementado):', wasteId);
+        } catch (err) {
+          console.error('Error eliminando en Supabase:', err);
+          // No bloquear la operación, solo registrar el error
+        }
       }
       
-      setLastSyncTime(new Date());
-    } catch (error) {
-      console.error('Error durante la sincronización:', error);
-      toast({
-        title: 'Error de sincronización',
-        description: 'No se pudieron sincronizar todos los datos con Supabase.',
-        variant: 'destructive'
-      });
-    } finally {
-      setIsSynchronizing(false);
+      // Recargar para actualizar la lista
+      await loadWastes();
+    } catch (err) {
+      console.error('Error eliminando residuo:', err);
+      throw err instanceof Error ? err : new Error('Error desconocido eliminando residuo');
     }
-  }, [isOnline, supabaseStatus, isSynchronizing, toast]);
+  }, [loadWastes]);
 
-  // Sincronizar cuando la conexión se restablece
+  // Inicializar al cargar
   useEffect(() => {
-    if (isOnline && wasOffline && supabaseStatus === 'connected') {
-      synchronizeData();
-    }
-  }, [isOnline, wasOffline, supabaseStatus, synchronizeData]);
-
-  // Función para forzar sincronización manualmente
-  const forceSynchronize = useCallback(async () => {
-    if (!isOnline || supabaseStatus !== 'connected') {
-      toast({
-        title: 'Sincronización no disponible',
-        description: 'No se puede sincronizar sin conexión a internet o a Supabase.',
-        variant: 'destructive'
-      });
-      return;
-    }
-    
-    await synchronizeData();
-  }, [isOnline, supabaseStatus, synchronizeData, toast]);
+    loadWastes();
+  }, [loadWastes]);
 
   return {
-    isSynchronizing,
-    lastSyncTime,
-    forceSynchronize
+    wastes,
+    isLoading,
+    error,
+    loadWastes,
+    saveWaste,
+    deleteWaste
   };
 };

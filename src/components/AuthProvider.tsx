@@ -1,6 +1,6 @@
 
 import React, { ReactNode } from 'react';
-import { useAuthProvider } from '@/hooks/useAuthProvider';
+import useAuthProvider from '@/hooks/useAuthProvider';
 import { useSessionManager } from '@/hooks/useSessionManager';
 import { AuthContext } from '@/contexts/AuthContext';
 
@@ -26,8 +26,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     updateProfile,
     deleteProfile,
     verifyEmail,
-    loginWithSocialMedia,
-    handleResendVerificationEmail
+    handleResendVerificationEmail,
+    toggleOfflineMode
   } = useAuthProvider();
 
   // Set up session manager
@@ -46,7 +46,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       updateProfile,
       deleteProfile,
       verifyEmail,
-      loginWithSocialMedia,
       pendingVerification,
       resendVerificationEmail: handleResendVerificationEmail
     }}>

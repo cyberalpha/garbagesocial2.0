@@ -1,8 +1,290 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { User } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { offlineMode } from '@/integrations/supabase/client';
+
+// Hook para manejar estado de autenticación
+export const useAuthState = () => {
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [pendingVerification, setPendingVerification] = useState(false);
+
+  return {
+    currentUser,
+    setCurrentUser,
+    isLoading,
+    setIsLoading,
+    pendingVerification,
+    setPendingVerification
+  };
+};
+
+// Hook para manejar acciones de autenticación
+export const useAuthActions = (
+  currentUser: User | null,
+  setCurrentUser: React.Dispatch<React.SetStateAction<User | null>>,
+  setIsLoading: React.Dispatch<React.SetStateAction<boolean>>,
+  setPendingVerification: React.Dispatch<React.SetStateAction<boolean>>
+) => {
+  const { toast } = useToast();
+
+  // Manejar cambios de sesión
+  const handleSessionChange = async () => {
+    try {
+      setIsLoading(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.user) {
+        // Obtener o crear perfil
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+          
+        if (profileData) {
+          const user: User = {
+            id: profileData.id,
+            name: profileData.name || '',
+            email: session.user.email || '',
+            isOrganization: profileData.is_organization || false,
+            averageRating: profileData.average_rating || 0,
+            profileImage: profileData.profile_image || '',
+            emailVerified: session.user.email_confirmed_at ? true : false,
+            active: true
+          };
+          setCurrentUser(user);
+        }
+      } else {
+        // No hay sesión activa
+        setCurrentUser(null);
+      }
+    } catch (error) {
+      console.error('Error al manejar cambio de sesión:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Iniciar sesión
+  const login = async (email: string, password: string) => {
+    try {
+      setIsLoading(true);
+      
+      // En modo offline, usar localStorage
+      if (offlineMode()) {
+        const mockUsers = JSON.parse(localStorage.getItem('profiles') || '{}');
+        const foundUser = Object.values(mockUsers).find(
+          (user: any) => user.email === email && user.password === password
+        ) as User | undefined;
+        
+        if (foundUser) {
+          localStorage.setItem('currentUser', JSON.stringify(foundUser));
+          setCurrentUser(foundUser);
+          
+          toast({
+            title: "Inicio de sesión exitoso",
+            description: `Bienvenido/a, ${foundUser.name}`,
+          });
+          
+          return { success: true };
+        } else {
+          throw new Error("Credenciales inválidas");
+        }
+      }
+      
+      // Modo online: usar Supabase
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      
+      if (error) throw error;
+      
+      if (data.user) {
+        // Obtener perfil del usuario
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', data.user.id)
+          .single();
+          
+        if (profileError) {
+          console.error('Error al obtener perfil:', profileError);
+        }
+        
+        if (profileData) {
+          const user: User = {
+            id: profileData.id,
+            name: profileData.name || '',
+            email: data.user.email || '',
+            isOrganization: profileData.is_organization || false,
+            averageRating: profileData.average_rating || 0,
+            profileImage: profileData.profile_image || '',
+            emailVerified: data.user.email_confirmed_at ? true : false,
+            active: true
+          };
+          setCurrentUser(user);
+        }
+        
+        toast({
+          title: "Inicio de sesión exitoso",
+          description: `Bienvenido/a, ${data.user.email?.split('@')[0] || ''}`,
+        });
+        
+        return { success: true };
+      }
+      
+      return { success: false, error: new Error("No se pudo iniciar sesión") };
+    } catch (error) {
+      console.error('Error al iniciar sesión:', error);
+      
+      toast({
+        title: "Error al iniciar sesión",
+        description: error instanceof Error ? error.message : "Error desconocido",
+        variant: "destructive"
+      });
+      
+      return { 
+        success: false, 
+        error: error instanceof Error ? error : new Error("Error desconocido") 
+      };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Registrar nuevo usuario
+  const register = async (email: string, password: string, name: string, isOrganization: boolean = false) => {
+    try {
+      setIsLoading(true);
+      
+      // En modo offline, usar localStorage
+      if (offlineMode()) {
+        const storedProfiles = JSON.parse(localStorage.getItem('profiles') || '{}');
+        const existingUser = Object.values(storedProfiles).find(
+          (user: any) => user.email === email
+        );
+        
+        if (existingUser) {
+          throw new Error("El email ya está registrado");
+        }
+        
+        const newUserId = `local-${Date.now()}`;
+        const newUser: User = {
+          id: newUserId,
+          email,
+          name,
+          isOrganization,
+          password, // Solo para modo offline
+          profileImage: `https://api.dicebear.com/7.x/initials/svg?seed=${email}`,
+          averageRating: 0,
+          emailVerified: false,
+          active: true
+        };
+        
+        // Guardar en localStorage
+        storedProfiles[newUserId] = newUser;
+        localStorage.setItem('profiles', JSON.stringify(storedProfiles));
+        localStorage.setItem('currentUser', JSON.stringify(newUser));
+        
+        setCurrentUser(newUser);
+        setPendingVerification(true);
+        
+        toast({
+          title: "Registro exitoso",
+          description: "Tu cuenta ha sido creada correctamente",
+        });
+        
+        return { success: true };
+      }
+      
+      // Modo online: usar Supabase
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name,
+            isOrganization
+          }
+        }
+      });
+      
+      if (error) throw error;
+      
+      setPendingVerification(true);
+      
+      toast({
+        title: "Registro exitoso",
+        description: "Por favor, verifica tu email para completar el registro",
+      });
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Error al registrar usuario:', error);
+      
+      toast({
+        title: "Error al registrar",
+        description: error instanceof Error ? error.message : "Error desconocido",
+        variant: "destructive"
+      });
+      
+      return { 
+        success: false, 
+        error: error instanceof Error ? error : new Error("Error desconocido") 
+      };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Cerrar sesión
+  const logout = async () => {
+    try {
+      setIsLoading(true);
+      
+      if (offlineMode()) {
+        localStorage.removeItem('currentUser');
+        setCurrentUser(null);
+      } else {
+        await supabase.auth.signOut();
+        setCurrentUser(null);
+      }
+      
+      toast({
+        title: "Sesión cerrada",
+        description: "Has cerrado sesión correctamente",
+      });
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+      
+      toast({
+        title: "Error al cerrar sesión",
+        description: error instanceof Error ? error.message : "Error desconocido",
+        variant: "destructive"
+      });
+      
+      return { 
+        success: false, 
+        error: error instanceof Error ? error : new Error("Error desconocido") 
+      };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return {
+    handleSessionChange,
+    login,
+    register,
+    logout
+  };
+};
 
 // Hook para manejar acciones del perfil de usuario
 export const useProfileActions = () => {
@@ -231,6 +513,7 @@ export const useProfileActions = () => {
   };
 };
 
+// Hook principal de autenticación
 const useAuthProvider = () => {
   const {
     currentUser,
@@ -241,7 +524,29 @@ const useAuthProvider = () => {
     setPendingVerification
   } = useAuthState();
 
-  // Initialize from Supabase session instead of localStorage
+  // Acciones de autenticación
+  const {
+    handleSessionChange,
+    login,
+    register,
+    logout
+  } = useAuthActions(
+    currentUser,
+    setCurrentUser,
+    setIsLoading,
+    setPendingVerification
+  );
+
+  // Acciones de perfil
+  const {
+    updateProfile,
+    deleteProfile,
+    verifyEmail,
+    handleResendVerificationEmail,
+    toggleOfflineMode
+  } = useProfileActions();
+
+  // Inicializar desde Supabase
   const initializeFromSupabase = async () => {
     try {
       if (!currentUser) {
@@ -338,34 +643,11 @@ const useAuthProvider = () => {
   };
 
   // Initialize from Supabase when component loads
-  if (!currentUser && !isLoading) {
-    initializeFromSupabase();
-  }
-
-  const {
-    handleSessionChange,
-    login,
-    register,
-    logout
-  } = useAuthActions(
-    currentUser,
-    setCurrentUser,
-    setIsLoading,
-    setPendingVerification
-  );
-
-  const {
-    updateProfile,
-    deleteProfile,
-    verifyEmail,
-    loginWithSocialMedia,
-    handleResendVerificationEmail
-  } = useProfileActions(
-    currentUser,
-    setCurrentUser,
-    setIsLoading,
-    logout
-  );
+  useEffect(() => {
+    if (!currentUser && !isLoading) {
+      initializeFromSupabase();
+    }
+  }, [currentUser, isLoading]);
 
   return {
     currentUser,
@@ -381,8 +663,8 @@ const useAuthProvider = () => {
     updateProfile,
     deleteProfile,
     verifyEmail,
-    loginWithSocialMedia,
-    handleResendVerificationEmail
+    handleResendVerificationEmail,
+    toggleOfflineMode
   };
 };
 

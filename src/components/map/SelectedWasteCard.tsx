@@ -36,8 +36,18 @@ const SelectedWasteCard = ({
         </Button>
         <WasteCard 
           waste={selectedWaste} 
-          onCommit={onCommit} 
+          showActions={false}
         />
+        <div className="p-3 pt-0">
+          <Button 
+            variant="default" 
+            size="sm" 
+            className="w-full"
+            onClick={() => onCommit(selectedWaste)}
+          >
+            Comprometerme a recolectar
+          </Button>
+        </div>
       </Card>
     </div>
   );

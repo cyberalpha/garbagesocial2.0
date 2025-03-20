@@ -2,183 +2,293 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User } from '@/types';
-import { getWastesByUserId } from '@/services/wastes';
-import { Waste } from '@/types';
-import WastesList from '@/components/waste/WastesList';
-import { ArrowLeft, MapPin, Plus, User as UserIcon, Alert } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { 
+  User, 
+  Settings, 
+  Edit2, 
+  LogOut, 
+  AlertCircle, 
+  UserX 
+} from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger 
+} from '@/components/ui/dialog';
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
-const Profile = () => {
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+const ProfilePage = () => {
   const { id } = useParams<{ id: string }>();
-  const { currentUser } = useAuth();
   const navigate = useNavigate();
-  const [profileUser, setProfileUser] = useState<User | null>(null);
-  const [wastes, setWastes] = useState<Waste[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { currentUser, logout, updateProfile, deleteProfile } = useAuth();
+  const { toast } = useToast();
   
-  const isOwnProfile = currentUser && (id === currentUser.id);
+  const [isEditing, setIsEditing] = useState(false);
+  const [name, setName] = useState('');
+  const [profileImage, setProfileImage] = useState('');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   
+  // Determinar si este perfil pertenece al usuario actual
+  const isCurrentUserProfile = currentUser?.id === id;
+  
+  // Cargar datos iniciales
   useEffect(() => {
-    const loadProfile = async () => {
-      setIsLoading(true);
-      try {
-        // Simplemente usamos el usuario actual por ahora
-        if (currentUser && id === currentUser.id) {
-          setProfileUser(currentUser);
-          
-          // Cargar residuos del usuario
-          const userWastes = await getWastesByUserId(id);
-          setWastes(userWastes);
-        } else {
-          // Aquí se implementaría la obtención del perfil de otro usuario
-          // Por ahora, en modo offline, solo se puede ver el propio perfil
-          navigate('/'); // Redireccionar a la página principal
-        }
-      } catch (error) {
-        console.error("Error al cargar perfil:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    loadProfile();
-  }, [id, currentUser, navigate]);
+    if (currentUser && isCurrentUserProfile) {
+      setName(currentUser.name || '');
+      setProfileImage(currentUser.profileImage || '');
+    }
+  }, [currentUser, isCurrentUserProfile]);
   
-  const refreshWastes = async () => {
-    if (id) {
-      const userWastes = await getWastesByUserId(id);
-      setWastes(userWastes);
+  // Función para actualizar perfil
+  const handleUpdateProfile = async () => {
+    if (!currentUser) return;
+    
+    try {
+      const updatedUser = await updateProfile({
+        ...currentUser,
+        name,
+        profileImage
+      });
+      
+      setIsEditing(false);
+      toast({
+        title: "Perfil actualizado",
+        description: "Tu perfil ha sido actualizado correctamente."
+      });
+    } catch (error) {
+      console.error('Error actualizando perfil:', error);
+      toast({
+        title: "Error actualizando perfil",
+        description: error instanceof Error ? error.message : "Error desconocido",
+        variant: "destructive"
+      });
     }
   };
   
-  const handlePublishWaste = () => {
-    navigate('/publish');
+  // Función para cerrar sesión
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/');
+    } catch (error) {
+      console.error('Error cerrando sesión:', error);
+    }
   };
   
-  if (isLoading) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-center items-center h-64">
-          <p>Cargando perfil...</p>
-        </div>
-      </div>
-    );
-  }
+  // Función para eliminar perfil
+  const handleDeleteProfile = async (shouldDeactivate = false) => {
+    try {
+      await deleteProfile(shouldDeactivate);
+      navigate('/');
+    } catch (error) {
+      console.error('Error eliminando perfil:', error);
+    }
+  };
   
-  if (!profileUser) {
+  // Si no hay usuario autenticado, mostrar mensaje
+  if (!currentUser) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-center items-center h-64">
-          <p>Perfil no encontrado</p>
-        </div>
+      <div className="container max-w-4xl mx-auto p-6">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <AlertCircle className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+              <h2 className="text-xl font-semibold mb-2">Usuario no encontrado</h2>
+              <p className="text-muted-foreground mb-4">
+                No se ha encontrado el perfil solicitado o no tienes permiso para verlo.
+              </p>
+              <Button onClick={() => navigate('/')}>Volver al inicio</Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
   
   return (
-    <div className="container mx-auto px-4 py-8">
-      <Button 
-        variant="ghost" 
-        className="mb-4" 
-        onClick={() => navigate(-1)}
-      >
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Volver
-      </Button>
-      
+    <div className="container max-w-4xl mx-auto p-6">
       <Card className="mb-6">
-        <CardHeader className="relative pb-0">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-            <div className="relative h-24 w-24 rounded-full overflow-hidden bg-muted">
-              {profileUser.profileImage ? (
-                <img 
-                  src={profileUser.profileImage} 
-                  alt={profileUser.name || 'Usuario'} 
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <div className="h-full w-full flex items-center justify-center bg-primary/10">
-                  <UserIcon className="h-12 w-12 text-primary/40" />
-                </div>
-              )}
-            </div>
-            
-            <div className="flex-1">
-              <CardTitle className="text-2xl">{profileUser.name || 'Usuario'}</CardTitle>
-              <CardDescription>{profileUser.email}</CardDescription>
-              
-              {profileUser.location && (
-                <div className="flex items-center mt-1 text-sm text-muted-foreground">
-                  <MapPin className="h-4 w-4 mr-1" />
-                  <span>
-                    {profileUser.location.coordinates[1].toFixed(6)}, 
-                    {profileUser.location.coordinates[0].toFixed(6)}
-                  </span>
-                </div>
+        <CardHeader className="relative">
+          <div className="absolute right-4 top-4 flex gap-2">
+            {isCurrentUserProfile && (
+              <>
+                <Dialog open={isEditing} onOpenChange={setIsEditing}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="icon">
+                      <Edit2 className="h-4 w-4" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Editar perfil</DialogTitle>
+                      <DialogDescription>
+                        Actualiza tus datos personales
+                      </DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="grid gap-4 py-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="name">Nombre</Label>
+                        <Input 
+                          id="name" 
+                          value={name} 
+                          onChange={(e) => setName(e.target.value)} 
+                        />
+                      </div>
+                      
+                      <div className="grid gap-2">
+                        <Label htmlFor="profileImage">URL de imagen</Label>
+                        <Input 
+                          id="profileImage" 
+                          value={profileImage} 
+                          onChange={(e) => setProfileImage(e.target.value)} 
+                        />
+                      </div>
+                      
+                      <div className="mt-2">
+                        <Label>Vista previa</Label>
+                        <div className="mt-2 flex justify-center">
+                          <Avatar className="h-20 w-20">
+                            <AvatarImage src={profileImage} />
+                            <AvatarFallback>{name?.charAt(0) || '?'}</AvatarFallback>
+                          </Avatar>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <DialogFooter>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setIsEditing(false)}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button onClick={handleUpdateProfile}>
+                        Guardar cambios
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+                
+                <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" size="icon" className="text-red-500">
+                      <UserX className="h-4 w-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>¿Quieres eliminar tu perfil?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Tienes dos opciones: desactivar tu cuenta (podrás recuperarla más tarde) o eliminarla permanentemente.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <Button
+                        variant="outline"
+                        className="border-amber-500 text-amber-500 hover:text-amber-500 hover:bg-amber-50"
+                        onClick={() => handleDeleteProfile(true)}
+                      >
+                        Desactivar
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        onClick={() => handleDeleteProfile(false)}
+                      >
+                        Eliminar permanentemente
+                      </Button>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+                
+                <Button variant="outline" size="icon" onClick={handleLogout}>
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </>
+            )}
+          </div>
+          
+          <div className="flex flex-col items-center">
+            <Avatar className="h-24 w-24 mb-4">
+              <AvatarImage src={currentUser.profileImage} />
+              <AvatarFallback>{currentUser.name?.charAt(0) || '?'}</AvatarFallback>
+            </Avatar>
+            <CardTitle className="text-center mb-1">{currentUser.name}</CardTitle>
+            <p className="text-sm text-muted-foreground">{currentUser.email}</p>
+            <div className="flex items-center mt-2">
+              {currentUser.isOrganization && (
+                <span className="bg-primary/10 text-primary text-xs rounded-full px-2 py-1 font-medium">
+                  Organización
+                </span>
               )}
             </div>
           </div>
         </CardHeader>
-        
-        <CardContent className="pt-6">
-          {isOwnProfile && (
-            <div className="flex flex-wrap gap-2 justify-end mb-4">
-              <Button 
-                variant="outline" 
-                onClick={() => navigate('/settings')}
-              >
-                Editar Perfil
-              </Button>
-            </div>
-          )}
-        </CardContent>
       </Card>
       
-      <Tabs defaultValue="wastes" className="mt-6">
-        <TabsList className="mb-4">
-          <TabsTrigger value="wastes">Residuos Publicados</TabsTrigger>
-          <TabsTrigger value="collections">Recolecciones</TabsTrigger>
+      <Tabs defaultValue="wastes">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="wastes">Mis residuos</TabsTrigger>
+          <TabsTrigger value="collections">Mis recolecciones</TabsTrigger>
         </TabsList>
-        
-        <TabsContent value="wastes" className="space-y-4">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-medium">Residuos Publicados</h2>
-            
-            {isOwnProfile && (
-              <Button 
-                onClick={handlePublishWaste}
-                size="sm"
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Publicar
-              </Button>
-            )}
-          </div>
-          
-          <WastesList 
-            wastes={wastes} 
-            isLoading={isLoading}
-            emptyMessage={
-              isOwnProfile 
-                ? "Aún no has publicado ningún residuo. ¡Comienza publicando uno!"
-                : "Este usuario aún no ha publicado residuos."
-            }
-            onWastesChanged={refreshWastes}
-          />
+        <TabsContent value="wastes">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">
+                  No has publicado residuos todavía
+                </p>
+                {isCurrentUserProfile && (
+                  <Button className="mt-4" onClick={() => navigate('/publish')}>
+                    Publicar nuevo residuo
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
-        
         <TabsContent value="collections">
-          <div className="flex items-center justify-center p-12 text-muted-foreground">
-            <Alert className="h-6 w-6 mr-2" />
-            <span>Esta sección estará disponible próximamente</span>
-          </div>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">
+                  No has realizado recolecciones
+                </p>
+                {isCurrentUserProfile && (
+                  <Button className="mt-4" onClick={() => navigate('/map')}>
+                    Ver mapa de residuos
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
   );
 };
 
-export default Profile;
+export default ProfilePage;
