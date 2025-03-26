@@ -211,13 +211,13 @@ const ProfilePage = () => {
                       <Button
                         variant="outline"
                         className="border-amber-500 text-amber-500 hover:text-amber-500 hover:bg-amber-50"
-                        onClick={() => handleDeleteProfile(true)}
+                        onClick={handleDeleteProfile}
                       >
                         Desactivar
                       </Button>
                       <Button
                         variant="destructive"
-                        onClick={() => handleDeleteProfile(false)}
+                        onClick={handleDeleteProfile}
                       >
                         Eliminar permanentemente
                       </Button>
