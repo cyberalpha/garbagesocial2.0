@@ -14,9 +14,7 @@ const StabilityManager: React.FC<{ children: React.ReactNode }> = ({ children })
   const location = useLocation();
   const navigate = useNavigate();
   const { currentUser, isLoading } = useAuth();
-  const [isStable, setIsStable] = useState(false);
   const [pendingRoute, setPendingRoute] = useState<string | null>(null);
-  const [loadingTimeout, setLoadingTimeout] = useState<boolean>(false);
   const [lastAuthState, setLastAuthState] = useState<{
     isLoading: boolean;
     isAuthenticated: boolean;
@@ -27,20 +25,7 @@ const StabilityManager: React.FC<{ children: React.ReactNode }> = ({ children })
     currentRoute: '/'
   });
 
-  // Establecer un tiempo máximo de carga
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (!isStable) {
-        console.log('Tiempo de carga excedido, mostrando la aplicación de todos modos');
-        setLoadingTimeout(true);
-        setIsStable(true);
-      }
-    }, 3000); // Esperar máximo 3 segundos
-
-    return () => clearTimeout(timer);
-  }, [isStable]);
-
-  // Estabilizador para prevenir parpadeo y redirecciones innecesarias
+  // Estabilizador para prevenir redirecciones innecesarias
   useEffect(() => {
     const currentPath = location.pathname;
     const requiresAuth = ROUTES_REQUIRING_AUTH.some(route => 
@@ -66,14 +51,10 @@ const StabilityManager: React.FC<{ children: React.ReactNode }> = ({ children })
     
     setLastAuthState(newState);
     
-    // Si estamos cargando y no se ha excedido el tiempo, esperar
-    if (isLoading && !loadingTimeout) {
-      setIsStable(false);
-      return;
-    }
+    // Saltamos la verificación de carga para mostrar el frontend de inmediato
     
     // Ruta protegida + no autenticado = redirigir a login
-    if (requiresAuth && !isAuthenticated) {
+    if (requiresAuth && !isAuthenticated && !isLoading) {
       console.log('Ruta protegida, usuario no autenticado. Redirigiendo a login...');
       if (currentPath !== '/login') {
         setPendingRoute('/login');
@@ -82,20 +63,17 @@ const StabilityManager: React.FC<{ children: React.ReactNode }> = ({ children })
     }
     
     // Login/registro + autenticado = redirigir a inicio
-    if ((currentPath === '/login' || currentPath === '/register') && isAuthenticated) {
+    if ((currentPath === '/login' || currentPath === '/register') && isAuthenticated && !isLoading) {
       console.log('Usuario autenticado en login/register. Redirigiendo a inicio...');
       setPendingRoute('/');
       return;
     }
     
-    // Estabilizar la aplicación
-    setIsStable(true);
-    
-  }, [currentUser, isLoading, location.pathname, lastAuthState, loadingTimeout]);
+  }, [currentUser, isLoading, location.pathname, lastAuthState]);
   
   // Efecto para manejar redirecciones pendientes
   useEffect(() => {
-    if (pendingRoute && (isStable || loadingTimeout)) {
+    if (pendingRoute && !isLoading) {
       const timeoutId = setTimeout(() => {
         console.log(`Redirigiendo a ${pendingRoute}...`);
         navigate(pendingRoute);
@@ -104,22 +82,9 @@ const StabilityManager: React.FC<{ children: React.ReactNode }> = ({ children })
       
       return () => clearTimeout(timeoutId);
     }
-  }, [pendingRoute, isStable, navigate, loadingTimeout]);
+  }, [pendingRoute, isLoading, navigate]);
   
-  // Mostrar indicador de carga si la aplicación no está estable
-  if (!isStable && !loadingTimeout) {
-    // Vista de carga para toda la aplicación
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Cargando aplicación...</p>
-        </div>
-      </div>
-    );
-  }
-  
-  // Renderizar la aplicación una vez que esté estable o se haya excedido el tiempo de carga
+  // Renderizar la aplicación de inmediato
   return <>{children}</>;
 };
 
