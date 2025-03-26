@@ -98,9 +98,10 @@ const ProfilePage = () => {
   };
   
   // Función para eliminar perfil
-  const handleDeleteProfile = async (shouldDeactivate = false) => {
+  const handleDeleteProfile = async () => {
     try {
-      await deleteProfile(shouldDeactivate);
+      // Removemos el argumento para que coincida con la firma esperada
+      await deleteProfile();
       navigate('/');
     } catch (error) {
       console.error('Error eliminando perfil:', error);

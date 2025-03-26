@@ -3,6 +3,7 @@ import React, { ReactNode } from 'react';
 import useAuthProvider from '@/hooks/useAuthProvider';
 import { useSessionManager } from '@/hooks/useSessionManager';
 import { AuthContext } from '@/contexts/AuthContext';
+import { User } from '@/types'; // Añadimos la importación del tipo User
 
 // Export the auth hook
 export { useAuth } from '@/hooks/useAuth';
@@ -71,6 +72,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     await handleResendVerificationEmail(email);
   };
 
+  // Implementación básica de loginWithSocialMedia para satisfacer el tipo AuthContextType
+  const loginWithSocialMedia = async (provider: string) => {
+    console.warn('Login con redes sociales no implementado:', provider);
+    throw new Error('La funcionalidad de login con redes sociales no está implementada actualmente');
+  };
+
   return (
     <AuthContext.Provider value={{ 
       currentUser, 
@@ -82,7 +89,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       deleteProfile,
       verifyEmail,
       pendingVerification,
-      resendVerificationEmail: adaptedResendVerification
+      resendVerificationEmail: adaptedResendVerification,
+      loginWithSocialMedia // Añadimos la propiedad faltante
     }}>
       {children}
     </AuthContext.Provider>
