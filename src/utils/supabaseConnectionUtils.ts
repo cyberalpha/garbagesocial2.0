@@ -26,31 +26,60 @@ export const checkDatabaseConnection = async (): Promise<{
     
     const startTime = Date.now();
     
-    // Probar conexión con una consulta simple
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id')
-      .limit(1);
+    // Mejorar la robustez de la prueba de conexión con reintentos
+    let attempts = 0;
+    const maxAttempts = 3;
+    let lastError: any = null;
     
+    while (attempts < maxAttempts) {
+      try {
+        // Probar conexión con una consulta simple
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id')
+          .limit(1);
+        
+        if (!error) {
+          const endTime = Date.now();
+          const latency = endTime - startTime;
+          
+          console.log('Conexión a Supabase exitosa');
+          return {
+            success: true,
+            offlineMode: false,
+            latency,
+            supabaseVersion: '2.x'
+          };
+        }
+        
+        lastError = error;
+        attempts++;
+        
+        // Esperar antes de reintentar (exponential backoff)
+        if (attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
+        }
+      } catch (err) {
+        lastError = err;
+        attempts++;
+        
+        // Esperar antes de reintentar
+        if (attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
+        }
+      }
+    }
+    
+    // Si llegamos aquí, todos los intentos fallaron
+    console.error('Error verificando conexión a Supabase después de múltiples intentos:', lastError);
     const endTime = Date.now();
     const latency = endTime - startTime;
     
-    if (error) {
-      console.error('Error verificando conexión a Supabase:', error);
-      return {
-        success: false,
-        error,
-        offlineMode: false,
-        latency
-      };
-    }
-    
-    console.log('Conexión a Supabase exitosa');
     return {
-      success: true,
+      success: false,
+      error: lastError,
       offlineMode: false,
-      latency,
-      supabaseVersion: '2.x' // Versión fija o podría obtenerse de alguna manera
+      latency
     };
   } catch (error) {
     console.error('Error inesperado al verificar conexión a Supabase:', error);

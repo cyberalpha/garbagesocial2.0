@@ -7,7 +7,7 @@ import { useSupabaseConnection } from "@/hooks/useSupabaseConnection";
 import SupabaseConnectionAlert from "@/components/SupabaseConnectionAlert";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import StabilityManager from "@/components/StabilityManager";
-import { LanguageProvider } from "@/components/LanguageContext"; // Importamos LanguageProvider
+import { LanguageProvider } from "@/components/LanguageContext";
 import Home from "@/pages/Home";
 import Profile from "@/pages/Profile";
 import NotFound from "@/pages/NotFound";
@@ -24,7 +24,7 @@ function App() {
   return (
     <ErrorBoundary>
       <TooltipProvider>
-        <LanguageProvider> {/* Añadimos el LanguageProvider aquí */}
+        <LanguageProvider>
           <AuthProvider>
             <BrowserRouter>
               <StabilityManager>
@@ -35,6 +35,7 @@ function App() {
                   <Route path="/" element={<Home />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
+                  <Route path="/profile" element={<Profile />} />
                   <Route path="/profile/:id" element={<Profile />} />
                   <Route path="/admin/diagnostics" element={<SupabaseDiagnostic />} />
                   <Route path="/map" element={<MapView />} />
@@ -44,7 +45,7 @@ function App() {
               </StabilityManager>
             </BrowserRouter>
           </AuthProvider>
-        </LanguageProvider> {/* Cerramos el LanguageProvider */}
+        </LanguageProvider>
       </TooltipProvider>
     </ErrorBoundary>
   );

@@ -18,7 +18,7 @@ const LanguageSelector = ({ showLabel = false }: { showLabel?: boolean }) => {
     { value: 'en', label: 'English', flag: '🇺🇸' },
   ];
   
-  const currentLanguage = languages.find(lang => lang.value === language);
+  const currentLanguage = languages.find(lang => lang.value === language) || languages[0];
   
   return (
     <DropdownMenu>

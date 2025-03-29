@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -120,8 +121,12 @@ const Navbar = () => {
       <div className="container mx-auto px-4 h-full flex items-center justify-between">
         <div className="flex items-center">
           <Link to="/" className="flex items-center gap-2" onClick={closeMenu}>
-            <Trash2 className="h-6 w-6 text-primary" />
-            <span className="font-bold text-xl text-gray-900">EcoResiduos</span>
+            <img 
+              src="/lovable-uploads/7989feae-08a4-4881-a7f9-239a82906dd2.png" 
+              alt="GarbageSocial Logo" 
+              className="h-8 w-8"
+            />
+            <span className="font-bold text-xl text-gray-900">Garbage Social</span>
           </Link>
           
           <div className="ml-4">
