@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { RecycleIcon, Map, UserIcon, Upload } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useLanguage } from '@/components/LanguageContext'; // Importamos el hook
 
 const Index = () => {
   const navigate = useNavigate();
+  const { t } = useLanguage(); // Usamos el hook para las traducciones
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-primary/20 to-background">

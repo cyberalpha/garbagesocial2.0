@@ -1,9 +1,8 @@
-
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/components/LanguageContext';
-import LanguageSwitcher from '@/components/LanguageSwitcher';
+import LanguageSelector from '@/components/LanguageSelector';
 import { Menu, X, MapPin, PlusCircle, UserCircle, LogOut, Home, Trash2, Activity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -125,7 +124,6 @@ const Navbar = () => {
             <span className="font-bold text-xl text-gray-900">EcoResiduos</span>
           </Link>
           
-          {/* Indicador de conexión siempre visible */}
           <div className="ml-4">
             <ConnectionIndicator />
           </div>
@@ -136,7 +134,7 @@ const Navbar = () => {
         </div>
         
         <div className="flex items-center gap-2">
-          <LanguageSwitcher />
+          <LanguageSelector />
           
           {currentUser ? (
             <DropdownMenu>
@@ -182,7 +180,6 @@ const Navbar = () => {
         </div>
       </div>
       
-      {/* Mobile menu */}
       <div 
         className={cn(
           "fixed inset-0 bg-white z-40 transition-transform duration-300 pt-16",
